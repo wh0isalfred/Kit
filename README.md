@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KIT — Port Harcourt
 
-## Getting Started
+> Every career needs tech literacy.
 
-First, run the development server:
+KIT is a tech education platform for ages 12–16, running a 12-week Future Skills Lab and a 3-week Summer Program in Port Harcourt, Nigeria.
+
+## What's in this repo
+
+A single Next.js application serving four surfaces:
+
+- **Marketing site** — public pages, programs, apply flow
+- **Summer Portal** — ID-only shared classroom for the 3-week summer cohort
+- **Student / Teacher / Admin platform** — the 12-week program's batch-based dashboards
+
+See [`docs/Architecture.md`](docs/Architecture.md) for the full breakdown and [`docs/adr/`](docs/adr/) for why things are built the way they are.
+
+## Stack
+
+Next.js (App Router) · TypeScript · Supabase (Postgres, Auth, Storage, RLS) · Paystack · Vercel
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in Supabase + Paystack keys
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docs
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| File | What it covers |
+|---|---|
+| [Architecture.md](docs/Architecture.md) | System design, routes, why no separate backend |
+| [Database.md](docs/Database.md) | Schema |
+| [Roadmap.md](docs/Roadmap.md) | Phased build plan |
+| [adr/](docs/adr/) | Architecture Decision Records |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+More docs (`Curriculum.md`, `API.md`, `UI.md`, `Brand.md`) get added when there's real content to put in them — not before.
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Proprietary — Adegbola Industries.
