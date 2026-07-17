@@ -3,7 +3,7 @@
 ## Phase 0 — Planning
 - [x] Architecture
 - [x] Database schema
-- [ ] Wireframes for /summer and /admin (only these two — the marketing site already has a working mockup)
+- [x] Wireframes for /summer and /admin (only these two — the marketing site already has a working mockup)
 
 ## Phase 1 — Marketing Website
 - [ ] Home (existing mockup, wired to `courses` table)
