@@ -203,54 +203,33 @@ footer{border-top:1px solid var(--line);padding:56px 0 44px}
 .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.3,1)}
 .reveal.in{opacity:1;transform:none}
 
-/* ================= SUMMER EVENT SECTION ================= */
-.summer{position:relative;overflow:hidden;background:
-  radial-gradient(120% 90% at 80% -10%, #223561 0%, transparent 55%),
-  radial-gradient(120% 100% at 0% 110%, #12406b 0%, transparent 50%),
-  linear-gradient(180deg,#16203b 0%,#1a2748 100%);
-  color:#eaf1fb;padding:118px 0 128px}
-.summer::before,.summer::after{content:"";position:absolute;left:0;right:0;height:80px;z-index:2;pointer-events:none}
-.summer::before{top:0;background:linear-gradient(180deg,rgba(252,253,255,.6),transparent)}
-.summer::after{bottom:0;background:linear-gradient(0deg,rgba(252,253,255,.55),transparent)}
-
-.s-ambient{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.s-glyph{position:absolute;opacity:.14}
-.s-glyph svg{display:block}
-.sg1{top:16%;left:7%;color:#4db4f0;animation:drift 18s ease-in-out infinite}
-.sg2{top:26%;right:9%;color:#25B290;opacity:.16;animation:drift2 22s ease-in-out infinite 1s}
-.sg3{top:64%;left:12%;color:#4db4f0;opacity:.12;animation:drift2 20s ease-in-out infinite}
-.sg4{top:72%;right:14%;color:#25B290;animation:drift 24s ease-in-out infinite 2s}
-.sg5{top:44%;left:46%;color:#8fd0f5;opacity:.1;animation:drift 26s ease-in-out infinite}
-.sg6{top:12%;right:30%;color:#4db4f0;opacity:.1;animation:drift2 21s ease-in-out infinite 1.4s}
-
-.summer-in{position:relative;z-index:3;text-align:center;max-width:820px;margin:0 auto}
-.badge{display:inline-flex;align-items:center;gap:9px;background:rgba(37,178,144,.14);
-  border:1px solid rgba(37,178,144,.4);color:#7fe6c6;border-radius:40px;padding:8px 18px;
-  font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(37,178,144,.7);animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,178,144,.55)}70%{box-shadow:0 0 0 10px rgba(37,178,144,0)}100%{box-shadow:0 0 0 0 rgba(37,178,144,0)}}
-
-.summer h2{font-size:66px;letter-spacing:-.04em;margin:26px 0 0;line-height:1}
-.summer h2 em{font-style:normal;background:var(--grad-bright);-webkit-background-clip:text;background-clip:text;color:transparent}
-.summer .lede{font-size:18px;color:#a9b8d4;margin:22px auto 0;max-width:540px}
-
-.stats{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin:42px 0 8px}
-.stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:20px 26px;min-width:150px}
-.stat .n{font-size:30px;font-weight:800;letter-spacing:-.03em;background:var(--grad-bright);-webkit-background-clip:text;background-clip:text;color:transparent}
-.stat .l{font-size:12.5px;color:#93a4c4;font-weight:600;letter-spacing:.04em;margin-top:4px}
-
-.count{display:flex;justify-content:center;gap:12px;margin:38px 0 6px}
-.count .u{background:rgba(9,15,30,.5);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:14px 4px;width:74px}
-.count .cn{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.count .cl{font-size:10.5px;color:#8798b8;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
-.count-note{font-size:13px;color:#8798b8;margin-top:14px}
-.count-closed{color:#a9b8d4;font-size:14px;margin-top:30px}
-
-.summer-cta{margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.btn-glow{background:var(--grad-bright);color:#0e1830;font-weight:700;font-size:15px;padding:15px 32px;box-shadow:0 16px 40px -12px rgba(25,153,228,.7)}
-.btn-glow:hover{transform:translateY(-2px);box-shadow:0 22px 50px -14px rgba(25,153,228,.85)}
-.btn-ghost{background:transparent;border:1.5px solid rgba(255,255,255,.22);color:#eaf1fb}
-.btn-ghost:hover{border-color:rgba(255,255,255,.5)}
+/* ================= SUMMER CAMP SECTION ================= */
+.summer{padding:72px 0}
+.summer-banner{position:relative;overflow:hidden;border-radius:26px;min-height:360px;display:flex;align-items:center;
+  background:#0a1730 url("/summersectionImage.webp") right center/cover no-repeat;
+  box-shadow:0 30px 70px -30px rgba(10,20,50,.55);
+  animation:summerPulse 3.8s ease-in-out infinite}
+.summer-banner::before{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,#0a1730 2%,rgba(10,23,48,.86) 34%,rgba(10,23,48,.2) 58%,transparent 76%)}
+.summer-content{position:relative;z-index:2;padding:48px 52px;max-width:600px}
+.summer-badge{display:inline-flex;align-items:center;background:#2bd48d;color:#06231a;
+  font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 15px;border-radius:30px}
+.summer-content h2{font-size:42px;color:#fff;letter-spacing:-.03em;margin:18px 0 0;line-height:1.04;text-transform:uppercase}
+.summer-stats{font-size:16px;color:#cfe0f5;font-weight:600;margin:16px 0 0}
+.summer-tag{font-size:14.5px;color:#8fa6c8;margin:8px 0 0}
+.count{display:flex;gap:12px;margin:26px 0 0}
+.count .u{background:rgba(4,12,28,.5);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 6px;width:70px;text-align:center}
+.count .cn{font-size:26px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.count .cl{font-size:10px;color:#8fa6c8;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-top:3px}
+.count-closed{color:#cfe0f5;font-size:15px;margin:26px 0 0}
+.summer-cta{display:flex;align-items:center;gap:18px;margin-top:28px;flex-wrap:wrap}
+.btn-glow{background:#2bd48d;color:#06231a;font-weight:700;font-size:15px;padding:14px 28px;box-shadow:0 14px 34px -12px rgba(43,212,141,.7)}
+.btn-glow:hover{transform:translateY(-2px);box-shadow:0 20px 44px -14px rgba(43,212,141,.85)}
+.summer-seats{font-size:13px;color:#8fd9b8;font-style:italic}
+@keyframes summerPulse{
+  0%,100%{box-shadow:0 30px 70px -30px rgba(10,20,50,.55),0 0 0 0 rgba(43,212,141,0)}
+  50%{box-shadow:0 30px 70px -30px rgba(10,20,50,.55),0 0 56px 2px rgba(43,212,141,.26)}
+}
 
 /* ================= NON-BLOCKING ENROLLMENT BAR ================= */
 .enroll-bar{position:fixed;left:0;right:0;bottom:0;z-index:60;transform:translateY(120%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
@@ -292,10 +271,15 @@ footer{border-top:1px solid var(--line);padding:56px 0 44px}
 
 
 
-@media(max-width:720px){
-  .summer h2{font-size:42px}
-  .summer{padding:88px 0 96px}
-  .count .u{width:62px}
+@media(max-width:760px){
+  .summer{padding:52px 0}
+  .summer-banner::before{background:linear-gradient(180deg,rgba(10,23,48,.92),rgba(10,23,48,.8))}
+  .summer-content{padding:34px 26px;max-width:100%}
+  .summer-content h2{font-size:29px}
+  .summer-stats{font-size:14.5px}
+  .count{gap:9px}
+  .count .u{width:58px;padding:10px 4px}
+  .count .cn{font-size:21px}
   .enroll-in{margin-left:12px;margin-right:12px;flex-wrap:wrap;padding:14px;position:relative}
   .enroll-in .btn-glow{width:100%;justify-content:center}
   .enroll-x{position:absolute;top:10px;right:10px}
