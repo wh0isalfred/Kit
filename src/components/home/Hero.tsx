@@ -6,7 +6,7 @@ export default function Hero() {
     <header className="hero">
       <div className="wrap hero-in">
         <div className="hero-copy">
-          <span className="eyebrow">Building tomorrow&apos;s innovators today</span>
+          {/* <span className="eyebrow">Building tomorrow&apos;s innovators today</span> */}
           <h1>
             The future starts with <em>what we build today.</em>
           </h1>
