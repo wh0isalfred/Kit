@@ -6,9 +6,9 @@
 - [x] Wireframes for /summer and /admin (only these two — the marketing site already has a working mockup)
 
 ## Phase 1 — Marketing Website
-- [ ] Home (existing mockup, wired to `courses` table)
-- [ ] Programs section (expand with Summer + coming-soon pills)
-- [ ] About
+- [x] Home (existing mockup, wired to `courses` table)
+- [x] Programs section (expand with Summer + coming-soon pills)
+- [x] About
 - [ ] FAQ
 - [ ] Apply page (form only, no payment yet)
 
