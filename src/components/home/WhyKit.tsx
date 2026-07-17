@@ -3,17 +3,17 @@ import Reveal from "@/components/site/Reveal";
 
 /* Edit the four points here — same idea as the programs array.
    accent: "green" | "blue" | "purple" | "teal"
-   icon:   "shield" | "code" | "users" | "rocket" (see FeatureIcon) */
+   icon:   "bulb" | "code" | "users" | "rocket" (see FeatureIcon) */
 type Feature = {
   key: string;
   accent: "green" | "blue" | "purple" | "teal";
-  icon: "shield" | "code" | "users" | "rocket";
+  icon: "bulb" | "code" | "users" | "rocket";
   title: string;
   desc: string;
 };
 
 const features: Feature[] = [
-  { key: "skills", accent: "green", icon: "shield", title: "Future-Ready Skills",
+  { key: "skills", accent: "green", icon: "bulb", title: "Future-Ready Skills",
     desc: "We teach in-demand skills that open doors to endless possibilities." },
   { key: "handson", accent: "blue", icon: "code", title: "Hands-On Learning",
     desc: "Students learn by building real projects from day one." },
@@ -26,8 +26,8 @@ const features: Feature[] = [
 function FeatureIcon({ name }: { name: Feature["icon"] }) {
   const c = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (name) {
-    case "shield":
-      return <svg {...c}><path d="M12 3l7 3v5c0 4.4-3 7.6-7 8.8C8 18.6 5 15.4 5 11V6z" /><path d="M9 12l2 2 4-4" /></svg>;
+    case "bulb":
+      return <svg {...c}><path d="M9 18h6M10 21h4" /><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z" /></svg>;
     case "code":
       return <svg {...c}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>;
     case "users":
@@ -41,29 +41,31 @@ export default function WhyKit() {
   return (
     <section className="why" id="why">
       <div className="wrap">
-        <div className="why-grid">
-          <Reveal className="why-intro">
-            <span className="eyebrow">Why KIT?</span>
-            <h2>We don&apos;t just teach tech. We prepare for life.</h2>
-            <p>
-              Our programs go beyond the basics. Students build, create, and
-              solve real problems while discovering their potential — with the
-              support of great teachers and a community that believes in them.
-            </p>
-            <Link className="why-learn" href="/about">
-              Learn More About KIT
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </Link>
-          </Reveal>
+        <div className="why-panel">
+          <div className="why-grid">
+            <Reveal className="why-intro">
+              <span className="eyebrow">Why KIT?</span>
+              <h2>We don&apos;t just teach tech. We prepare for life.</h2>
+              <p>
+                Our programs go beyond theory. Students build, create, solve
+                problems and discover their potential with the support of
+                amazing teachers and a community that believes in them.
+              </p>
+              <Link className="why-learn" href="/about">
+                Learn More About KIT
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </Link>
+            </Reveal>
 
-          <div className="why-features">
-            {features.map((f) => (
-              <Reveal key={f.key} className={`why-feat wf-${f.accent}`}>
-                <div className="fi"><FeatureIcon name={f.icon} /></div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-              </Reveal>
-            ))}
+            <div className="why-features">
+              {features.map((f) => (
+                <Reveal key={f.key} className={`why-feat wf-${f.accent}`}>
+                  <div className="fi"><FeatureIcon name={f.icon} /></div>
+                  <h3>{f.title}</h3>
+                  <p>{f.desc}</p>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </div>
