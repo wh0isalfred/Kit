@@ -91,12 +91,30 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
 
 /* programs */
 .programs{padding:84px 0;border-top:1px solid var(--line)}
-.p-head{max-width:660px;margin-bottom:46px}
-.p-head h2{font-size:40px;margin-top:14px;letter-spacing:-.03em}
-.p-head p{font-size:16.5px;color:var(--muted);margin-top:16px;line-height:1.6}
-.p-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
-.pcard{border:1px solid var(--line);border-radius:26px;overflow:hidden;transition:.3s cubic-bezier(.2,.7,.3,1);background:#fff;display:flex;flex-direction:column}
-.pcard:hover{box-shadow:0 32px 66px -28px rgba(31,44,79,.34);transform:translateY(-6px);border-color:#d6deee}
+.p-head{max-width:660px;margin-bottom:40px}
+.p-head h2{font-size:34px;letter-spacing:-.03em}
+.p-head p{font-size:16px;color:var(--muted);margin-top:10px}
+.prog-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.prog-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 24px 24px;display:flex;flex-direction:column;transition:.3s cubic-bezier(.2,.7,.3,1)}
+.prog-card:hover{transform:translateY(-6px);box-shadow:0 28px 56px -30px rgba(31,44,79,.34);border-color:#d9e0ec}
+.prog-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.prog-icon svg{width:24px;height:24px}
+.prog-card h3{font-size:17.5px;letter-spacing:-.02em;margin-bottom:4px;line-height:1.25}
+.prog-dur{font-size:13px;font-weight:600;margin-bottom:13px}
+.prog-card .desc{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:20px}
+.prog-more{margin-top:auto;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+.prog-more svg{width:15px;height:15px;transition:.2s}
+.prog-card:hover .prog-more svg{transform:translateX(4px)}
+.prog-badge{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:20px;background:rgba(245,166,35,.16);color:#cf8400}
+.acc-blue .prog-icon{background:rgba(25,153,228,.12);color:#1999E4}
+.acc-blue .prog-dur,.acc-blue .prog-more{color:#1999E4}
+.acc-green .prog-icon{background:rgba(37,178,144,.13);color:#1c9f7f}
+.acc-green .prog-dur,.acc-green .prog-more{color:#1c9f7f}
+.acc-purple .prog-icon{background:rgba(124,92,255,.12);color:#7c5cff}
+.acc-purple .prog-dur,.acc-purple .prog-more{color:#7c5cff}
+.acc-amber .prog-icon{background:rgba(245,166,35,.16);color:#d98a00}
+.acc-amber .prog-dur,.acc-amber .prog-more{color:#d98a00}
+
 
 /* visual outcome band */
 .pviz{height:152px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:22px}
@@ -268,6 +286,12 @@ footer{border-top:1px solid var(--line);padding:56px 0 44px}
   .p-head h2,.why-head h2{font-size:28px}.invite h2{font-size:32px}
   .invite-in{padding:60px 30px}.why,.programs{padding:78px 0}
 }
+/*Programs section responsive */
+@media(max-width:1000px){.prog-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.prog-grid{grid-template-columns:1fr}}
+
+
+
 @media(max-width:720px){
   .summer h2{font-size:42px}
   .summer{padding:88px 0 96px}
