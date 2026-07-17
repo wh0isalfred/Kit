@@ -7,17 +7,17 @@ export default function Nav() {
       <div className="wrap nav-in">
         <Link className="brand" href="/">
           <Image className="logo-img" src="/logo.jpg" alt="KIT logo" width={26} height={30} />
-          KIT <span className="ph">PORT HARCOURT</span>
+          KIT
         </Link>
         <div className="nav-links">
           <a href="#programs">Programs</a>
-          <a href="#why">Why KIT</a>
-          <a href="#summer">Summer</a>
           <Link href="/about">About</Link>
+          <a href="#why">How It Works</a>
+          <a href="#faq">FAQ</a>
         </div>
         <div className="nav-right">
-          <Link className="login" href="/login">Log in</Link>
-          <Link className="btn btn-primary" href="/apply">Apply to KIT</Link>
+          <Link className="btn btn-primary" href="/apply">Apply</Link>
+          <Link className="btn btn-outline" href="/login">Login</Link>
         </div>
       </div>
     </nav>
