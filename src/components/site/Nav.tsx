@@ -19,7 +19,7 @@ export default function Nav() {
         <div className="nav-links">
           <a href="#programs">Programs</a>
           <Link href="/about">About</Link>
-          <a href="#why">How It Works</a>
+          <a href="#why">Why Kit?</a>
           <a href="#faq">FAQ</a>
         </div>
 
@@ -46,7 +46,7 @@ export default function Nav() {
         <div className="nav-mobile-in">
           <a href="#programs" onClick={close}>Programs</a>
           <Link href="/about" onClick={close}>About</Link>
-          <a href="#why" onClick={close}>How It Works</a>
+          <a href="#why" onClick={close}>Why Kit?</a>
           <a href="#faq" onClick={close}>FAQ</a>
           <div className="nav-mobile-cta">
             <Link className="btn btn-primary" href="/apply" onClick={close}>Apply</Link>
