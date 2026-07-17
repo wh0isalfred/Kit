@@ -6,10 +6,12 @@ import SummerSection from "@/components/home/SummerSection";
 import WhyKit from "@/components/home/WhyKit";
 import Invite from "@/components/home/Invite";
 import EnrollBar from "@/components/home/EnrollBar";
+import Ambient from "@/components/site/Ambient"
+
 export default function Home() {
   return (
     <>
-      {/* <Ambient /> */}
+       <Ambient />
        <div className="page">
         <Nav /> 
         <Hero />
