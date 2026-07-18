@@ -926,3 +926,200 @@ footer .wrap {
     animation: none;
   }
 }
+
+/* ================= MISSION SECTION ================= */
+
+.mission {
+  background: #fff;
+  padding: 88px 0;
+}
+
+.mission-in {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+.mission-eyebrow {
+  color: #06b6d4;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.mission h2 {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: #1f2c4f;
+  margin: 0 0 60px 0;
+  max-width: 680px;
+}
+
+.mission h2 em {
+  font-style: normal;
+  color: #1999e4;
+  font-weight: 800;
+}
+
+.mission-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.mission-card {
+  text-align: center;
+}
+
+.mission-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+}
+
+.mission-card.card-teach .mission-icon {
+  background: #e0f9f8;
+  color: #06b6d4;
+}
+
+.mission-card.card-empower .mission-icon {
+  background: #e8f3ff;
+  color: #1999e4;
+}
+
+.mission-card.card-inspire .mission-icon {
+  background: #f0e6ff;
+  color: #9d6eff;
+}
+
+.mission-card.card-guide .mission-icon {
+  background: #fef8e6;
+  color: #fbbf24;
+}
+
+.mission-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2;
+}
+
+.mission-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2c4f;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.01em;
+}
+
+.mission-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #5d6781;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .mission {
+    padding: 72px 0;
+  }
+
+  .mission h2 {
+    font-size: 42px;
+    margin-bottom: 48px;
+  }
+
+  .mission-grid {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .mission {
+    padding: 64px 0;
+  }
+
+  .mission h2 {
+    font-size: 36px;
+    margin-bottom: 40px;
+  }
+
+  .mission-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .mission-card {
+    text-align: left;
+  }
+
+  .mission-icon {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .mission {
+    padding: 56px 0;
+  }
+
+  .mission h2 {
+    font-size: 28px;
+    margin-bottom: 36px;
+  }
+
+  .mission-card h3 {
+    font-size: 16px;
+  }
+
+  .mission-card p {
+    font-size: 13px;
+  }
+
+  .mission-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .mission-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mission {
+    padding: 44px 0;
+  }
+
+  .mission h2 {
+    font-size: 24px;
+    margin-bottom: 28px;
+  }
+
+  .mission-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .mission-eyebrow {
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+
+  .mission-card h3 {
+    font-size: 15px;
+  }
+
+  .mission-card p {
+    font-size: 13px;
+  }
+}
