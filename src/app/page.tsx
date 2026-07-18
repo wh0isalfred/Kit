@@ -7,7 +7,7 @@ import WhyKit from "@/components/home/WhyKit";
 import Invite from "@/components/home/Invite";
 import EnrollBar from "@/components/home/EnrollBar";
 import Ambient from "@/components/site/Ambient"
-import StudentWork from "@/components/home/StudentWork"
+import StudentWork from "@/components/home/StudentWork";
 
 export default function Home() {
   return (
