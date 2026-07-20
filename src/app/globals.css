@@ -299,18 +299,27 @@ footer{border-top:1px solid var(--line);padding:56px 0 44px}
 .enroll-x{background:rgba(255,255,255,.06);border:none;color:#9aabc9;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;flex-shrink:0;transition:.2s}
 .enroll-x:hover{background:rgba(255,255,255,.14);color:#fff}
 
-/* ================= FOOTER ================= */
+/* ================= FOOTER =================
+   Replace the entire existing "FOOTER" block in globals.css
+   (currently the section starting at the comment
+   "/* ================= FOOTER ================= *​/" and
+   running through the "under 480px" breakpoint) with this.
+
+   Two actual bugs fixed along the way, not just a re-theme:
+   1. `footer .wrap { padding: 0 var(--wrap) }` — --wrap was never
+      defined anywhere in the file, so that padding silently
+      collapsed to 0. Footer content was flush against the
+      viewport edge while every other section had the normal
+      32px gutter. Removed the redundant override entirely —
+      the global .wrap class already does this correctly.
+   2. `.foot-nav` had its own duplicate dark-gradient background
+      layered on top of the footer's — dead leftover, removed.
+   ──────────────────────────────────────────────────────────── */
 
 footer {
-  background: linear-gradient(135deg, #0f1927 0%, #1a2847 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 40px 0;
-}
-
-footer .wrap {
-  max-width: var(--maxw);
-  margin: 0 auto;
-  padding: 0 var(--wrap);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  padding: 40px 0 28px;
 }
 
 .foot-in {
@@ -320,7 +329,7 @@ footer .wrap {
   gap: 48px;
 }
 
-/* Left: Logo + copyright */
+/* Left: Logo */
 .foot-left {
   display: flex;
   align-items: center;
@@ -333,8 +342,8 @@ footer .wrap {
   align-items: center;
   gap: 8px;
   font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+  font-weight: 800;
+  color: var(--ink);
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
@@ -344,16 +353,8 @@ footer .wrap {
   height: 26px;
 }
 
-.foot-copy {
-  font-size: 13px;
-  color: #fff;
-  margin: 0;
-  white-space: nowrap;
-}
-
 /* Center: Nav links */
 .foot-nav {
-    background: linear-gradient(135deg, #0f1927 0%, #1a2847 100%);
   display: flex;
   align-items: center;
   gap: 40px;
@@ -363,15 +364,15 @@ footer .wrap {
 
 .foot-nav a {
   font-size: 14px;
-  color: #fff;
+  font-weight: 500;
+  color: var(--muted);
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
   white-space: nowrap;
-  
 }
 
 .foot-nav a:hover {
-  opacity: 0.8;
+  color: var(--ink);
 }
 
 /* Right: Social icons */
@@ -388,12 +389,12 @@ footer .wrap {
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #fff;
-  transition: opacity 0.2s ease;
+  color: var(--muted);
+  transition: color 0.2s ease;
 }
 
 .foot-socials a:hover {
-  opacity: 0.8;
+  color: var(--ink);
 }
 
 .foot-socials svg {
@@ -407,10 +408,61 @@ footer .wrap {
   stroke-linejoin: round;
 }
 
+/* Divider + bottom row */
+.foot-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 28px 0 20px;
+}
+
+.foot-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.foot-contact {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+.foot-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.foot-contact a:hover {
+  color: var(--ink);
+}
+
+.foot-contact svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.foot-copy {
+  font-size: 13px;
+  color: var(--faint);
+  margin: 0;
+  white-space: nowrap;
+}
+
 /* Tablet: 768px - 1024px */
 @media (max-width: 1024px) {
   footer {
-    padding: 32px 0;
+    padding: 32px 0 24px;
   }
 
   .foot-in {
@@ -425,10 +477,6 @@ footer .wrap {
     font-size: 13px;
   }
 
-  .foot-copy {
-    font-size: 12px;
-  }
-
   .foot-socials {
     gap: 16px;
   }
@@ -437,27 +485,16 @@ footer .wrap {
 /* Tablet: 600px - 900px */
 @media (max-width: 900px) {
   footer {
-    padding: 28px 0;
+    padding: 28px 0 22px;
   }
 
   .foot-in {
     flex-direction: column;
     gap: 24px;
-    align-items: center;
   }
 
   .foot-left {
-    width: 100%;
     justify-content: center;
-    text-align: center;
-  }
-
-  .foot-brand {
-    justify-content: center;
-  }
-
-  .foot-copy {
-    font-size: 12px;
   }
 
   .foot-nav {
@@ -474,29 +511,24 @@ footer .wrap {
   .foot-socials {
     gap: 16px;
   }
+
+  .foot-divider {
+    margin: 22px 0 16px;
+  }
 }
 
 /* Mobile: 640px - 768px */
 @media (max-width: 768px) {
   footer {
-    padding: 24px 0;
+    padding: 24px 0 18px;
   }
 
   .foot-in {
     gap: 20px;
   }
 
-  .foot-left {
-    flex-direction: column;
-    gap: 8px;
-  }
-
   .foot-brand {
     font-size: 16px;
-  }
-
-  .foot-copy {
-    font-size: 11px;
   }
 
   .foot-nav {
@@ -517,29 +549,26 @@ footer .wrap {
     width: 18px;
     height: 18px;
   }
+
+  .foot-bottom {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 /* Mobile: under 640px */
 @media (max-width: 640px) {
   footer {
-    padding: 20px 0;
+    padding: 20px 0 16px;
   }
 
   .foot-in {
     gap: 16px;
   }
 
-  .foot-left {
-    width: 100%;
-  }
-
   .foot-brand {
     font-size: 16px;
     justify-content: center;
-  }
-
-  .foot-copy {
-    display: none;
   }
 
   .foot-nav {
@@ -564,12 +593,20 @@ footer .wrap {
     width: 18px;
     height: 18px;
   }
+
+  .foot-contact {
+    justify-content: center;
+  }
+
+  .foot-copy {
+    font-size: 12px;
+  }
 }
 
 /* Mobile: under 480px */
 @media (max-width: 480px) {
   footer {
-    padding: 16px 0;
+    padding: 16px 0 14px;
   }
 
   .foot-brand {
@@ -587,6 +624,11 @@ footer .wrap {
   .foot-socials svg {
     width: 16px;
     height: 16px;
+  }
+
+  .foot-contact {
+    flex-direction: column;
+    gap: 6px;
   }
 }
 

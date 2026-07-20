@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSectionLink } from "./useSectionLink";
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const sectionLink = useSectionLink();
 
   return (
     <nav>
@@ -17,9 +19,9 @@ export default function Nav() {
         </Link>
 
         <div className="nav-links">
-          <a href="#programs">Programs</a>
+          <a {...sectionLink("programs")}>Programs</a>
           <Link href="/about">About</Link>
-          <a href="#why">Why Kit?</a>
+          <a {...sectionLink("why")}>Why Kit?</a>
           <Link href="/contact">Contact</Link>
           {/* <a href="#faq">FAQ</a> */}
         </div>
@@ -45,10 +47,10 @@ export default function Nav() {
 
       <div className={`nav-mobile ${open ? "open" : ""}`}>
         <div className="nav-mobile-in">
-          <a href="#programs" onClick={close}>Programs</a>
+          <a {...sectionLink("programs", close)}>Programs</a>
           <Link href="/about" onClick={close}>About</Link>
-          <a href="#why" onClick={close}>Why Kit?</a>
-          <Link href="/contact">Contact</Link>
+          <a {...sectionLink("why", close)}>Why Kit?</a>
+          <Link href="/contact" onClick={close}>Contact</Link>
           {/* <a href="#faq" onClick={close}>FAQ</a> */}
           <div className="nav-mobile-cta">
             <Link className="btn btn-primary" href="/apply" onClick={close}>Apply</Link>

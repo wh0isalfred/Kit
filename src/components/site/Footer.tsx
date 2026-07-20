@@ -1,26 +1,37 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useSectionLink } from "./useSectionLink";
+
+/* TODO(Ade): confirm these — carried over as placeholders from
+   the Apply page sidebar, not confirmed as the real public
+   contact details. */
+const contact = {
+  email: "hello@kidsintech.africa",
+  phone: "+234 802 123 4567",
+};
 
 export default function Footer() {
+  const sectionLink = useSectionLink();
+
   return (
     <footer>
       <div className="wrap">
         <div className="foot-in">
-          {/* Left: Logo + copyright */}
+          {/* Left: Logo */}
           <div className="foot-left">
             <div className="foot-brand">
               <Image className="logo-img foot" src="/logo.webp" alt="KIT logo" width={22} height={26} />
               KIT
             </div>
-            <p className="foot-copy">© 2026 KidsinTech (KIT). All rights reserved.</p>
           </div>
 
           {/* Center: Nav links */}
           <nav className="foot-nav">
-            <a href="#programs">Programs</a>
+            <a {...sectionLink("programs")}>Programs</a>
             <Link href="/about">About</Link>
-            <a href="#why">Why Kit?</a>
-            {/* <a href="#faq">FAQ</a> */}
+            <a {...sectionLink("why")}>Why Kit?</a>
             <Link href="/contact">Contact</Link>
           </nav>
 
@@ -51,6 +62,28 @@ export default function Footer() {
               </svg>
             </a>
           </div>
+        </div>
+
+        <div className="foot-divider" />
+
+        {/* Bottom: contact info + copyright */}
+        <div className="foot-bottom">
+          <div className="foot-contact">
+            <a href={`mailto:${contact.email}`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 6l9 7 9-7" />
+              </svg>
+              {contact.email}
+            </a>
+            <a href={`tel:${contact.phone.replace(/\s/g, "")}`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v2a2 2 0 01-2.18 2 19.72 19.72 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.72 19.72 0 012 3.18 2 2 0 014 1h2a2 2 0 012 1.72c.12.9.34 1.77.65 2.6a2 2 0 01-.45 2.11L7 8.91a16 16 0 006 6l1.58-1.2a2 2 0 012.11-.45c.83.31 1.7.53 2.6.65A2 2 0 0122 16.92z" />
+              </svg>
+              {contact.phone}
+            </a>
+          </div>
+          <p className="foot-copy">© 2026 KidsinTech (KIT). All rights reserved.</p>
         </div>
       </div>
     </footer>
