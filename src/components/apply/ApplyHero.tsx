@@ -94,7 +94,7 @@ export default function ApplyHero() {
             />
           </div>
 
-          <div className="apply-stat">
+          {/* <div className="apply-stat">
             <div className="apply-stat-icon">
               <svg
                 viewBox="0 0 24 24"
@@ -111,7 +111,7 @@ export default function ApplyHero() {
             </div>
             <div className="apply-stat-num">50+</div>
             <div className="apply-stat-label">Students already signed up</div>
-          </div>
+          </div> */}
         </div>
       </div>
     </section>
