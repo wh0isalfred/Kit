@@ -1142,3 +1142,295 @@ footer .wrap {
     font-size: 12px;
   }
 }
+
+
+/* ================= APPLY HERO ================= */
+
+.apply-hero {
+  background: var(--paper);
+  padding: 64px 0 72px;
+}
+
+.apply-hero-in {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.apply-hero-copy {
+  max-width: 500px;
+}
+
+.apply-eyebrow {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-bottom: 18px;
+}
+
+.apply-hero h1 {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+
+.apply-hero h1 em {
+  font-style: normal;
+}
+
+.apply-hero h1 .hl-blue {
+  color: var(--blue);
+}
+
+.apply-hero h1 .hl-teal {
+  color: var(--green);
+}
+
+.apply-hero-body {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 0 0 34px;
+  max-width: 420px;
+}
+
+/* Three tiles */
+.apply-tiles {
+  display: flex;
+  gap: 34px;
+}
+
+.apply-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apply-tile-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apply-tile-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.apply-tile span {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.apply-tile.tile-teal .apply-tile-icon {
+  background: #e1f5ee;
+  color: #1d9e75;
+}
+
+.apply-tile.tile-purple .apply-tile-icon {
+  background: #eeedfe;
+  color: #7f77dd;
+}
+
+.apply-tile.tile-amber .apply-tile-icon {
+  background: #faeeda;
+  color: #ba7517;
+}
+
+/* Image + stat card */
+.apply-hero-art {
+  position: relative;
+}
+
+.apply-hero-img {
+  border-radius: 200px 200px 26px 26px;
+  overflow: hidden;
+}
+
+.apply-hero-img img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.apply-stat {
+  position: absolute;
+  right: -18px;
+  bottom: 46px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 24px 50px -24px rgba(31, 44, 79, 0.38);
+  max-width: 168px;
+}
+
+.apply-stat-icon {
+  width: 34px;
+  height: 34px;
+  color: #1d9e75;
+  margin-bottom: 8px;
+}
+
+.apply-stat-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.apply-stat-num {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.apply-stat-label {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .apply-hero-in {
+    gap: 40px;
+  }
+
+  .apply-hero h1 {
+    font-size: 44px;
+  }
+
+  .apply-tiles {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .apply-hero {
+    padding: 48px 0 56px;
+  }
+
+  .apply-hero-in {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .apply-hero-copy {
+    max-width: 100%;
+  }
+
+  .apply-hero h1 {
+    font-size: 38px;
+  }
+
+  .apply-hero-img {
+    border-radius: 160px 160px 24px 24px;
+  }
+
+  .apply-stat {
+    right: 8px;
+    bottom: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .apply-hero {
+    padding: 40px 0 48px;
+  }
+
+  .apply-hero h1 {
+    font-size: 32px;
+  }
+
+  .apply-hero-body {
+    font-size: 15px;
+    margin-bottom: 28px;
+  }
+
+  .apply-tiles {
+    gap: 18px;
+  }
+
+  .apply-tile-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+  }
+
+  .apply-tile-icon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .apply-tile span {
+    font-size: 12.5px;
+  }
+
+  .apply-hero-img {
+    border-radius: 120px 120px 20px 20px;
+  }
+
+  .apply-stat {
+    padding: 13px 16px;
+    max-width: 148px;
+  }
+
+  .apply-stat-num {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .apply-hero {
+    padding: 32px 0 40px;
+  }
+
+  .apply-hero h1 {
+    font-size: 27px;
+  }
+
+  .apply-eyebrow {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .apply-hero-body {
+    font-size: 14px;
+  }
+
+  .apply-tiles {
+    flex-wrap: wrap;
+    gap: 16px 22px;
+  }
+
+  .apply-hero-img {
+    border-radius: 90px 90px 18px 18px;
+  }
+
+  .apply-stat {
+    right: 0;
+    bottom: 12px;
+    padding: 11px 14px;
+    max-width: 132px;
+  }
+
+  .apply-stat-num {
+    font-size: 20px;
+  }
+
+  .apply-stat-label {
+    font-size: 11px;
+  }
+}

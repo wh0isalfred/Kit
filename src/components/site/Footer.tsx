@@ -19,7 +19,7 @@ export default function Footer() {
           <nav className="foot-nav">
             <a href="#programs">Programs</a>
             <Link href="/about">About</Link>
-            <a href="#why">How It Works</a>
+            <a href="#why">Why Kit?</a>
             <a href="#faq">FAQ</a>
             <Link href="/contact">Contact</Link>
           </nav>

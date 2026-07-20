@@ -73,7 +73,7 @@ export default function MissionSection() {
               To equip young minds with real digital skills through{" "}
               <span className="blue">hands-on learning,</span>{" "}
               <span className="green">mentorship,</span> and{" "}
-              <span className="purple">projects</span>
+              <span className="purple">projects </span>
               that matter.
             </h2>
           </div>

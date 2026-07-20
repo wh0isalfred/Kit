@@ -60,7 +60,7 @@ export default function AboutHero() {
             <em>Creating possibilities.</em>
           </h1>
           <p className="about-hero-body">
-            KIT is a movement to empower kids (10–16) with real digital skills, the right mindset, and the confidence to build solutions and shape Africa's future.
+            KIT is a movement to empower kids (10–16) with real digital skills, the right mindset, and the confidence to build solutions and shape Africa&apos;s future.
           </p>
         </div>
       </div>
