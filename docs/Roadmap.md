@@ -8,9 +8,9 @@
 ## Phase 1 — Marketing Website
 - [x] Home (existing mockup, wired to `courses` table)
 - [x] Programs section (expand with Summer + coming-soon pills)
-- [x] About
-- [ ] FAQ
-- [ ] Apply page (form only, no payment yet)
+- [1/2] About
+<!-- - [ ] FAQ -->
+- [x] Apply page (form only, no payment yet)
 
 ## Phase 2 — Admissions
 - [ ] Application form → Supabase
