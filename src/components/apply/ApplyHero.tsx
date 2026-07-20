@@ -84,7 +84,7 @@ export default function ApplyHero() {
         <div className="apply-hero-art">
           <div className="apply-hero-img">
             <Image
-              src="/applyHeroImage.webp"
+              src="/applyPageHeroImage.webp"
               alt="A parent and child speaking with a KIT mentor at the front desk"
               width={1200}
               height={900}

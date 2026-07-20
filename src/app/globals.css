@@ -1434,3 +1434,809 @@ footer .wrap {
     font-size: 11px;
   }
 }
+
+/* ================= APPLICATION FORM ================= */
+
+.af h2 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.af-sub {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin: 0 0 30px;
+}
+
+.af-legend {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blue);
+  margin: 30px 0 14px;
+}
+
+.af-legend:first-of-type {
+  margin-top: 0;
+}
+
+.af-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.af-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.af-field > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.af-field input,
+.af-field select,
+.af-field textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 13px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.af-field textarea {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.55;
+}
+
+.af-field input::placeholder,
+.af-field textarea::placeholder {
+  color: var(--faint);
+}
+
+.af-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6781' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.af-field input:focus,
+.af-field select:focus,
+.af-field textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(25, 153, 228, 0.14);
+}
+
+.af-hint {
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--faint);
+}
+
+.field-error {
+  font-size: 11.5px;
+  font-style: normal;
+  color: #c0392b;
+}
+
+/* Phone with country prefix */
+.af-phone {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.af-phone:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(25, 153, 228, 0.14);
+}
+
+.af-phone-pre {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: #f7f9fc;
+  border-right: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.af-phone input {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.af-phone input:focus {
+  box-shadow: none;
+}
+
+/* Plan selector */
+.af-plans {
+  margin-bottom: 16px;
+}
+
+.af-plans-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.af-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.af-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  font-family: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.af-plan:hover {
+  border-color: #c6d2e4;
+}
+
+.af-plan.on {
+  border-color: var(--blue);
+  background: #f2f9fe;
+}
+
+.af-plan-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.af-plan-note {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Due today */
+.af-total {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  background: #f5f7fb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 20px 0 16px;
+}
+
+.af-total span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.af-total strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.af-total em {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--faint);
+}
+
+/* Consent */
+.af-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 18px 0 6px;
+  cursor: pointer;
+}
+
+.af-consent input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.af-consent span {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Submit */
+.af-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--navy);
+  border: none;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.12s ease;
+}
+
+.af-submit:hover:not(:disabled) {
+  background: #16203b;
+}
+
+.af-submit:active:not(:disabled) {
+  transform: scale(0.995);
+}
+
+.af-submit:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.af-submit svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .af h2 {
+    font-size: 22px;
+  }
+
+  .af-sub {
+    font-size: 13.5px;
+    margin-bottom: 24px;
+  }
+
+  .af-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .af-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .af h2 {
+    font-size: 20px;
+  }
+
+  .af-legend {
+    margin: 24px 0 12px;
+  }
+
+  .af-field input,
+  .af-field select,
+  .af-field textarea {
+    font-size: 16px; /* stops iOS zoom-on-focus */
+  }
+
+  .af-phone input {
+    font-size: 16px;
+  }
+
+  .af-total strong {
+    font-size: 18px;
+  }
+
+  .af-submit {
+    font-size: 14.5px;
+    padding: 14px 18px;
+  }
+}
+
+/* ================= APPLY FORM CARD + SIDEBAR =================
+   Append to globals.css, after the "APPLICATION FORM" block.
+
+   Fixes the actual bug: .af had no container rule at all — no
+   padding, no card background, no width constraint — so it was
+   rendering edge-to-edge with zero breathing room. This wraps
+   the form + ApplySidebar in one white card split ~62/38 with a
+   vertical hairline, per the reference.
+   ──────────────────────────────────────────────────────────── */
+
+.apply-form-section {
+  background: var(--paper);
+  padding: 0 0 88px;
+}
+
+.apply-form-card {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 40px 90px -50px rgba(31, 44, 79, 0.35);
+  overflow: hidden;
+}
+
+.af {
+  padding: 48px 46px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.apply-sidebar {
+  padding: 48px 40px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 22px;
+}
+
+.sidebar-steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-step {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 26px;
+}
+
+.sidebar-step:last-child {
+  padding-bottom: 0;
+}
+
+.sidebar-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: 0;
+  width: 2px;
+  background-image: linear-gradient(var(--line) 55%, transparent 0%);
+  background-size: 2px 8px;
+  background-repeat: repeat-y;
+}
+
+.sidebar-step-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-step-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.sidebar-step.accent-teal .sidebar-step-icon {
+  background: #e1f5ee;
+  color: #1d9e75;
+}
+
+.sidebar-step.accent-blue .sidebar-step-icon {
+  background: #e9f3fd;
+  color: #1999e4;
+}
+
+.sidebar-step.accent-purple .sidebar-step-icon {
+  background: #eeedfe;
+  color: #7f77dd;
+}
+
+.sidebar-step-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.sidebar-step-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Questions card ──────────────────────────────────────── */
+.sidebar-questions {
+  background: #f5f6fb;
+  border-radius: 16px;
+  padding: 22px 22px 24px;
+  margin-top: 34px;
+}
+
+.sidebar-questions h4 {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.sidebar-questions p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.sidebar-contact {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin-bottom: 10px;
+}
+
+.sidebar-contact:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-contact:hover {
+  color: var(--blue);
+}
+
+.sidebar-contact svg {
+  width: 17px;
+  height: 17px;
+  color: #1d9e75;
+  flex-shrink: 0;
+}
+
+/* ── Note ────────────────────────────────────────────────── */
+.sidebar-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--blue);
+  line-height: 1.4;
+}
+
+.sidebar-note svg {
+  width: 18px;
+  height: 18px;
+  color: #e0607e;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .apply-form-card {
+    grid-template-columns: 1fr;
+    border-radius: 20px;
+  }
+
+  .apply-sidebar {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .af,
+  .apply-sidebar {
+    padding: 36px 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  .af,
+  .apply-sidebar {
+    padding: 28px 20px;
+  }
+
+  .sidebar-title {
+    font-size: 17px;
+  }
+}
+
+/* ================= TRUST BAR =================
+   Append to globals.css. Reuses the same light lavender panel
+   tone as .why-panel (#f5f6fb) for consistency with the rest
+   of the site, and the same teal/purple/amber accent trio used
+   in ApplyHero and ApplySidebar.
+   ──────────────────────────────────────────────────────────── */
+
+.trust-bar {
+  background: #f5f6fb;
+  padding: 56px 0;
+}
+
+.trust-bar-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.trust-main {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.trust-icon {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+
+.trust-shield {
+  width: 100%;
+  height: 100%;
+}
+
+.trust-copy h3 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.trust-copy p {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+  max-width: 480px;
+}
+
+.trust-badges {
+  display: flex;
+  gap: 40px;
+  flex-shrink: 0;
+}
+
+.trust-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  width: 96px;
+}
+
+.trust-badge-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trust-badge-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.trust-badge-icon.accent-teal {
+  background: #e1f5ee;
+  color: #1d9e75;
+}
+
+.trust-badge-icon.accent-purple {
+  background: #eeedfe;
+  color: #7f77dd;
+}
+
+.trust-badge-icon.accent-amber {
+  background: #faeeda;
+  color: #ba7517;
+}
+
+.trust-badge span {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .trust-bar-in {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .trust-badges {
+    align-self: stretch;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .trust-badge {
+    width: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .trust-bar {
+    padding: 40px 0;
+  }
+
+  .trust-main {
+    gap: 18px;
+  }
+
+  .trust-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .trust-copy h3 {
+    font-size: 20px;
+  }
+
+  .trust-badges {
+    flex-wrap: wrap;
+  }
+}
+
+/* ================= APPLY CTA ================= */
+
+.apply-cta {
+  background: var(--navy);
+}
+
+.apply-cta-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 52px 0;
+}
+
+.apply-cta-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.apply-cta-icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.apply-cta-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.apply-cta-copy h3 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.apply-cta-copy h3 em {
+  font-style: normal;
+  color: var(--green);
+}
+
+.apply-cta-copy p {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #c2cce0;
+  margin: 0;
+  max-width: 440px;
+}
+
+.apply-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  background: #fff;
+  color: var(--navy);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 14px 26px;
+  border-radius: 40px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.apply-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.4);
+}
+
+.apply-cta-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 760px) {
+  .apply-cta-in {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 44px 0;
+    gap: 28px;
+  }
+
+  .apply-cta-btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .apply-cta-left {
+    gap: 18px;
+  }
+
+  .apply-cta-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .apply-cta-copy h3 {
+    font-size: 21px;
+  }
+}
