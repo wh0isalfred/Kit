@@ -12,7 +12,7 @@ export default function Nav() {
     <nav>
       <div className="wrap nav-in">
         <Link className="brand" href="/" onClick={close}>
-          <Image className="logo-img" src="/logo.jpg" alt="KIT logo" width={26} height={30} />
+          <Image className="logo-img" src="/logo.webp" alt="KIT logo" width={26} height={30} />
           KIT
         </Link>
 
@@ -20,7 +20,8 @@ export default function Nav() {
           <a href="#programs">Programs</a>
           <Link href="/about">About</Link>
           <a href="#why">Why Kit?</a>
-          <a href="#faq">FAQ</a>
+          <Link href="/contact">Contact</Link>
+          {/* <a href="#faq">FAQ</a> */}
         </div>
 
         <div className="nav-right">
@@ -47,7 +48,8 @@ export default function Nav() {
           <a href="#programs" onClick={close}>Programs</a>
           <Link href="/about" onClick={close}>About</Link>
           <a href="#why" onClick={close}>Why Kit?</a>
-          <a href="#faq" onClick={close}>FAQ</a>
+          <Link href="/contact">Contact</Link>
+          {/* <a href="#faq" onClick={close}>FAQ</a> */}
           <div className="nav-mobile-cta">
             <Link className="btn btn-primary" href="/apply" onClick={close}>Apply</Link>
             <Link className="btn btn-outline" href="/login" onClick={close}>Login</Link>

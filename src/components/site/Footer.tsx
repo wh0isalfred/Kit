@@ -9,7 +9,7 @@ export default function Footer() {
           {/* Left: Logo + copyright */}
           <div className="foot-left">
             <div className="foot-brand">
-              <Image className="logo-img foot" src="/logo.jpg" alt="KIT logo" width={22} height={26} />
+              <Image className="logo-img foot" src="/logo.webp" alt="KIT logo" width={22} height={26} />
               KIT
             </div>
             <p className="foot-copy">© 2026 KidsinTech (KIT). All rights reserved.</p>
@@ -20,7 +20,7 @@ export default function Footer() {
             <a href="#programs">Programs</a>
             <Link href="/about">About</Link>
             <a href="#why">Why Kit?</a>
-            <a href="#faq">FAQ</a>
+            {/* <a href="#faq">FAQ</a> */}
             <Link href="/contact">Contact</Link>
           </nav>
 
