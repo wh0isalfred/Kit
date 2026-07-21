@@ -3306,3 +3306,219 @@ footer {
   .admin-app-actions select { min-width: 100%; }
   .admin-btn { flex: 1 1 auto; }
 }
+
+/* ============================================================
+   ADMIN — SUMMER RESOURCES
+   Append after the existing admin block in globals.css.
+   ============================================================ */
+
+.admin-day {
+  margin-bottom: 22px;
+}
+
+.admin-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-day-head h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.admin-res-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-res {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-width: 0;
+  transition: border-color 0.16s ease;
+}
+
+.admin-res:hover {
+  border-color: #c6d2e4;
+}
+
+/* Draft rows read as provisional without shouting. */
+.admin-res.draft {
+  background: #fbfcfe;
+  border-style: dashed;
+}
+
+.admin-res-icon {
+  font-size: 17px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.admin-res-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-res-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-res-desc {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0 0 3px;
+  line-height: 1.45;
+}
+
+.admin-res-meta {
+  font-size: 11px;
+  color: var(--faint);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-res-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.admin-pill-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: 0.16s;
+}
+
+.admin-pill-btn:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.admin-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.16s;
+}
+
+.admin-icon-btn:hover {
+  background: #f1f3f8;
+  color: var(--ink);
+}
+
+.admin-icon-btn.danger:hover {
+  background: #fdeceb;
+  color: #b3261e;
+}
+
+.admin-btn-sm {
+  font-size: 12px;
+  padding: 7px 13px;
+}
+
+.admin-add-row {
+  margin-top: 6px;
+}
+
+/* ── Inline form ─────────────────────────────────────────── */
+
+.admin-res-form {
+  background: #f5f6fb;
+  border-radius: 14px;
+  padding: 18px 18px 20px;
+  margin-top: 10px;
+}
+
+.admin-res-form .af-field {
+  margin-bottom: 12px;
+}
+
+.admin-res-form .af-row {
+  margin-bottom: 0;
+}
+
+.admin-res-form input[type="file"] {
+  font-size: 13px;
+  padding: 9px;
+  background: #fff;
+  border: 1px dashed #c6d2e4;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.admin-res-form-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.admin-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.admin-file-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-file-chip button {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b3261e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 620px) {
+  .admin-res {
+    flex-wrap: wrap;
+  }
+  .admin-res-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+}
