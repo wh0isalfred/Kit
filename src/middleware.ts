@@ -13,5 +13,6 @@ export const config = {
      * gets refreshed.
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp)$).*)",
+    "/admin/:path*"
   ],
 };

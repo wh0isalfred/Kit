@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { initializeTransaction } from "@/lib/paystack";
 
 export type PlanKey = "monthly" | "upfront";
 
@@ -25,15 +27,25 @@ export type ApplicationResult =
   | { ok: false; error: string };
 
 /**
- * Validate -> insert `applications` -> (once Paystack keys exist)
- * initialise a transaction -> return a checkout URL.
+ * Validate -> insert `applications` -> initialise a Paystack
+ * transaction -> return a checkout URL for the client to redirect to.
  *
- * Nothing here is trusted from the client except as a starting
- * point: the course and its price are re-fetched server-side, and
- * the DB's own insert trigger re-validates age eligibility and
- * recomputes the charge independently. This function can be wrong
- * and the database still won't accept a tampered application — see
- * Doc 2 §6.1 for why that layering matters.
+ * The insert goes through the `submit_application` RPC, not a direct
+ * table insert. `applications` has RLS enabled with no anon policy —
+ * deliberately, since it holds parent email/phone and a child's DOB
+ * and school, and any anon-readable policy on that table would be a
+ * PII leak. The SECURITY DEFINER function is the only public write
+ * path, and it returns nothing but the new id.
+ *
+ * Nothing here is trusted from the client except as a starting point:
+ * the course and its price are re-fetched server-side, the RPC
+ * re-checks that the course is live, and the table's own insert
+ * triggers re-validate age eligibility and recompute the charge. This
+ * function can be wrong and the database still won't accept a
+ * tampered application.
+ *
+ * This function never marks anything paid. Only the verified webhook
+ * at /api/paystack/webhook does that.
  */
 export async function submitApplication(
   input: ApplicationInput
@@ -48,9 +60,11 @@ export async function submitApplication(
   if (age === null) {
     return { ok: false, error: "That date of birth doesn't look right." };
   }
-  // Coarse pre-filter only — 10/16 is the widest anything on the site
-  // should ever accept. The course-specific bound is enforced by the
-  // DB trigger below, which is the actual source of truth.
+  /* Coarse outer bound only — deliberately wider than the term
+     programme's 10–15, because Summer has no track split and may
+     legitimately take a 16-year-old. The course-specific age band is
+     enforced by the DB trigger on insert, which is the real source of
+     truth; this just catches obvious nonsense before a round trip. */
   if (age < 10 || age > 16) {
     return { ok: false, error: "KIT doesn't currently have a track for that age." };
   }
@@ -59,7 +73,7 @@ export async function submitApplication(
   // or a client-sent "this course is open" assumption.
   const { data: course, error: courseError } = await supabase
     .from("courses")
-    .select("slug, code, type, status, price_kobo, price_monthly_kobo")
+    .select("slug, code, title, type, status, price_kobo, price_monthly_kobo, instalments")
     .eq("slug", input.courseSlug)
     .single();
 
@@ -85,34 +99,45 @@ export async function submitApplication(
     return { ok: false, error: "That payment plan isn't available for this program." };
   }
 
-  const { data: application, error: insertError } = await supabase
-    .from("applications")
-    .insert({
-      student_name: input.studentName,
-      student_dob: input.dob,
-      student_gender: input.gender || null,
-      student_school: input.school || null,
-      parent_name: input.parentName,
-      parent_email: input.email,
-      parent_phone: input.phone,
-      parent_relationship: input.relationship || null,
-      course_slug: input.courseSlug,
-      plan: isSummer ? null : input.plan,
-      amount_due_kobo: amountDueKobo,
-      amount_total_kobo: amountTotalKobo,
-      referral_source: input.referral || null,
-      notes: input.notes || null,
-      consent_given: input.consent,
-      consent_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
+  /* Request metadata for the audit trail. Behind Vercel the real
+     client IP is the first entry in x-forwarded-for; the rest are
+     proxies. Both are best-effort — never let a missing header block
+     an application. */
+  const headerList = await headers();
+  const forwardedFor = headerList.get("x-forwarded-for");
+  const ipAddress = forwardedFor?.split(",")[0]?.trim() ?? null;
+  const userAgent = headerList.get("user-agent") ?? null;
 
-  if (insertError || !application) {
-    // Most likely candidates: the age-eligibility trigger or the
-    // amount-tamper trigger firing (Doc 2 §4.1). Postgres error
-    // messages aren't reliably parseable for exact cause, so this
-    // gives a generic-but-honest message rather than guessing wrong.
+  const { data: applicationId, error: insertError } = await supabase.rpc(
+    "submit_application",
+    {
+      p_student_name: input.studentName,
+      p_student_dob: input.dob,
+      p_student_gender: input.gender,
+      p_student_school: input.school,
+      p_parent_name: input.parentName,
+      p_parent_email: input.email,
+      p_parent_phone: input.phone,
+      p_parent_relationship: input.relationship,
+      p_course_slug: input.courseSlug,
+      p_plan: isSummer ? null : input.plan,
+      p_amount_due_kobo: amountDueKobo,
+      p_amount_total_kobo: amountTotalKobo,
+      p_referral_source: input.referral,
+      p_notes: input.notes,
+      p_consent_given: input.consent,
+      p_source: "website",
+      p_ip_address: ipAddress,
+      p_user_agent: userAgent,
+    }
+  );
+
+  if (insertError || !applicationId) {
+    /* Likely causes: the age-eligibility trigger rejecting this
+       course/age combination, the amount-tamper trigger, or the RPC's
+       own live-course check. Postgres messages aren't reliably
+       parseable for exact cause, so this stays generic rather than
+       guessing wrong at the parent. */
     console.error("submitApplication insert:", insertError?.message);
     return {
       ok: false,
@@ -121,18 +146,50 @@ export async function submitApplication(
     };
   }
 
-  // Payment isn't wired up yet — no Paystack keys configured. The
-  // application is saved regardless; this just decides whether we
-  // can send the parent straight to checkout.
-  const checkoutUrl = process.env.PAYSTACK_SECRET_KEY
-    ? await initializePaystackTransaction({
-        applicationId: application.id,
-        email: input.email,
-        amountKobo: amountDueKobo,
-      })
-    : null;
+  /* From here on the application row EXISTS and is safe. Every
+     failure path below returns ok:true with checkoutUrl:null rather
+     than an error — losing a saved application because Paystack had a
+     bad minute would be far worse than asking admin to chase payment
+     manually. The parent should never have to fill this form twice. */
 
-  return { ok: true, applicationId: application.id, checkoutUrl };
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    // No keys configured yet (local dev before setup).
+    return { ok: true, applicationId, checkoutUrl: null };
+  }
+
+  const init = await initializeTransaction({
+    email: input.email,
+    amountKobo: amountDueKobo,
+    applicationId,
+    studentName: input.studentName,
+    courseTitle: course.title,
+  });
+
+  if (!init.ok) {
+    console.error("submitApplication paystack init:", init.error);
+    return { ok: true, applicationId, checkoutUrl: null };
+  }
+
+  /* Store the reference before the parent is redirected. If the
+     webhook never arrives, this is what lets admin match a Paystack
+     dashboard entry back to this application by hand. Goes through an
+     RPC for the same RLS reason as the insert. */
+  const { error: refError } = await supabase.rpc("set_application_payment_ref", {
+    p_application_id: applicationId,
+    p_payment_ref: init.reference,
+  });
+
+  if (refError) {
+    // Non-fatal — the webhook carries application_id in its metadata
+    // and doesn't depend on this column. Log and continue.
+    console.error("submitApplication payment_ref:", refError.message);
+  }
+
+  return {
+    ok: true,
+    applicationId,
+    checkoutUrl: init.authorizationUrl,
+  };
 }
 
 function ageFromDob(dob: string): number | null {
@@ -143,23 +200,4 @@ function ageFromDob(dob: string): number | null {
   const m = now.getMonth() - d.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
   return age;
-}
-
-/**
- * TODO: implement once PAYSTACK_SECRET_KEY is set in the environment.
- *
- * Initialise a Paystack transaction for amountKobo, tagging
- * applicationId in the transaction metadata so the webhook
- * (/api/paystack/webhook, not yet built) can find this row again on
- * the way back. Return `authorization_url` for the redirect.
- *
- * Never mark the application paid here or in the redirect handler —
- * only the verified webhook does that. See Doc 2 §6.2.
- */
-async function initializePaystackTransaction(_args: {
-  applicationId: string;
-  email: string;
-  amountKobo: number;
-}): Promise<string | null> {
-  return null;
 }

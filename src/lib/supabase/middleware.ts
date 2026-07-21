@@ -15,29 +15,38 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // Do not remove or reorder — see the comment above.
-  await supabase.auth.getUser();
+  // Missing env in the Edge bundle would produce a fetch to
+  // "undefined/auth/v1/user" — bail rather than throw.
+  if (!url || !key) return response;
+
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
+
+  /* The call itself is what refreshes the cookie — the return value
+     is unused on purpose. Wrapped because the Edge runtime can fail
+     to reach Supabase (proxy, IPv6, DNS) and a refresh failure must
+     not 500 the request. The real auth gate is getUser() in
+     admin/(protected)/layout.tsx, which runs in Node. */
+  try {
+    await supabase.auth.getUser();
+  } catch (err) {
+    console.warn("session refresh skipped:", (err as Error).message);
+  }
 
   return response;
 }
