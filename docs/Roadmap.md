@@ -13,7 +13,7 @@
 - [x] Apply page (form only, no payment yet)
 
 ## Phase 2 — Admissions
-- [ ] Application form → Supabase
+- [x] Application form → Supabase
 - [ ] Paystack integration
 - [ ] Admin approval screen
 - [ ] Student account + KIT ID creation on approval

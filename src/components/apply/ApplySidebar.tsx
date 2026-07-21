@@ -37,11 +37,13 @@ const steps: Step[] = [
   },
 ];
 
-/* TODO(Ade): replace with the real KIT PH support inbox/number —
-   these are placeholders carried over from the reference design. */
+/* Real contact details — resolves Doc 1 §10.3 / §11.2. No dedicated
+   domain yet, so this is a Gmail address for now; worth revisiting
+   once kit.ng (or similar) exists, since a Gmail address reads as
+   less trustworthy than a domain email on a paid platform. */
 const contact = {
-  email: "hello@kidsintech.africa",
-  phone: "+234 802 123 4567",
+  email: "kidsintechph@gmail.com",
+  phone: "+234 812 912 0553",
 };
 
 function StepIcon({ name }: { name: Step["icon"] }) {

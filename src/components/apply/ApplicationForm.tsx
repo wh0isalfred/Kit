@@ -1,47 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { submitApplication, type PlanKey } from "@/app/apply/actions";
+import type { CourseRow } from "@/lib/courses";
 
 /* ────────────────────────────────────────────────────────────
-   PRICING + OPTIONS
-   In Phase 2 these come from the `courses` table. For now they
-   live here so there is one place to change them.
-   Amounts are in naira. Paystack expects kobo (× 100) — that
-   conversion happens server-side, not here.
+   Courses now come from the database (the `courses` table) via
+   the `courses` prop, fetched server-side and passed down by the
+   apply page:
+
+     import { getLiveCourses } from "@/lib/courses";
+     // in the page component:
+     const courses = await getLiveCourses();
+     <ApplicationForm courses={courses} />
+
+   This component assumes `courses` is ALREADY filtered to
+   status === 'live' — getLiveCourses() does that. Prices are read
+   straight off each course row (price_naira / price_monthly_naira,
+   pre-converted by the public_courses view — see src/lib/courses.ts),
+   so there's no separate pricing table and no kobo math in this file.
    ──────────────────────────────────────────────────────────── */
-type ProgramType = "term" | "summer";
-
-type Program = {
-  slug: string;
-  label: string;
-  type: ProgramType;
-};
-
-const programs: Program[] = [
-  { slug: "web-development", label: "Web Development", type: "term" },
-  { slug: "python", label: "Python Programming", type: "term" },
-  { slug: "game-development", label: "3D Game Development", type: "term" },
-  { slug: "summer", label: "Summer Tech Camp", type: "summer" },
-];
-
-type PlanKey = "monthly" | "upfront";
-
-const plans: Record<PlanKey, { label: string; note: string; dueNow: number; total: number }> = {
-  monthly: {
-    label: "Monthly",
-    note: "₦27,000 × 3 months",
-    dueNow: 27000,
-    total: 81000,
-  },
-  upfront: {
-    label: "Pay once",
-    note: "₦75,000 — save ₦6,000",
-    dueNow: 75000,
-    total: 75000,
-  },
-};
-
-const SUMMER_PRICE = 15000;
 
 const genderOptions = ["Male", "Female", "Prefer not to say"];
 const relationshipOptions = ["Mother", "Father", "Guardian", "Other"];
@@ -78,7 +56,7 @@ type Fields = {
   relationship: string;
   email: string;
   phone: string;
-  program: string;
+  program: string; // course slug
   plan: PlanKey | "";
   referral: string;
   notes: string;
@@ -103,19 +81,23 @@ const empty: Fields = {
 
 type Errors = Partial<Record<keyof Fields, string>>;
 
-export default function ApplicationForm() {
+export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
   const [f, setF] = useState<Fields>(empty);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
-  const selected = programs.find((p) => p.slug === f.program);
+  const selected = courses.find((c) => c.slug === f.program);
   const isTerm = selected?.type === "term";
   const isSummer = selected?.type === "summer";
 
   const dueNow = isSummer
-    ? SUMMER_PRICE
+    ? (selected?.price_naira ?? null)
     : isTerm && f.plan
-      ? plans[f.plan].dueNow
+      ? f.plan === "monthly"
+        ? (selected?.price_monthly_naira ?? null)
+        : (selected?.price_naira ?? null)
       : null;
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
@@ -131,7 +113,14 @@ export default function ApplicationForm() {
     const age = ageFrom(f.dob);
     if (!f.dob) e.dob = "Enter a date of birth";
     else if (age === null) e.dob = "That date isn't valid";
-    else if (age < 10 || age > 16) e.dob = "KIT is for ages 10–16";
+    // NOTE: 10–15 here matches the term programme's current
+    // advertised range. Whether Summer should allow up to 16 (it has
+    // no track split, so no structural reason not to) is still open
+    // — see the flag in chat about whether `courses.track` or
+    // separate age_min/age_max columns are the real enrollment gate.
+    // Either way, the DB trigger on `applications` is the actual
+    // source of truth; this is a client-side pre-filter only.
+    else if (age < 10 || age > 15) e.dob = "KIT is for ages 10–15";
 
     if (!f.gender) e.gender = "Select an option";
     if (!f.parentName.trim()) e.parentName = "Enter your name";
@@ -164,16 +153,54 @@ export default function ApplicationForm() {
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      /* Next step: a Server Action that
-         1. inserts into `applications` with status 'pending_payment'
-         2. initializes a Paystack transaction for `dueNow`
-         3. returns the checkout URL to redirect to
-         The webhook is what marks the row paid — not the redirect. */
-      console.log("Application payload", { ...f, dueNow });
+      const result = await submitApplication({
+        studentName: f.studentName,
+        dob: f.dob,
+        gender: f.gender,
+        school: f.school,
+        parentName: f.parentName,
+        relationship: f.relationship,
+        email: f.email,
+        phone: `+234${f.phone.replace(/\D/g, "")}`,
+        courseSlug: f.program,
+        plan: isTerm ? (f.plan as PlanKey) : null,
+        referral: f.referral,
+        notes: f.notes,
+        consent: f.consent,
+      });
+
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
+
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
+      // Paystack isn't wired up yet — the application is saved, just
+      // no checkout redirect to send them to. Swap this for the
+      // redirect above once PAYSTACK_SECRET_KEY exists.
+      setSubmitted(true);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="af af-success">
+        <h2>Application received</h2>
+        <p className="af-sub">
+          Thanks — we&apos;ve got {f.studentName || "your child"}&apos;s application
+          for {selected?.title ?? "the program"}. We&apos;ll be in touch about payment
+          and next steps shortly.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -304,9 +331,9 @@ export default function ApplicationForm() {
             }}
           >
             <option value="">Choose a program</option>
-            {programs.map((p) => (
-              <option key={p.slug} value={p.slug}>
-                {p.label}
+            {courses.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.title}
               </option>
             ))}
           </select>
@@ -327,22 +354,42 @@ export default function ApplicationForm() {
         </label>
       </div>
 
-      {isTerm && (
+      {isTerm && selected && (
         <div className="af-plans">
           <span className="af-plans-label">Payment Plan</span>
           <div className="af-plan-grid">
-            {(Object.keys(plans) as PlanKey[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`af-plan ${f.plan === key ? "on" : ""}`}
-                onClick={() => set("plan", key)}
-                aria-pressed={f.plan === key}
-              >
-                <span className="af-plan-name">{plans[key].label}</span>
-                <span className="af-plan-note">{plans[key].note}</span>
-              </button>
-            ))}
+            {(["monthly", "upfront"] as PlanKey[])
+              .filter((key) => key !== "monthly" || selected.price_monthly_naira)
+              .map((key) => {
+                const isMonthly = key === "monthly";
+                const due = isMonthly
+                  ? selected.price_monthly_naira!
+                  : selected.price_naira;
+                const monthlyTotal = (selected.price_monthly_naira ?? 0) * 3;
+                const upfrontPrice = selected.price_naira;
+                const savings = monthlyTotal - upfrontPrice;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`af-plan ${f.plan === key ? "on" : ""}`}
+                    onClick={() => set("plan", key)}
+                    aria-pressed={f.plan === key}
+                  >
+                    <span className="af-plan-name">
+                      {isMonthly ? "Monthly" : "Pay once"}
+                    </span>
+                    <span className="af-plan-note">
+                      {isMonthly
+                        ? `${naira(due)} × 3 months`
+                        : savings > 0
+                          ? `${naira(due)} — save ${naira(savings)}`
+                          : naira(due)}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
           {errors.plan && <em className="field-error">{errors.plan}</em>}
         </div>
@@ -364,8 +411,11 @@ export default function ApplicationForm() {
         <div className="af-total">
           <span>Due today</span>
           <strong>{naira(dueNow)}</strong>
-          {isTerm && f.plan === "monthly" && (
-            <em>Months 2 and 3 invoiced separately — {naira(plans.monthly.total)} total</em>
+          {isTerm && f.plan === "monthly" && selected?.price_monthly_naira && (
+            <em>
+              Months 2 and 3 invoiced separately —{" "}
+              {naira(selected.price_monthly_naira * 3)} total
+            </em>
           )}
         </div>
       )}
@@ -380,13 +430,15 @@ export default function ApplicationForm() {
       </label>
       {errors.consent && <em className="field-error">{errors.consent}</em>}
 
+      {submitError && <p className="af-submit-error">{submitError}</p>}
+
       <button
         type="button"
         className="af-submit"
         onClick={onSubmit}
         disabled={submitting}
       >
-        {submitting ? "Redirecting to payment…" : "Submit Application"}
+        {submitting ? "Submitting…" : "Submit Application"}
         <svg
           viewBox="0 0 24 24"
           fill="none"

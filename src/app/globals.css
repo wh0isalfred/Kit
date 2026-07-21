@@ -117,7 +117,37 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
 .acc-purple .prog-dur,.acc-purple .prog-more{color:#7c5cff}
 .acc-amber .prog-icon{background:rgba(245,166,35,.16);color:#d98a00}
 .acc-amber .prog-dur,.acc-amber .prog-more{color:#d98a00}
-
+/* ================= PROGRAMS — COMING SOON ================= */
+.prog-soon {
+  margin-top: 32px;
+  text-align: center;
+}
+ 
+.prog-soon-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #8b93a7;
+  margin-bottom: 12px;
+}
+ 
+.prog-soon-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+ 
+.prog-soon-pill {
+  padding: 8px 16px;
+  border-radius: 40px;
+  background: #f1f3f8;
+  color: #5b6472;
+  font-size: 13.5px;
+  font-weight: 600;
+}
 
 /* visual outcome band */
 .pviz{height:152px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:22px}
@@ -1764,6 +1794,21 @@ footer {
 .af-submit svg {
   width: 17px;
   height: 17px;
+}
+
+/* ================= APPLICATION FORM — SUBMIT STATES ================= */
+.af-submit-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fdeceb;
+  color: #b3261e;
+  font-size: 14px;
+}
+ 
+.af-success {
+  text-align: center;
+  padding: 40px 20px;
 }
 
 /* Responsive */

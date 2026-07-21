@@ -2,7 +2,7 @@
 
 > Every career needs tech literacy.
 
-KIT is a tech education platform for ages 12–16, running a 12-week Future Skills Lab and a 3-week Summer Program in Port Harcourt, Nigeria.
+KIT is a tech education platform for ages 12–15, running a 12-week Future Skills Lab and a 3-week Summer Program in Port Harcourt, Nigeria.
 
 ## What's in this repo
 
