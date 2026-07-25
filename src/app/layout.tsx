@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "KIT — The future of tech starts here",
   description:
-    "KIT is a tech school in Port Harcourt where young people (ages 12–16) learn to build with technology — web development, AI, and more.",
+  "KIT is a tech school in Port Harcourt where young people (ages 10–15) learn to build with technology — web development, AI, Python, and more.",
 };
 
 export default function RootLayout({

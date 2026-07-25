@@ -1,4 +1,3 @@
-import Nav from "@/components/site/Nav"
 import Footer from "@/components/site/Footer";
 import Hero from "@/components/home/Hero";
 import Programs from "@/components/home/Programs";
@@ -14,7 +13,6 @@ export default function Home() {
     <>
        <Ambient />
        <div className="page">
-        <Nav /> 
         <Hero />
         <Programs />
         {/* dark interruption between two light sections */}

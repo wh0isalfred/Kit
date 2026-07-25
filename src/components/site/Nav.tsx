@@ -3,12 +3,47 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useSectionLink } from "./useSectionLink";
+import { signOutSummer } from "@/app/summer/summer-session";
 
-export default function Nav() {
+export default function Nav({ loggedIn = false }: { loggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const sectionLink = useSectionLink();
+  const router = useRouter();
+
+  async function signOut() {
+    close();
+    await signOutSummer();
+    router.push("/");
+    router.refresh();
+  }
+
+  /* Logged in (a valid summer session): the primary CTA becomes the
+     way back into the classroom, and Login becomes Sign out. Logged
+     out: Apply + Login as before, with Login now pointing at /summer
+     — the only working sign-in — instead of the /login route that
+     doesn't exist. */
+  const cta = loggedIn ? (
+    <>
+      <Link className="btn btn-primary" href="/smportal" onClick={close}>
+        Go to your classroom
+      </Link>
+      <button className="btn btn-outline" onClick={signOut}>
+        Sign out
+      </button>
+    </>
+  ) : (
+    <>
+      <Link className="btn btn-primary" href="/apply" onClick={close}>
+        Apply
+      </Link>
+      <Link className="btn btn-outline" href="/summer" onClick={close}>
+        Login
+      </Link>
+    </>
+  );
 
   return (
     <nav>
@@ -26,10 +61,7 @@ export default function Nav() {
           {/* <a href="#faq">FAQ</a> */}
         </div>
 
-        <div className="nav-right">
-          <Link className="btn btn-primary" href="/apply">Apply</Link>
-          <Link className="btn btn-outline" href="/login">Login</Link>
-        </div>
+        <div className="nav-right">{cta}</div>
 
         <button
           className="nav-toggle"
@@ -52,10 +84,7 @@ export default function Nav() {
           <a {...sectionLink("why", close)}>Why Kit?</a>
           <Link href="/contact" onClick={close}>Contact</Link>
           {/* <a href="#faq" onClick={close}>FAQ</a> */}
-          <div className="nav-mobile-cta">
-            <Link className="btn btn-primary" href="/apply" onClick={close}>Apply</Link>
-            <Link className="btn btn-outline" href="/login" onClick={close}>Login</Link>
-          </div>
+          <div className="nav-mobile-cta">{cta}</div>
         </div>
       </div>
     </nav>

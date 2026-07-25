@@ -69,11 +69,19 @@ export default function PortalContent({
     <div className="pt">
       {/* ── Top bar ─────────────────────────────────── */}
       <header className="pt-top">
-        <div>
-          <h1>
-            Hello, {firstName}! <span className="pt-wave">👋</span>
-          </h1>
-          <p>Welcome back. Learn, build, and have fun this summer.</p>
+        <div className="pt-top-left">
+          <a href="/" className="pt-home" aria-label="Back to KIT home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            KIT
+          </a>
+          <div>
+            <h1>
+              Hello, {firstName}! <span className="pt-wave">👋</span>
+            </h1>
+            <p>Welcome back. Learn, build, and have fun this summer.</p>
+          </div>
         </div>
         <button className="pt-signout" onClick={signOut}>
           Sign out

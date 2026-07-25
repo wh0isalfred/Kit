@@ -1,4 +1,3 @@
-import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
 import ApplyHero from "@/components/apply/ApplyHero";
 import ApplicationForm from "@/components/apply/ApplicationForm";
@@ -14,7 +13,6 @@ const courses = await getLiveCourses();
 
   return (
     <div className="page">
-      <Nav />
       <ApplyHero />
 
       <section id="apply-form" className="apply-form-section">

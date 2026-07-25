@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitApplication, type PlanKey } from "@/app/apply/actions";
+import { submitApplication, type PlanKey } from "@/app/(marketing)/apply/actions";
 import type { CourseRow } from "@/lib/courses";
 
 /* ────────────────────────────────────────────────────────────
