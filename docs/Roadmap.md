@@ -14,8 +14,8 @@
 
 ## Phase 2 — Admissions
 - [x] Application form → Supabase
-- [ ] Paystack integration
-- [ ] Admin approval screen
+- [x] Paystack integration
+- [x] Admin approval screen
 - [ ] Student account + KIT ID creation on approval
 
 ## Phase 3 — Summer Portal
