@@ -22,14 +22,15 @@ export const dynamic = "force-dynamic";
  * doesn't decide any of that — it just renders what it's handed.
  */
 export default async function PortalPage() {
-  
   const session = await getSummerSession();
   if (!session) redirect("/summer");
 
   const supabase = await createClient();
 
-  // Who this is — for the greeting. If the row is gone (un-enrolled),
-  // the session is stale; send them back.
+  // Read the cohort here, INSIDE the function — this runs per request,
+  // so cookies() is valid. The top-level version broke the build.
+  const cohort = await getActiveSummerCohort();
+
   const { data: student } = await supabase
     .from("summer_students")
     .select("name, cohort_year")
@@ -68,7 +69,7 @@ export default async function PortalPage() {
       cohortYear={student.cohort_year}
       currentWeek={week}
       weekGroups={weekGroups}
-      isLive={false}        // ← add
+      isLive={cohort?.isLive ?? false}      // ← add
     />
     <Footer/>
     </div>
