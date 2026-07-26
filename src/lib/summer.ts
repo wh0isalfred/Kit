@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { unstable_noStore as noStore } from "next/cache";
 
+noStore()
 export type SummerCohort = {
   year: number;
   label: string;

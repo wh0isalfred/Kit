@@ -4,7 +4,7 @@ import { getSummerSession } from "../summer/summer-session";
 import PortalContent, { type PortalWeek, type PortalResource } from "./PortalContent";
 import Footer from "@/components/site/Footer";
 import { getActiveSummerCohort } from "@/lib/summer";
-import { unstable_noStore as noStore } from "next/cache";
+
 
 const cohort = await getActiveSummerCohort();
 
@@ -22,7 +22,6 @@ export const dynamic = "force-dynamic";
  * doesn't decide any of that — it just renders what it's handed.
  */
 export default async function PortalPage() {
-  noStore();
 
   const session = await getSummerSession();
   if (!session) redirect("/summer");
