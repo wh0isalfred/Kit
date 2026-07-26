@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resend, EMAIL_FROM } from "@/lib/email/resend";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -120,7 +121,7 @@ export async function approveApplication(
    Summer ID, which IS the student's credential. */
 
 export type EnrolResult =
-  | { ok: true; summerId: string; name: string }
+  | { ok: true; summerId: string; name: string; emailSent: boolean }
   | { ok: false; error: string };
 
 export async function enrolSummerStudent(
@@ -136,9 +137,61 @@ export async function enrolSummerStudent(
     return { ok: false, error: friendlyError(error?.message ?? "Enrolment failed.") };
   }
 
+  const { summer_id, name } = data[0];
+  const emailSent = await sendSummerIdEmail(supabase, {
+    applicationId,
+    summerId: summer_id,
+    name,
+  });
+
   revalidate();
   revalidatePath("/admin/summer");
-  return { ok: true, summerId: data[0].summer_id, name: data[0].name };
+  return { ok: true, summerId: summer_id, name, emailSent };
+}
+
+/* Reads parent_email off the linked `applications` row and sends the
+   Summer ID. This ONLY covers enrolment from a paid application —
+   enrol_summer_student() also supports a bare-roster-import path
+   (called with p_name/p_cohort_year instead of p_application_id per
+   the handoff doc), which has no applications row to read an email
+   from. If that path is exposed as a separate admin action elsewhere,
+   it needs its own email wiring wherever ITS contact info lives. */
+async function sendSummerIdEmail(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: { applicationId: string; summerId: string; name: string }
+): Promise<boolean> {
+  const { data: app, error: readError } = await supabase
+    .from("applications")
+    .select("parent_email")
+    .eq("id", args.applicationId)
+    .single();
+
+  if (readError || !app?.parent_email) {
+    console.error(
+      "summer ID email: no parent_email for application",
+      args.applicationId,
+      readError?.message
+    );
+    return false;
+  }
+
+  const { error: sendError } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: app.parent_email,
+    subject: `${args.name}'s Summer ID is ready`,
+    html: `
+      <p>Hi,</p>
+      <p>${args.name}'s Summer ID is <strong>${args.summerId}</strong>.</p>
+      <p>Use it to sign in at the KIT Summer portal once the camp gate opens.</p>
+    `,
+  });
+
+  if (sendError) {
+    console.error("summer ID email: Resend send failed:", sendError.message);
+    return false;
+  }
+
+  return true;
 }
 
 /* ── REJECT ───────────────────────────────────────────────── */
@@ -200,15 +253,29 @@ async function provisionStudentAccount(args: {
   await admin.from("students").update({ user_id: userId }).eq("id", args.studentId);
   await admin.from("profiles").upsert({ user_id: userId, role: "student" });
 
-  /* No SMTP or Resend configured yet, so this will fail — by design.
-     login_email_sent_at stays null, the student list flags it, and
-     the send is retryable without re-running admissions. */
-  const { error: linkError } = await admin.auth.admin.generateLink({
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "recovery",
     email: args.email,
   });
-  if (linkError) {
-    console.error("login email:", linkError.message);
+  if (linkError || !linkData) {
+    console.error("login email: generateLink failed:", linkError?.message);
+    return false;
+  }
+
+  const { error: sendError } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: args.email,
+    subject: "Your KIT account is ready",
+    html: `
+      <p>Hi,</p>
+      <p>Your KIT ID is <strong>${args.kitId}</strong>.</p>
+      <p>Set your password to get started:</p>
+      <p><a href="${linkData.properties.action_link}">Set your password</a></p>
+    `,
+  });
+
+  if (sendError) {
+    console.error("login email: Resend send failed:", sendError.message);
     return false;
   }
 

@@ -4228,7 +4228,7 @@ footer {
   font-weight: 800;
   letter-spacing: 0.04em;
   color: #fff;
-  background: #e0334e;
+  background: #10B981;
   padding: 4px 10px 4px 8px;
   border-radius: 20px;
 }
@@ -4251,18 +4251,18 @@ footer {
    soft breathing glow so it reads as "act now". */
 .pt-class-btn.live,
 .pt-hero-btn.live {
-  background: #e0334e;
+  background: #10B981;
   color: #fff;
   animation: pt-glow 1.8s ease-in-out infinite;
 }
 
 .pt-hero-btn.live {
   /* on the gradient hero, keep it readable */
-  box-shadow: 0 0 0 0 rgba(224, 51, 78, 0.5);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
 }
 
 @keyframes pt-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 51, 78, 0.45); }
+  0%, 100% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35); }
   50% { box-shadow: 0 0 0 8px rgba(224, 51, 78, 0); }
 }
 
