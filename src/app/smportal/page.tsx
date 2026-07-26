@@ -6,7 +6,7 @@ import Footer from "@/components/site/Footer";
 import { getActiveSummerCohort } from "@/lib/summer";
 
 
-const cohort = await getActiveSummerCohort();
+// const cohort = await getActiveSummerCohort();
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * doesn't decide any of that — it just renders what it's handed.
  */
 export default async function PortalPage() {
-
+  
   const session = await getSummerSession();
   if (!session) redirect("/summer");
 
@@ -68,7 +68,7 @@ export default async function PortalPage() {
       cohortYear={student.cohort_year}
       currentWeek={week}
       weekGroups={weekGroups}
-      isLive={cohort?.isLive ?? false}          // ← add
+      isLive={false}        // ← add
     />
     <Footer/>
     </div>
