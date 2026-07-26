@@ -165,3 +165,21 @@ export async function saveWeek(input: WeekInput): Promise<ActionResult> {
   revalidatePath("/summer");
   return { ok: true };
 }
+
+export async function setSummerLive(
+  cohortYear: number,
+  live: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("set_summer_live", {
+    p_cohort_year: cohortYear,
+    p_live: live,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/summer");
+  revalidatePath("/smportal");
+  return { ok: true };
+}

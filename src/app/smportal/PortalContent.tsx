@@ -44,11 +44,13 @@ export default function PortalContent({
   cohortYear,
   currentWeek,
   weekGroups,
+  isLive,
 }: {
   studentName: string;
   cohortYear: number;
   currentWeek: CurrentWeek;
   weekGroups: PortalWeek[];
+  isLive: boolean;  
 }) {
   const router = useRouter();
   const firstName = studentName.split(" ")[0];
@@ -56,8 +58,7 @@ export default function PortalContent({
   const nextClass = currentWeek?.next_class_at
     ? new Date(currentWeek.next_class_at)
     : null;
-  const classSoon =
-    nextClass && nextClass.getTime() - Date.now() < 60 * 60 * 1000 && nextClass.getTime() > Date.now();
+
 
   async function signOut() {
     await signOutSummer();
@@ -100,16 +101,12 @@ export default function PortalContent({
                 <span className="pt-hero-accent">Create. Shine.</span>
               </h2>
               <p>Your summer journey to becoming a tech creator.</p>
-              {currentWeek?.meet_link && (
-                <a
-                  className="pt-hero-btn"
-                  href={currentWeek.meet_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Join live class
-                </a>
-              )}
+               {currentWeek?.meet_link && isLive && (
+                  <a className="pt-hero-btn live" href={currentWeek.meet_link}
+                    target="_blank" rel="noopener noreferrer">
+                    Join live class now
+                  </a>
+                )}
             </div>
             <div className="pt-hero-art" aria-hidden>
               <div className="pt-hero-blob" />
@@ -155,7 +152,12 @@ export default function PortalContent({
           <section className="pt-card pt-class">
             <div className="pt-card-head">
               <h3>Today&apos;s class</h3>
-              {classSoon && <span className="pt-live">Soon</span>}
+              {isLive && (
+                <span className="pt-live-badge">
+                  <span className="pt-live-pulse" />
+                  LIVE NOW!
+                </span>
+              )}
             </div>
 
             {currentWeek?.class_title ? (
@@ -176,12 +178,12 @@ export default function PortalContent({
                 )}
                 {currentWeek.meet_link && (
                   <a
-                    className="pt-class-btn"
+                    className={`pt-class-btn ${isLive ? "live" : ""}`}
                     href={currentWeek.meet_link}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Join class
+                    {isLive ? "Join live class now" : "Class link"}
                   </a>
                 )}
               </>

@@ -9,6 +9,8 @@ export type SummerCohort = {
   registrationOpensAt: string | null;
   registrationClosesAt: string | null;
   prizeNaira: number | null;
+  isLive: boolean;
+  liveStartedAt: string | null;
 };
 
 /**
@@ -26,7 +28,7 @@ export async function getActiveSummerCohort(): Promise<SummerCohort | null> {
   const { data, error } = await supabase
     .from("summer_cohorts")
     .select(
-      "year, label, current_week, starts_on, ends_on, registration_opens_at, registration_closes_at, prize_kobo"
+      "year, label, current_week, starts_on, ends_on, registration_opens_at, registration_closes_at, prize_kobo, is_live, live_started_at"
     )
     .eq("active", true)
     .maybeSingle();
@@ -45,6 +47,8 @@ export async function getActiveSummerCohort(): Promise<SummerCohort | null> {
     registrationOpensAt: data.registration_opens_at,
     registrationClosesAt: data.registration_closes_at,
     prizeNaira: data.prize_kobo !== null ? data.prize_kobo / 100 : null,
+    isLive: data.is_live,
+    liveStartedAt: data.live_started_at
   };
 }
 

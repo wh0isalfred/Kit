@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import SummerAdmin, { type Cohort, type Week } from "./SummerAdmin";
 import SummerResources, { type Resource } from "./SummerResources";
+import GoLiveControl from "./GoLiveControl";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export default async function AdminSummerPage() {
   const { data: cohorts, error } = await supabase
     .from("summer_cohorts")
     .select(
-      "year, label, current_week, starts_on, ends_on, registration_opens_at, registration_closes_at, active, prize_kobo"
+      "year, label, current_week, starts_on, ends_on, registration_opens_at, registration_closes_at, active, prize_kobo,is_live, live_started_at"
     )
     .order("year", { ascending: false });
 
@@ -73,7 +74,14 @@ export default async function AdminSummerPage() {
         weeks={(weeks ?? []) as Week[]}
         rosterCount={rosterCount ?? 0}
       />
-
+      <GoLiveControl
+        cohortYear={active.year}
+        isLive={active.is_live}
+        liveStartedAt={active.live_started_at}
+        nextClassAt={
+          weeks?.find((w) => w.week === active.current_week)?.next_class_at ?? null
+        }
+      />
       {active && (
         <SummerResources
           cohortYear={active.year}

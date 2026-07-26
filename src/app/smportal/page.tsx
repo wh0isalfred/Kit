@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getSummerSession } from "../summer/summer-session";
 import PortalContent, { type PortalWeek, type PortalResource } from "./PortalContent";
 import Footer from "@/components/site/Footer";
+import { getActiveSummerCohort } from "@/lib/summer";
+import { unstable_noStore as noStore } from "next/cache";
+
+const cohort = await getActiveSummerCohort();
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +22,8 @@ export const dynamic = "force-dynamic";
  * doesn't decide any of that — it just renders what it's handed.
  */
 export default async function PortalPage() {
+  noStore();
+
   const session = await getSummerSession();
   if (!session) redirect("/summer");
 
@@ -55,6 +61,7 @@ export default async function PortalPage() {
     .sort((a, b) => b[0] - a[0])
     .map(([weekNo, items]) => ({ week: weekNo, resources: items }));
 
+
   return (
     <div>
     <PortalContent
@@ -62,6 +69,7 @@ export default async function PortalPage() {
       cohortYear={student.cohort_year}
       currentWeek={week}
       weekGroups={weekGroups}
+      isLive={cohort?.isLive ?? false}          // ← add
     />
     <Footer/>
     </div>
