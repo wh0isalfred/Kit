@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitApplication, type PlanKey } from "@/app/(marketing)/apply/actions";
 import type { CourseRow } from "@/lib/courses";
+import Reveal from "@/components/site/Reveal";
 
 /* ────────────────────────────────────────────────────────────
    Courses now come from the database (the `courses` table) via
@@ -192,19 +193,19 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
 
   if (submitted) {
     return (
-      <div className="af af-success">
+      <Reveal as="div" className="af af-success">
         <h2>Application received</h2>
         <p className="af-sub">
           Thanks — we&apos;ve got {f.studentName || "your child"}&apos;s application
           for {selected?.title ?? "the program"}. We&apos;ll be in touch about payment
           and next steps shortly.
         </p>
-      </div>
+      </Reveal>
     );
   }
 
   return (
-    <div className="af">
+    <Reveal as="div" className="af">
       <h2>Student Application Form</h2>
       <p className="af-sub">Please fill in the details below to get started.</p>
 
@@ -450,6 +451,6 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       </button>
-    </div>
+    </Reveal>
   );
 }

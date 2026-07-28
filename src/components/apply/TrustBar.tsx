@@ -2,6 +2,8 @@
    STATIC — server component, same data-array pattern as
    ApplyHero / ApplySidebar.
    ──────────────────────────────────────────────────────────── */
+import Reveal from "@/components/site/Reveal";
+
 type Accent = "teal" | "purple" | "amber";
 
 type Badge = {
@@ -58,7 +60,7 @@ export default function TrustBar() {
   return (
     <section className="trust-bar">
       <div className="wrap trust-bar-in">
-        <div className="trust-main">
+        <Reveal className="trust-main">
           <div className="trust-icon">
             <svg className="trust-shield" viewBox="0 0 100 100" fill="none">
               <path
@@ -107,11 +109,11 @@ export default function TrustBar() {
               share personal information.
             </p>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="trust-badges">
+        <div className="trust-badges reveal-group">
           {badges.map((b) => (
-            <div key={b.key} className="trust-badge">
+            <Reveal key={b.key} className="trust-badge">
               <div className={`trust-badge-icon accent-${b.accent}`}>
                 <BadgeIcon name={b.icon} />
               </div>
@@ -120,7 +122,7 @@ export default function TrustBar() {
                 <br />
                 {b.line2}
               </span>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

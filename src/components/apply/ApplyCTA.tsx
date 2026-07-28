@@ -1,8 +1,10 @@
+import Reveal from "@/components/site/Reveal";
+
 export default function ApplyCTA() {
   return (
     <section className="apply-cta">
       <div className="wrap apply-cta-in">
-        <div className="apply-cta-left">
+        <Reveal className="apply-cta-left">
           <div className="apply-cta-icon">
             <svg viewBox="0 0 120 120" fill="none">
               <path
@@ -28,21 +30,23 @@ export default function ApplyCTA() {
               learn, and build with confidence.
             </p>
           </div>
-        </div>
+        </Reveal>
 
-        <a href="#apply-form" className="apply-cta-btn">
-          Apply to KIT
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </a>
+        <Reveal delay={0.12}>
+          <a href="#apply-form" className="apply-cta-btn">
+            Apply to KIT
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+        </Reveal>
       </div>
     </section>
   );

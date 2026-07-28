@@ -3,6 +3,8 @@
    ApplyHero pattern: data arrays at the top, icons switched
    below.
    ──────────────────────────────────────────────────────────── */
+import Reveal from "@/components/site/Reveal";
+
 type Accent = "teal" | "blue" | "purple";
 
 type Step = {
@@ -43,7 +45,11 @@ const steps: Step[] = [
    less trustworthy than a domain email on a paid platform. */
 const contact = {
   email: "kidsintechph@gmail.com",
-  phone: "+234 812 912 0553",
+  // WhatsApp deep link needs international format with no leading 0:
+  // 0916 979 9215 -> 234 916 979 9215 -> no spaces.
+  whatsappNumber: "2349169799215",
+  whatsappMessage:
+    "Hi! 👋 I'm interested in enrolling my child in a KIT program. I have a few questions before completing the application. Could someone please assist me?",
 };
 
 function StepIcon({ name }: { name: Step["icon"] }) {
@@ -86,11 +92,11 @@ function StepIcon({ name }: { name: Step["icon"] }) {
 export default function ApplySidebar() {
   return (
     <aside className="apply-sidebar">
-      <h3 className="sidebar-title">What Happens Next?</h3>
+      <Reveal as="h3" className="sidebar-title">What Happens Next?</Reveal>
 
-      <div className="sidebar-steps">
+      <div className="sidebar-steps reveal-group">
         {steps.map((s) => (
-          <div key={s.key} className={`sidebar-step accent-${s.accent}`}>
+          <Reveal key={s.key} className={`sidebar-step accent-${s.accent}`}>
             <div className="sidebar-step-icon">
               <StepIcon name={s.icon} />
             </div>
@@ -98,11 +104,11 @@ export default function ApplySidebar() {
               <p className="sidebar-step-title">{s.title}</p>
               <p className="sidebar-step-desc">{s.desc}</p>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
 
-      <div className="sidebar-questions">
+      <Reveal className="sidebar-questions">
         <h4>Have Questions?</h4>
         <p>We&apos;re here to help you every step of the way.</p>
 
@@ -114,20 +120,25 @@ export default function ApplySidebar() {
           {contact.email}
         </a>
 
-        <a className="sidebar-contact" href={`tel:${contact.phone.replace(/\s/g, "")}`}>
+        <a
+          className="sidebar-contact"
+          href={`https://wa.me/${contact.whatsappNumber}?text=${encodeURIComponent(contact.whatsappMessage)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v2a2 2 0 01-2.18 2 19.72 19.72 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.72 19.72 0 012 3.18 2 2 0 014 1h2a2 2 0 012 1.72c.12.9.34 1.77.65 2.6a2 2 0 01-.45 2.11L7 8.91a16 16 0 006 6l1.58-1.2a2 2 0 012.11-.45c.83.31 1.7.53 2.6.65A2 2 0 0122 16.92z" />
+            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
           </svg>
-          {contact.phone}
+          Chat on WhatsApp
         </a>
-      </div>
+      </Reveal>
 
-      <p className="sidebar-note">
+      <Reveal as="p" className="sidebar-note">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 21s-7.5-4.7-10-9.3C.5 8.4 2.3 5 5.7 5c2 0 3.4 1.1 4.3 2.5C10.9 6.1 12.3 5 14.3 5c3.4 0 5.2 3.4 3.7 6.7C19.5 16.3 12 21 12 21z" />
         </svg>
         We can&apos;t wait to welcome your child to KIT!
-      </p>
+      </Reveal>
     </aside>
   );
 }

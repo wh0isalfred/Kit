@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Reveal from "@/components/site/Reveal";
 
 /* ────────────────────────────────────────────────────────────
    EDIT THE THREE HERO TILES HERE.
@@ -59,29 +60,31 @@ export default function ApplyHero() {
     <section className="apply-hero">
       <div className="wrap apply-hero-in">
         <div className="apply-hero-copy">
-          <span className="eyebrow apply-eyebrow">Apply to KIT</span>
-          <h1>
-            Take the first step toward <em className="hl-blue">their</em>{" "}
-            <em className="hl-teal">future.</em>
-          </h1>
-          <p className="apply-hero-body">
-            Join the kids (10–16) who are learning, building, and creating with
-            real digital skills.
-          </p>
+          <Reveal>
+            <span className="eyebrow apply-eyebrow">Apply to KIT</span>
+            <h1>
+              Take the first step toward <em className="hl-blue">their</em>{" "}
+              <em className="hl-teal">future.</em>
+            </h1>
+            <p className="apply-hero-body">
+              Join the kids (10–16) who are learning, building, and creating with
+              real digital skills.
+            </p>
+          </Reveal>
 
-          <div className="apply-tiles">
+          <div className="apply-tiles reveal-group">
             {tiles.map((t) => (
-              <div key={t.key} className={`apply-tile tile-${t.accent}`}>
+              <Reveal key={t.key} className={`apply-tile tile-${t.accent}`}>
                 <div className="apply-tile-icon">
                   <TileIcon name={t.icon} />
                 </div>
                 <span>{t.label}</span>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
 
-        <div className="apply-hero-art">
+        <Reveal className="apply-hero-art" delay={0.15}>
           <div className="apply-hero-img">
             <Image
               src="/applyHeroImage.webp"
@@ -112,7 +115,7 @@ export default function ApplyHero() {
             <div className="apply-stat-num">50+</div>
             <div className="apply-stat-label">Students already signed up</div>
           </div> */}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
