@@ -168,7 +168,7 @@ export default async function Programs() {
           })}
         </div>
 
-        {comingSoon.length > 0 && (
+        {/* {comingSoon.length > 0 && (
           <div className="prog-soon">
             <span className="prog-soon-label">Coming soon</span>
             <div className="prog-soon-row">
@@ -179,7 +179,7 @@ export default async function Programs() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </section>
   );
