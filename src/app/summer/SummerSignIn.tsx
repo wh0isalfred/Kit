@@ -65,7 +65,7 @@ export default function SummerSignIn() {
 
       <p className="sm-signin-help">
         Lost your ID? Ask a parent to check the enrolment message, or contact
-        us at kitph@gmail.com.
+        us at kidsintechph@gmail.com.
       </p>
     </div>
   );

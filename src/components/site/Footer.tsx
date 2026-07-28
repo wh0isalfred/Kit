@@ -9,7 +9,7 @@ import { useSectionLink } from "./useSectionLink";
    contact details. */
 const contact = {
   email: "kidsintechph@gmail.com",
-  phone: "+234 812 912 0553",
+  whatsappNumber: "2349169799215",
 };
 
 export default function Footer() {
@@ -22,7 +22,7 @@ export default function Footer() {
           {/* Left: Logo */}
           <div className="foot-left">
             <div className="foot-brand">
-              <Image className="logo-img foot" src="/logo.webp" alt="KIT logo" width={22} height={26} />
+              <Image className="logo-img foot" src="/logo.webp" alt="KIT logo" width={30} height={36} />
               KIT
             </div>
           </div>
@@ -44,6 +44,19 @@ export default function Footer() {
                 <circle cx="17.5" cy="6.5" r="1.5" />
               </svg>
             </a>
+            <a href={`https://wa.me/${contact.whatsappNumber}`} aria-label="WhatsApp" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+              </svg>
+            </a>
+            {/* Facebook page isn't set up yet — disabled span, not a
+                link to somewhere that may not exist. Swap for a
+                real <a href="..."> once it's live. */}
+            <span className="foot-social-disabled" aria-label="Facebook — coming soon" title="Facebook — coming soon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 4h-1.5A3.5 3.5 0 0010 7.5V10H7.5v3H10v7h3v-7h2.5l.5-3H13V7.5a.5.5 0 01.5-.5H15z" />
+              </svg>
+            </span>
             {/* <a href="#twitter" aria-label="Twitter" target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2s9 5 20 5a9.5 9.5 0 00-9-5.5c4.75 2.25 9 0 9-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
@@ -55,7 +68,7 @@ export default function Footer() {
                 <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
               </svg>
             </a> */}
-            <a  href="mailto:kidsintechph@gmail.com" aria-label="Email Kids in Tech" target="_blank" rel="noopener noreferrer">
+            <a  href={`mailto:${contact.email}`} aria-label="Email Kids in Tech" target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <path d="M22 6l-10 7L2 6" />
@@ -76,11 +89,11 @@ export default function Footer() {
               </svg>
               {contact.email}
             </a>
-            <a href={`tel:${contact.phone.replace(/\s/g, "")}`}>
+            <a href={`https://wa.me/${contact.whatsappNumber}`} target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 16.92v2a2 2 0 01-2.18 2 19.72 19.72 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.72 19.72 0 012 3.18 2 2 0 014 1h2a2 2 0 012 1.72c.12.9.34 1.77.65 2.6a2 2 0 01-.45 2.11L7 8.91a16 16 0 006 6l1.58-1.2a2 2 0 012.11-.45c.83.31 1.7.53 2.6.65A2 2 0 0122 16.92z" />
+                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
               </svg>
-              {contact.phone}
+              Chat on WhatsApp
             </a>
           </div>
           <p className="foot-copy">© 2026 KidsinTech (KIT). All rights reserved.</p>

@@ -6,9 +6,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSectionLink } from "./useSectionLink";
 import { signOutSummer } from "@/app/summer/summer-session";
+import ContactModal from "./ContactModal";
 
 export default function Nav({ loggedIn = false }: { loggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const close = () => setOpen(false);
   const sectionLink = useSectionLink();
   const router = useRouter();
@@ -49,7 +51,7 @@ export default function Nav({ loggedIn = false }: { loggedIn?: boolean }) {
     <nav>
       <div className="wrap nav-in">
         <Link className="brand" href="/" onClick={close}>
-          <Image className="logo-img" src="/logo.webp" alt="KIT logo" width={26} height={30} />
+          <Image className="logo-img" src="/logo.webp" alt="KIT logo" width={38} height={44} priority />
           KIT
         </Link>
 
@@ -57,8 +59,10 @@ export default function Nav({ loggedIn = false }: { loggedIn?: boolean }) {
           <a {...sectionLink("programs")}>Programs</a>
           <Link href="/about">About</Link>
           <a {...sectionLink("why")}>Why Kit?</a>
-          <Link href="/contact">Contact</Link>
-          {/* <a href="#faq">FAQ</a> */}
+          <button className="nav-link-btn" onClick={() => setContactOpen(true)}>
+            Contact
+          </button>
+          <a {...sectionLink("faq")}>FAQ</a> 
         </div>
 
         <div className="nav-right">{cta}</div>
@@ -82,11 +86,21 @@ export default function Nav({ loggedIn = false }: { loggedIn?: boolean }) {
           <a {...sectionLink("programs", close)}>Programs</a>
           <Link href="/about" onClick={close}>About</Link>
           <a {...sectionLink("why", close)}>Why Kit?</a>
-          <Link href="/contact" onClick={close}>Contact</Link>
-          {/* <a href="#faq" onClick={close}>FAQ</a> */}
+          <button
+            className="nav-link-btn"
+            onClick={() => {
+              close();
+              setContactOpen(true);
+            }}
+          >
+            Contact
+          </button>
+          <a {...sectionLink("faq")} onClick={close}>FAQ</a> 
           <div className="nav-mobile-cta">{cta}</div>
         </div>
       </div>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </nav>
   );
 }

@@ -30,6 +30,13 @@ export default async function SummerPage() {
   return (
     <main className="sm">
       <div className="wrap">
+        <a href="/" className="smp-home" aria-label="Back to KIT home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          KIT
+        </a>
+
         <section className="sm-hero">
           <div className="sm-hero-copy">
             {month && <span className="summer-badge">Happening this {month}!</span>}
