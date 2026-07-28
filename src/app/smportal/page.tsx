@@ -5,9 +5,6 @@ import PortalContent, { type PortalWeek, type PortalResource } from "./PortalCon
 import Footer from "@/components/site/Footer";
 import { getActiveSummerCohort } from "@/lib/summer";
 
-
-// const cohort = await getActiveSummerCohort();
-
 export const dynamic = "force-dynamic";
 
 /**
@@ -61,17 +58,18 @@ export default async function PortalPage() {
     .sort((a, b) => b[0] - a[0])
     .map(([weekNo, items]) => ({ week: weekNo, resources: items }));
 
-
   return (
     <div>
-    <PortalContent
-      studentName={student.name}
-      cohortYear={student.cohort_year}
-      currentWeek={week}
-      weekGroups={weekGroups}
-      isLive={cohort?.isLive ?? false}      // ← add
-    />
-    <Footer/>
+      <PortalContent
+        studentName={student.name}
+        cohortYear={student.cohort_year}
+        cohortStartsOn={cohort?.startsOn ?? null}
+        cohortEndsOn={cohort?.endsOn ?? null}
+        currentWeek={week}
+        weekGroups={weekGroups}
+        isLive={cohort?.isLive ?? false}
+      />
+      <Footer />
     </div>
   );
 }

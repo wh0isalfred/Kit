@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { getSummerFileUrl, signOutSummer } from "../summer/summer-session";
+import { ResourceIcon, KIND_STYLE, DEFAULT_STYLE, normalizeUrl } from "@/components/site/ResourceIcon";
 
 export type PortalResource = {
   id: string;
@@ -27,30 +29,91 @@ export type CurrentWeek = {
   next_class_at: string | null;
 } | null;
 
-const kindIcon = (kind: string) => {
-  switch (kind) {
-    case "video": return "🎬";
-    case "recording": return "📹";
-    case "slides": return "📊";
-    case "file": return "📄";
-    case "homework": return "✏️";
-    case "code": return "💻";
-    default: return "🔗";
-  }
-};
+/* ── "Add to calendar" — a real .ics file, generated client-side.
+   No backend needed since we already have title + start time. One
+   assumption, flagged: there's no class-duration field anywhere in
+   the schema, so this assumes a 1-hour block. If class length is
+   ever tracked, swap the hardcoded 60 for the real value. ── */
+function downloadIcs(title: string, startIso: string) {
+  const start = new Date(startIso);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//KIT Port Harcourt//Summer Camp//EN",
+    "BEGIN:VEVENT",
+    `UID:${start.getTime()}@kitph`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${title.replace(/\r?\n/g, " ")}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "kit-class.ics";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Countdown to next_class_at, only active while NOT live. isLive
+   is an admin-set flag (not derived from the clock — see ADR 002 in
+   the handoff doc), so this never contradicts it; it just goes quiet
+   once isLive is true or the time has passed. ── */
+function useCountdownLabel(target: string | null, active: boolean) {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!target || !active) {
+      setLabel(null);
+      return;
+    }
+    const targetMs = new Date(target).getTime();
+
+    function tick() {
+      const diff = targetMs - Date.now();
+      if (diff <= 0) {
+        setLabel(null);
+        return;
+      }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      if (days > 0) setLabel(`Live in ${days}d ${hours}h`);
+      else if (hours > 0) setLabel(`Live in ${hours}h ${mins}m`);
+      else setLabel(`Live in ${mins}m`);
+    }
+
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, [target, active]);
+
+  return label;
+}
 
 export default function PortalContent({
   studentName,
   cohortYear,
+  cohortStartsOn,
+  cohortEndsOn,
   currentWeek,
   weekGroups,
   isLive,
 }: {
   studentName: string;
   cohortYear: number;
+  cohortStartsOn?: string | null;
+  cohortEndsOn?: string | null;
   currentWeek: CurrentWeek;
   weekGroups: PortalWeek[];
-  isLive: boolean;  
+  isLive: boolean;
 }) {
   const router = useRouter();
   const firstName = studentName.split(" ")[0];
@@ -59,6 +122,19 @@ export default function PortalContent({
     ? new Date(currentWeek.next_class_at)
     : null;
 
+  const countdown = useCountdownLabel(currentWeek?.next_class_at ?? null, !isLive);
+
+  const dateRange =
+    cohortStartsOn && cohortEndsOn
+      ? `${new Date(cohortStartsOn).toLocaleDateString("en-NG", {
+          day: "numeric",
+          month: "short",
+        })} – ${new Date(cohortEndsOn).toLocaleDateString("en-NG", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}`
+      : null;
 
   async function signOut() {
     await signOutSummer();
@@ -67,75 +143,106 @@ export default function PortalContent({
   }
 
   return (
-    <div className="pt">
+    <div className="smp">
       {/* ── Top bar ─────────────────────────────────── */}
-      <header className="pt-top">
-        <div className="pt-top-left">
-          <a href="/" className="pt-home" aria-label="Back to KIT home">
+      <header className="smp-top">
+        <div className="smp-top-left">
+          <a href="/" className="smp-home" aria-label="Back to KIT home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             KIT
           </a>
-          <div>
-            <h1>
-              Hello, {firstName}! <span className="pt-wave">👋</span>
-            </h1>
+          <div className="smp-greeting">
+            <h1>Hello, {firstName}. 👋</h1>
             <p>Welcome back. Learn, build, and have fun this summer.</p>
           </div>
         </div>
-        <button className="pt-signout" onClick={signOut}>
-          Sign out
-        </button>
+        <div className="smp-top-right">
+          <button className="smp-signout" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
       </header>
 
-      <div className="pt-grid">
+      <div className="smp-grid">
         {/* ── Main column ───────────────────────────── */}
-        <div className="pt-main">
+        <div>
           {/* Hero */}
-          <section className="pt-hero">
-            <div className="pt-hero-copy">
-              <span className="pt-hero-tag">Summer Tech Camp {cohortYear}</span>
+          <section className="smp-hero">
+            <div className="smp-hero-copy">
+              <span className="smp-hero-tag">Summer Tech Camp {cohortYear}</span>
               <h2>
                 Learn. Build.<br />
-                <span className="pt-hero-accent">Create. Shine.</span>
+                <span className="smp-hero-accent">Create. Shine.</span>
               </h2>
               <p>Your summer journey to becoming a tech creator.</p>
-               {currentWeek?.meet_link && isLive && (
-                  <a className="pt-hero-btn live" href={currentWeek.meet_link}
-                    target="_blank" rel="noopener noreferrer">
-                    Join live class now
-                  </a>
+
+              <div className="smp-hero-meta">
+                {dateRange && (
+                  <span className="smp-hero-date">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    {dateRange}
+                  </span>
                 )}
+                {/* Stub link — the week-overview page doesn't exist yet,
+                    same "build the link now, page later" approach as
+                    View all resources below. */}
+                <a href="/smportal/week" className="smp-hero-btn">
+                  View week overview
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </a>
+              </div>
             </div>
-            <div className="pt-hero-art" aria-hidden>
-              <div className="pt-hero-blob" />
-              <span className="pt-hero-emoji">🚀</span>
+
+            <div className="smp-hero-art">
+              <Image
+                src="/smportalHeroImage.webp"
+                alt=""
+                width={760}
+                height={563}
+                aria-hidden="true"
+                style={{ width: "100%", height: "auto" }}
+              />
             </div>
           </section>
 
-          {/* Resources by week */}
-          <section className="pt-section">
-            <div className="pt-section-head">
+          {/* Resources */}
+          <section>
+            <div className="smp-section-head">
               <h3>Your resources</h3>
+              <a href="/smportal/resources" className="smp-view-all">
+                View all resources
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </a>
             </div>
 
             {weekGroups.length === 0 ? (
-              <div className="pt-empty">
-                <span className="pt-empty-emoji">📚</span>
+              <div className="smp-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 5a2 2 0 012-2h5v18H6a2 2 0 01-2-2V5z" />
+                  <path d="M20 5a2 2 0 00-2-2h-5v18h5a2 2 0 002-2V5z" />
+                </svg>
                 <p>Your first resources will appear here soon.</p>
                 <em>Check back after your first class!</em>
               </div>
             ) : (
               weekGroups.map((wg) => (
-                <div key={wg.week} className="pt-week">
-                  <div className="pt-week-label">
+                <div key={wg.week} style={{ marginBottom: 24 }}>
+                  <div className="smp-week-label">
                     Week {wg.week}
                     {currentWeek?.week === wg.week && (
-                      <span className="pt-week-now">This week</span>
+                      <span className="smp-week-now">This week</span>
                     )}
                   </div>
-                  <div className="pt-res-grid">
+                  <div className="smp-res-grid">
                     {wg.resources.map((r) => (
                       <ResourceCard key={r.id} resource={r} />
                     ))}
@@ -147,69 +254,110 @@ export default function PortalContent({
         </div>
 
         {/* ── Side column ───────────────────────────── */}
-        <aside className="pt-side">
+        <aside className="smp-side">
           {/* Today's class */}
-          <section className="pt-card pt-class">
-            <div className="pt-card-head">
+          <section className="smp-card">
+            <div className="smp-card-head">
               <h3>Today&apos;s class</h3>
-              {isLive && (
-                <span className="pt-live-badge">
-                  <span className="pt-live-pulse" />
-                  LIVE NOW!
+              {isLive ? (
+                <span className="smp-live-badge">
+                  <span className="smp-live-dot" />
+                  LIVE
                 </span>
+              ) : (
+                countdown && (
+                  <span className="smp-status-upcoming">
+                    <span className="smp-status-dot" />
+                    {countdown}
+                  </span>
+                )
               )}
             </div>
 
             {currentWeek?.class_title ? (
               <>
-                <div className="pt-class-icon">💻</div>
-                <p className="pt-class-title">{currentWeek.class_title}</p>
+                <div className="smp-class-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="12" rx="1.5" />
+                    <path d="M2 19h20" />
+                  </svg>
+                </div>
+                <p className="smp-class-title">{currentWeek.class_title}</p>
                 {currentWeek.class_note && (
-                  <p className="pt-class-note">{currentWeek.class_note}</p>
+                  <p className="smp-class-note">{currentWeek.class_note}</p>
                 )}
                 {nextClass && (
-                  <p className="pt-class-time">
+                  <div className="smp-class-meta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 3" />
+                    </svg>
                     {nextClass.toLocaleString("en-NG", {
                       weekday: "long",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                  </p>
+                  </div>
                 )}
+
                 {currentWeek.meet_link && (
                   <a
-                    className={`pt-class-btn ${isLive ? "live" : ""}`}
+                    className={`smp-join ${isLive ? "live" : ""}`}
                     href={currentWeek.meet_link}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {isLive ? "Join live class now" : "Class link"}
+                    {isLive ? "Join class — live now" : "Join class"}
                   </a>
+                )}
+
+                {nextClass && (
+                  <button
+                    className="smp-cal"
+                    onClick={() =>
+                      downloadIcs(currentWeek.class_title ?? "KIT class", currentWeek.next_class_at!)
+                    }
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    Add to calendar
+                  </button>
                 )}
               </>
             ) : (
-              <div className="pt-empty pt-empty-sm">
-                <p>No class scheduled yet.</p>
-                <em>Your next session will show up here.</em>
+              <div className="smp-class-empty">
+                No class scheduled yet. Your next session will show up here.
               </div>
             )}
           </section>
 
           {/* Student ID card */}
-          <section className="pt-card pt-idcard">
-            <div className="pt-id-avatar">{firstName.slice(0, 1)}</div>
+          <section className="smp-card smp-id">
+            <div className="smp-id-avatar">{firstName.slice(0, 1)}</div>
             <div>
-              <p className="pt-id-name">{studentName}</p>
-              <p className="pt-id-year">Summer Camp {cohortYear}</p>
+              <p className="smp-id-name">{studentName}</p>
+              <p className="smp-id-year">Summer Camp {cohortYear}</p>
             </div>
           </section>
 
           {/* Help */}
-          <section className="pt-card pt-help">
+          <section className="smp-card">
+            <div className="smp-help-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 13a9 9 0 0118 0" />
+                <path d="M21 13v5a2 2 0 01-2 2h-1v-7h3z" />
+                <path d="M3 13v5a2 2 0 002 2h1v-7H3z" />
+              </svg>
+            </div>
             <h3>Need help?</h3>
             <p>Stuck on something, or missed a class? We&apos;re here.</p>
-            <a href="mailto:kitph@gmail.com" className="pt-help-btn">
-              Ask a question
+            <a href="mailto:kitph@gmail.com" className="smp-help-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 4h6v6M20 4L10 14M20 14v6H4V4h6" />
+              </svg>
+              Contact support
             </a>
           </section>
         </aside>
@@ -225,10 +373,13 @@ function ResourceCard({ resource: r }: { resource: PortalResource }) {
   const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const style = KIND_STYLE[r.kind] ?? DEFAULT_STYLE;
+  const isInlineCode = !r.url && !r.storage_path && !!r.code_body;
+
   async function open() {
     // External link — just go.
     if (r.url) {
-      window.open(r.url, "_blank", "noopener,noreferrer");
+      window.open(normalizeUrl(r.url), "_blank", "noopener,noreferrer");
       return;
     }
     // Stored file — mint a signed URL first.
@@ -245,23 +396,41 @@ function ResourceCard({ resource: r }: { resource: PortalResource }) {
     if (r.code_body) setShowCode((s) => !s);
   }
 
+  const label = busy
+    ? "Opening…"
+    : isInlineCode
+    ? showCode
+      ? "Hide code"
+      : "Show code"
+    : style.verb;
+
   return (
-    <div className="pt-res">
-      <button className="pt-res-main" onClick={open} disabled={busy}>
-        <span className="pt-res-icon">{kindIcon(r.kind)}</span>
-        <span className="pt-res-text">
-          <span className="pt-res-title">{r.title}</span>
-          {r.description && <span className="pt-res-desc">{r.description}</span>}
-          <span className="pt-res-kind">
-            {busy ? "Opening…" : r.code_body ? (showCode ? "Hide code" : "Show code") : r.kind}
-          </span>
+    <div>
+      <button className="smp-res" onClick={open} disabled={busy}>
+        <span className={`smp-res-icon ${style.accent}`}>
+          <ResourceIcon kind={r.kind} />
+        </span>
+        <span className="smp-res-title">{r.title}</span>
+        <span className={`smp-res-action ${style.accent}`}>
+          {label}
+          {!busy && (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              {isInlineCode ? (
+                <path d="M6 9l6 6 6-6" />
+              ) : style.verb === "Download" ? (
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+              ) : (
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              )}
+            </svg>
+          )}
         </span>
       </button>
 
-      {error && <p className="pt-res-error">{error}</p>}
+      {error && <p className="smp-res-error">{error}</p>}
 
       {showCode && r.code_body && (
-        <pre className="pt-code">
+        <pre className="smp-code">
           <code>{r.code_body}</code>
         </pre>
       )}
