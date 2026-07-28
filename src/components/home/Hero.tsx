@@ -9,12 +9,11 @@ export default function Hero() {
         <Reveal className="hero-copy">
           {/* <span className="eyebrow">Building tomorrow&apos;s innovators today</span> */}
           <h1>
-            The future starts with <em>what we build today.</em>
+             Give Your Child a Head Start in <em>AI & Technology.</em>
           </h1>
           <p>
-            KIT equips kids with real digital skills through hands-on projects,
-            live classes, and mentorship that sparks creativity and builds
-            confidence.
+            Technology is changing every profession.
+            Help your child learn to build websites, create graphics, and use AI with confidence.
           </p>
 
           <div className="hero-cta">
@@ -40,7 +39,7 @@ export default function Hero() {
             </span>
             <span className="feat futures">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.6 6.6L21 9.2l-5 4.7 1.4 6.9L12 17.5 6.6 20.8 8 13.9l-5-4.7 6.4-.6z" /></svg>
-              Bright Futures
+              Beginner Friendly
             </span>
           </div>
         </Reveal>

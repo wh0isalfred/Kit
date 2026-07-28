@@ -35,11 +35,11 @@ export default function EnrollBar() {
         </span>
         <div className="enroll-copy">
           <div className="t">
-            Summer <em>Build Camp</em> is enrolling
+            3-Week Summer <em>Tech Program</em> is enrolling
           </div>
-          <div className="s">Live classes start August · limited seats</div>
+          <div className="s">Starts August 10 • Ages 10–15 • Fully Online</div>
         </div>
-        <Link href="/apply" className="btn btn-glow">Reserve a spot</Link>
+        <Link href="/apply" className="btn btn-glow">Apply now!</Link>
         <button
           className="enroll-x"
           aria-label="Dismiss"

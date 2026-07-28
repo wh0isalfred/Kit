@@ -48,7 +48,7 @@ const presentation: Record<
     icon: "summer",
     badge: "Popular",
     fallbackDescription:
-      "A fast, fun and intensive program covering 3 in-demand skills with a final competition.",
+      "Students build a real website, create professional graphics, and learn practical AI skills in just three weeks. ",
   },
 };
 
@@ -58,9 +58,9 @@ const defaultPresentation = {
   fallbackDescription: "",
 };
 
-function durationLabel(type: CourseRow["type"]) {
-  return type === "summer" ? "3-Week Camp" : "12-Week Academy";
-}
+// function durationLabel(type: CourseRow["type"]) {
+//   return type === "summer" ? "3-Week Camp" : "12-Week Academy";
+// }
 
 function hrefFor(course: CourseRow) {
   return course.type === "summer" ? "/summer" : `/programs/${course.slug}`;
@@ -144,7 +144,7 @@ export default async function Programs() {
     <section className="programs" id="programs">
       <div className="wrap">
         <Reveal className="p-head">
-          <h2>Our Programs</h2>
+          <h2>Start Here.</h2>
           <p>Choose a path. Build your future.</p>
         </Reveal>
 
@@ -158,10 +158,10 @@ export default async function Programs() {
                   <ProgramIcon name={p.icon} />
                 </div>
                 <h3>{course.title}</h3>
-                <div className="prog-dur">({durationLabel(course.type)})</div>
+                {/* <div className="prog-dur">({durationLabel(course.type)})</div> */}
                 <p className="desc">{course.description || p.fallbackDescription}</p>
-                <Link className="prog-more" href={hrefFor(course)}>
-                  {ctaFor(course)} {arrow}
+                <Link className="prog-more" href="/apply">
+                  Learn More {arrow}
                 </Link>
               </Reveal>
             );

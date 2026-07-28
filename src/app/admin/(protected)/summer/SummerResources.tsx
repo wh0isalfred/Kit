@@ -504,7 +504,7 @@ function ResourceForm({
           >
             <option value="">Not needed — view only (no submission form shown)</option>
             <option value="link">A link (e.g. their deployed site)</option>
-            <option value="file">A file upload — not fully wired yet, shows a "coming soon" note to students</option>
+            <option value="file">A file upload (fully wired)</option>
           </select>
           <em className="af-hint">
             This controls whether a submission box actually shows up on the

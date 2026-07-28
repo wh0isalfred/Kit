@@ -31,25 +31,38 @@ export default async function ApplicationsPage() {
     .from("batches")
     .select("id, cohort_label, course_slug, capacity, status");
 
-  /* Real occupancy. batches.next_student_no is an ID counter and
-     never decreases, so it over-reports once anyone is removed.
-     Count active students instead. */
+  /* FIX: get BOTH student populations. Batches can be for either
+     12-week (reads from students) or summer (reads from summer_students).
+     The course's type field tells us which. */
   const { data: students } = await supabase
     .from("students")
     .select("batch_id")
     .eq("status", "active");
 
-  const batchOptions: BatchOption[] = (batches ?? []).map((b) => ({
-    id: b.id,
-    cohort_label: b.cohort_label,
-    course_slug: b.course_slug,
-    capacity: b.capacity,
-    status: b.status,
-    seats_used: (students ?? []).filter((s) => s.batch_id === b.id).length,
-  }));
+  const { data: summerStudents } = await supabase
+    .from("summer_students")
+    .select("batch_id");
 
+  /* Map course_slug to type so we know which population to count. */
   const courseType = new Map((courses ?? []).map((c) => [c.slug, c.type]));
   const courseTitle = new Map((courses ?? []).map((c) => [c.slug, c.title]));
+
+  /* Compute seats_used correctly: 12-week courses count active students,
+     summer courses count all summer_students (they have no "status" column). */
+  const batchOptions: BatchOption[] = (batches ?? []).map((b) => {
+    const isSummer = courseType.get(b.course_slug) === "summer";
+    const seats_used = isSummer
+      ? (summerStudents ?? []).filter((s) => s.batch_id === b.id).length
+      : (students ?? []).filter((s) => s.batch_id === b.id).length;
+    return {
+      id: b.id,
+      cohort_label: b.cohort_label,
+      course_slug: b.course_slug,
+      capacity: b.capacity,
+      status: b.status,
+      seats_used,
+    };
+  });
 
   const decidedItems: QueueItem[] = (decided ?? []).map((d) => ({
     ...d,
@@ -66,7 +79,7 @@ export default async function ApplicationsPage() {
         <header className="admin-head">
           <h1>Applications</h1>
         </header>
-        <p className="af-submit-error">Couldn&apos;t load the queue: {error.message}</p>
+        <p className="af-submit-error">Couldn't load the queue: {error.message}</p>
       </>
     );
   }

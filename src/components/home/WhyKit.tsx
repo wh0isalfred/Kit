@@ -13,14 +13,14 @@ type Feature = {
 };
 
 const features: Feature[] = [
-  { key: "skills", accent: "green", icon: "bulb", title: "Future-Ready Skills",
-    desc: "We teach in-demand skills that open doors to endless possibilities." },
-  { key: "handson", accent: "blue", icon: "code", title: "Hands-On Learning",
-    desc: "Students learn by building real projects from day one." },
-  { key: "mentor", accent: "purple", icon: "users", title: "Mentorship & Support",
-    desc: "Small classes, real mentors, and support every step of the way." },
-  { key: "confidence", accent: "teal", icon: "rocket", title: "Confidence for Life",
-    desc: "Kids gain the confidence to create, lead, and make an impact." },
+  { key: "skills", accent: "green", icon: "bulb", title: "Real Projects",
+    desc: "Students don't just watch lessons. They build websites, create graphics, and use AI from day one."},
+  { key: "handson", accent: "blue", icon: "code", title: "AI for the real world",
+    desc: "Learn how to use AI to research, solve problems, and think better—not simply copy answers."},
+  { key: "mentor", accent: "purple", icon: "users", title: "Learn by doing",
+    desc: "Every lesson ends with something your child has actually created." },
+  { key: "confidence", accent: "teal", icon: "rocket", title: "Confidence that lasts",
+    desc: "Present ideas, solve problems, and leave with projects they're proud to show." },
 ];
 
 function FeatureIcon({ name }: { name: Feature["icon"] }) {
@@ -44,15 +44,15 @@ export default function WhyKit() {
         <div className="why-panel">
           <div className="why-grid">
             <Reveal className="why-intro">
-              <span className="eyebrow">Why KIT?</span>
-              <h2>We don&apos;t just teach tech. We prepare for life.</h2>
+              <span className="eyebrow">Why Parents choose KIT</span>
+              <h2>More than just another coding class</h2>
               <p>
-                Our programs go beyond theory. Students build, create, solve
-                problems and discover their potential with the support of
-                amazing teachers and a community that believes in them.
+                 Technology is changing every career. 
+                 We help children learn the skills they&apos;ll actually use, 
+                 through real projects, AI, design, and web development.
               </p>
-              <Link className="why-learn" href="/about">
-                Learn More About KIT
+              <Link className="why-learn" href="/apply">
+                Start Here
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </Link>
             </Reveal>

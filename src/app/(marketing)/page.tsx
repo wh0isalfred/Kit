@@ -6,7 +6,7 @@ import WhyKit from "@/components/home/WhyKit";
 import Invite from "@/components/home/Invite";
 import EnrollBar from "@/components/home/EnrollBar";
 import Ambient from "@/components/site/Ambient"
-import StudentWork from "@/components/home/StudentWork";
+// import StudentWork from "@/components/home/StudentWork";
 import Faq from "@/components/home/Faq";
 
 export default function Home() {
@@ -19,7 +19,7 @@ export default function Home() {
         {/* dark interruption between two light sections */}
         <SummerSection />
         <WhyKit />
-        <StudentWork />
+        {/* <StudentWork /> */}
         {/* answer objections right before the enrollment CTA, not after it */}
         <Faq />
         <Invite />
