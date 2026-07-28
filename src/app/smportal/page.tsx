@@ -30,7 +30,7 @@ export default async function PortalPage() {
 
   const { data: student } = await supabase
     .from("summer_students")
-    .select("name, cohort_year")
+    .select("name, cohort_year, batch_id")
     .eq("id", session.sid)
     .maybeSingle();
 
@@ -38,10 +38,12 @@ export default async function PortalPage() {
 
   const { data: portal } = await supabase.rpc("get_summer_portal", {
     p_cohort_year: session.year,
+    p_summer_student_id: session.sid,
   });
 
   const { data: resources } = await supabase.rpc("get_summer_resources", {
     p_cohort_year: session.year,
+    p_summer_student_id: session.sid,
   });
 
   const week = portal?.[0] ?? null;
@@ -65,9 +67,14 @@ export default async function PortalPage() {
         cohortYear={student.cohort_year}
         cohortStartsOn={cohort?.startsOn ?? null}
         cohortEndsOn={cohort?.endsOn ?? null}
+        batchId={student.batch_id ?? null}
         currentWeek={week}
         weekGroups={weekGroups}
-        isLive={cohort?.isLive ?? false}
+        // is_live now comes from the batch-scoped session (via
+        // get_summer_portal's new column), not the old cohort-wide
+        // flag — a batch with no session row yet defaults to false,
+        // same "say nothing" posture as everywhere else.
+        isLive={week?.is_live ?? false}
       />
       <Footer />
     </div>

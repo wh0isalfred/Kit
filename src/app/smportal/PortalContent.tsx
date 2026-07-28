@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getSummerFileUrl, signOutSummer } from "../summer/summer-session";
+import { getSummerFileUrl, signOutSummer, checkIntoClass } from "../summer/summer-session";
 import { ResourceIcon, KIND_STYLE, DEFAULT_STYLE, normalizeUrl } from "@/components/site/ResourceIcon";
 
 export type PortalResource = {
@@ -17,6 +17,10 @@ export type PortalResource = {
   storage_path: string | null;
   code_body: string | null;
   code_language: string | null;
+  submission_type: "link" | "file" | null;
+  submitted_at: string | null;
+  submission_url: string | null;
+  submission_storage_path: string | null;
 };
 
 export type PortalWeek = { week: number; resources: PortalResource[] };
@@ -25,6 +29,7 @@ export type CurrentWeek = {
   week: number;
   class_title: string | null;
   class_note: string | null;
+  instructor: string | null;
   meet_link: string | null;
   next_class_at: string | null;
 } | null;
@@ -63,9 +68,10 @@ function downloadIcs(title: string, startIso: string) {
 }
 
 /* ── Countdown to next_class_at, only active while NOT live. isLive
-   is an admin-set flag (not derived from the clock — see ADR 002 in
-   the handoff doc), so this never contradicts it; it just goes quiet
-   once isLive is true or the time has passed. ── */
+   now comes from the student's own batch session (set_batch_live),
+   not a cohort-wide flag — still admin-set, not clock-derived (ADR
+   002), so this never contradicts it; it just goes quiet once isLive
+   is true or the time has passed. ── */
 function useCountdownLabel(target: string | null, active: boolean) {
   const [label, setLabel] = useState<string | null>(null);
 
@@ -103,6 +109,7 @@ export default function PortalContent({
   cohortYear,
   cohortStartsOn,
   cohortEndsOn,
+  batchId,
   currentWeek,
   weekGroups,
   isLive,
@@ -111,6 +118,7 @@ export default function PortalContent({
   cohortYear: number;
   cohortStartsOn?: string | null;
   cohortEndsOn?: string | null;
+  batchId: string | null;
   currentWeek: CurrentWeek;
   weekGroups: PortalWeek[];
   isLive: boolean;
@@ -123,6 +131,24 @@ export default function PortalContent({
     : null;
 
   const countdown = useCountdownLabel(currentWeek?.next_class_at ?? null, !isLive);
+
+  // Dashboard homework summary. Same limitation as the per-item pill on
+  // each ResourceCard: PortalResource only carries submitted_at, not the
+  // full turned_in/returned status (that needs get_my_submissions, which
+  // this component doesn't have — it's a client component fed by props).
+  // So "pending" here means "not yet turned in," and everything turned in
+  // is lumped together rather than split out into returned. The homework
+  // index page (/smportal/homework) has the accurate breakdown; this is a
+  // quick nudge, not the source of truth.
+  const homeworkStats = useMemo(() => {
+    const items = weekGroups.flatMap((wg) => wg.resources).filter(
+      (r) => r.kind === "homework" && r.submission_type !== null
+    );
+    return {
+      total: items.length,
+      pending: items.filter((r) => !r.submitted_at).length,
+    };
+  }, [weekGroups]);
 
   const dateRange =
     cohortStartsOn && cohortEndsOn
@@ -140,6 +166,17 @@ export default function PortalContent({
     await signOutSummer();
     router.push("/summer");
     router.refresh();
+  }
+
+  // Fire-and-forget — the click should still open the meet link
+  // immediately, not wait on the network round-trip. Silently does
+  // nothing if the student has no batch yet (shouldn't happen for
+  // anyone enrolled after batches went live, but pre-batch accounts
+  // may still exist per the migration's nullable batch_id).
+  function handleJoinClick() {
+    if (batchId && currentWeek?.week) {
+      checkIntoClass(batchId, currentWeek.week);
+    }
   }
 
   return (
@@ -286,6 +323,15 @@ export default function PortalContent({
                 {currentWeek.class_note && (
                   <p className="smp-class-note">{currentWeek.class_note}</p>
                 )}
+                {currentWeek.instructor && (
+                  <div className="smp-class-meta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="9" cy="8" r="3.2" />
+                      <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+                    </svg>
+                    Instructor: {currentWeek.instructor}
+                  </div>
+                )}
                 {nextClass && (
                   <div className="smp-class-meta">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -306,6 +352,7 @@ export default function PortalContent({
                     href={currentWeek.meet_link}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={handleJoinClick}
                   >
                     {isLive ? "Join class — live now" : "Join class"}
                   </a>
@@ -332,6 +379,34 @@ export default function PortalContent({
               </div>
             )}
           </section>
+
+          {/* Homework — the entry point into /smportal/homework. Individual
+              ResourceCards already link to specific assignments; this is
+              the missing "browse everything" path, previously only
+              reachable by typing the URL directly. */}
+          {homeworkStats.total > 0 && (
+            <section className="smp-card">
+              <div className="smp-card-head">
+                <h3>Homework</h3>
+                {homeworkStats.pending > 0 && (
+                  <span className="smp-hw-pill smp-hw-pill-assigned">
+                    {homeworkStats.pending} pending
+                  </span>
+                )}
+              </div>
+              <p className="smp-hw-summary">
+                {homeworkStats.pending === 0
+                  ? "All caught up — nice work."
+                  : `${homeworkStats.pending} of ${homeworkStats.total} not turned in yet.`}
+              </p>
+              <a href="/smportal/homework" className="smp-help-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+                View all homework
+              </a>
+            </section>
+          )}
 
           {/* Student ID card */}
           <section className="smp-card smp-id">
@@ -376,6 +451,25 @@ function ResourceCard({ resource: r }: { resource: PortalResource }) {
   const style = KIND_STYLE[r.kind] ?? DEFAULT_STYLE;
   const isInlineCode = !r.url && !r.storage_path && !!r.code_body;
 
+  // Homework is a different beast from every other resource kind —
+  // it's the one thing on this card the student acts on more than
+  // once (turn in, unsubmit, resubmit) and can end up in a returned
+  // state with feedback attached. That whole lifecycle already lives
+  // correctly on /smportal/homework/[id] (HomeworkDetail.tsx), so
+  // this card doesn't reimplement it — it just links there and shows
+  // a status pill. One place owns the turn-in/unsubmit/returned
+  // logic instead of two copies drifting apart.
+  const isHomework = r.kind === "homework" && r.submission_type !== null;
+  const homeworkStatus: "assigned" | "turned_in" | "returned" = r.submitted_at
+    ? "turned_in"
+    : "assigned";
+  // Note: this card only ever sees "assigned" or "turned_in" from
+  // get_summer_resources' submitted_at column — "returned" isn't
+  // distinguishable from here without also threading status/feedback
+  // through PortalResource. That's fine: the homework page itself
+  // shows the accurate state the moment the student opens it, and
+  // this pill is a summary nudge, not the source of truth.
+
   async function open() {
     // External link — just go.
     if (r.url) {
@@ -394,6 +488,20 @@ function ResourceCard({ resource: r }: { resource: PortalResource }) {
     }
     // Inline code — toggle it open.
     if (r.code_body) setShowCode((s) => !s);
+  }
+
+  if (isHomework) {
+    return (
+      <a href={`/smportal/homework/${r.id}`} className="smp-res smp-res-homework">
+        <span className={`smp-res-icon ${style.accent}`}>
+          <ResourceIcon kind={r.kind} />
+        </span>
+        <span className="smp-res-title">{r.title}</span>
+        <span className={`smp-hw-pill smp-hw-pill-${homeworkStatus}`}>
+          {homeworkStatus === "turned_in" ? "Turned in" : "Assigned"}
+        </span>
+      </a>
+    );
   }
 
   const label = busy

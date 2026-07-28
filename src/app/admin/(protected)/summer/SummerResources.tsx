@@ -25,6 +25,7 @@ export type Resource = {
   published: boolean;
   available_from: string | null;
   sort_order: number;
+  submission_type: "link" | "file" | null;
 };
 
 const KINDS: { value: ResourceKind; label: string; icon: string }[] = [
@@ -233,6 +234,12 @@ function ResourceCard({
           {r.kind}
           {r.url && ` · ${shortUrl(r.url)}`}
           {r.storage_path && " · uploaded file"}
+          {r.kind === "homework" && (
+            <>
+              {" · submit via "}
+              {r.submission_type ?? <em style={{ color: "#c0392b" }}>not set — no submission form will show</em>}
+            </>
+          )}
           {scheduled && ` · reveals ${scheduled}`}
         </p>
       </div>
@@ -326,6 +333,9 @@ function ResourceForm({
   const [availableFrom, setAvailableFrom] = useState(
     toLocalInput(existing?.available_from ?? null)
   );
+  const [submissionType, setSubmissionType] = useState<"link" | "file" | null>(
+    existing?.submission_type ?? null
+  );
 
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -371,6 +381,7 @@ function ResourceForm({
       published,
       availableFrom: fromLocalInput(availableFrom),
       sortOrder: existing?.sort_order ?? nextSort,
+      submissionType,
     });
     setBusy(false);
     if (!res.ok) setError(res.error);
@@ -440,7 +451,13 @@ function ResourceForm({
 
       {usesFile && (
         <div className="af-field">
-          <span>File</span>
+          <span>{kind === "homework" ? "Task instructions / starter file (optional)" : "File"}</span>
+          {kind === "homework" && (
+            <em className="af-hint">
+              This is what the student reads to know what to do — not where
+              their finished work goes. Set that below.
+            </em>
+          )}
           {fileName ? (
             <div className="admin-file-chip">
               <span>📎 {fileName}</span>
@@ -474,6 +491,27 @@ function ResourceForm({
             placeholder="https://drive.google.com/…"
           />
         </div>
+      )}
+
+      {kind === "homework" && (
+        <label className="af-field">
+          <span>How should students submit their work?</span>
+          <select
+            value={submissionType ?? ""}
+            onChange={(e) =>
+              setSubmissionType(e.target.value === "" ? null : (e.target.value as "link" | "file"))
+            }
+          >
+            <option value="">Not needed — view only (no submission form shown)</option>
+            <option value="link">A link (e.g. their deployed site)</option>
+            <option value="file">A file upload — not fully wired yet, shows a "coming soon" note to students</option>
+          </select>
+          <em className="af-hint">
+            This controls whether a submission box actually shows up on the
+            student&apos;s side. Leaving this unset means the task displays
+            but nothing collects their work.
+          </em>
+        </label>
       )}
 
       {usesCode && (

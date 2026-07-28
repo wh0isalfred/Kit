@@ -125,12 +125,14 @@ export type EnrolResult =
   | { ok: false; error: string };
 
 export async function enrolSummerStudent(
-  applicationId: string
+  applicationId: string,
+  batchId: string
 ): Promise<EnrolResult> {
   const supabase = await assertAdmin();
 
   const { data, error } = await supabase.rpc("enrol_summer_student", {
     p_application_id: applicationId,
+    p_batch_id: batchId,
   });
 
   if (error || !data?.[0]) {
@@ -291,6 +293,9 @@ async function provisionStudentAccount(args: {
 function friendlyError(raw: string): string {
   if (raw.includes("is full")) {
     return "That batch is full. Pick another, or raise its capacity.";
+  }
+  if (raw.includes("not open for enrolment")) {
+    return "That batch isn't open for enrolment — check its status.";
   }
   if (raw.includes("payment status")) {
     return "Payment hasn't been recorded yet. Mark it paid first.";

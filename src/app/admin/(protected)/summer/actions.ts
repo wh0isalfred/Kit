@@ -117,8 +117,6 @@ export type WeekInput = {
   published: boolean;
   classTitle: string;
   classNote: string;
-  meetLink: string;
-  nextClassAt: string | null;
 };
 
 /**
@@ -130,6 +128,11 @@ export type WeekInput = {
  * returns ZERO ROWS for an unpublished week, so the portal renders
  * "materials coming soon" instead of a page of empty headers. Don't
  * publish a week until it actually has content.
+ *
+ * meet_link / next_class_at used to live here but don't anymore —
+ * they're per-batch now (summer_batch_sessions, via saveBatchSession
+ * below), since different batches run at different times. This
+ * table is curriculum only: what's being taught, not when or by whom.
  */
 export async function saveWeek(input: WeekInput): Promise<ActionResult> {
   const supabase = await assertAdmin();
@@ -153,8 +156,6 @@ export async function saveWeek(input: WeekInput): Promise<ActionResult> {
         published: input.published,
         class_title: input.classTitle.trim() || null,
         class_note: input.classNote.trim() || null,
-        meet_link: input.meetLink.trim() || null,
-        next_class_at: input.nextClassAt || null,
       },
       { onConflict: "cohort_year,week" }
     );
@@ -166,6 +167,81 @@ export async function saveWeek(input: WeekInput): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Per-batch, per-week session details — instructor, meet link,
+ * schedule. This is what actually varies between batches running
+ * the same curriculum at different times.
+ */
+export type BatchSessionInput = {
+  batchId: string;
+  week: number;
+  instructor: string;
+  meetLink: string;
+  nextClassAt: string | null;
+};
+
+export async function saveBatchSession(input: BatchSessionInput): Promise<ActionResult> {
+  const supabase = await assertAdmin();
+
+  if (input.week < 1 || input.week > 3) {
+    return { ok: false, error: "Week must be between 1 and 3." };
+  }
+
+  const { error } = await supabase
+    .from("summer_batch_sessions")
+    .upsert(
+      {
+        batch_id: input.batchId,
+        week: input.week,
+        instructor: input.instructor.trim() || null,
+        meet_link: input.meetLink.trim() || null,
+        next_class_at: input.nextClassAt || null,
+      },
+      { onConflict: "batch_id,week" }
+    );
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/summer");
+  revalidatePath("/smportal");
+  return { ok: true };
+}
+
+/**
+ * Replaces setSummerLive below — live state is per (batch, week) now,
+ * not cohort-wide, since two batches are never live at the same
+ * moment. setSummerLive is left in place, unused by the UI after
+ * this change, rather than deleted outright — see the note on it.
+ */
+export async function setBatchLive(
+  batchId: string,
+  week: number,
+  live: boolean
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("set_batch_live", {
+    p_batch_id: batchId,
+    p_week: week,
+    p_live: live,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/summer");
+  revalidatePath("/smportal");
+  return { ok: true };
+}
+
+/**
+ * Superseded by setBatchLive above — this still works exactly as
+ * before (sets summer_cohorts.is_live), but the portal no longer
+ * reads that column, so calling this now has no visible effect on
+ * students. Left in place, not deleted, so GoLiveControl.tsx (which
+ * still imports this) doesn't break the build if it isn't removed in
+ * the same pass. Delete both together once you've confirmed the new
+ * batch-scoped flow works.
+ */
 export async function setSummerLive(
   cohortYear: number,
   live: boolean

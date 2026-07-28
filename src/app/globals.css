@@ -4569,3 +4569,149 @@ footer {
   .sm { padding: 44px 0 60px; }
   .sm-signin { padding: 26px; }
 }
+
+/* ============================================================
+   HOMEWORK SUBMISSION (link-based, on smp-res cards)
+   ============================================================ */
+.smp-submit { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.smp-submit input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--ink);
+}
+.smp-submit button {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.smp-submit button:disabled { opacity: 0.6; cursor: default; }
+.smp-submit-ok { font-size: 11.5px; color: #1c9f7f; font-weight: 700; white-space: nowrap; }
+.smp-submit-note { font-size: 11.5px; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+/* ============================================================
+   HOMEWORK — assignment detail page (Google-Classroom style)
+   ============================================================ */
+.hw { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 60px; }
+.hw .smp-home { margin-bottom: 24px; }
+.hw-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+
+.hw-main { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
+.hw-week { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.08em; }
+.hw-main h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 14px; }
+.hw-desc { font-size: 14.5px; line-height: 1.65; color: var(--ink); white-space: pre-wrap; }
+
+.hw-attachment { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.hw-attachment-label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.hw-attachment-item, .hw-submitted-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; font-weight: 600; color: var(--ink);
+  cursor: pointer; text-decoration: none; margin-bottom: 8px; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hw-attachment-item:hover, .hw-submitted-item:hover { border-color: var(--blue); color: var(--blue); }
+.hw-attachment-item svg, .hw-submitted-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Your work panel */
+.hw-work { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; position: sticky; top: 20px; }
+.hw-work-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.hw-work-head h2 { font-size: 15px; font-weight: 800; margin: 0; }
+.hw-status { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.02em; }
+.hw-status-assigned { background: rgba(93,103,129,.12); color: var(--muted); }
+.hw-status-turned_in { background: rgba(25,153,228,.12); color: #0c447c; }
+.hw-status-returned { background: rgba(37,178,144,.14); color: #0d9668; }
+
+.hw-none { font-size: 13px; color: var(--muted); }
+.hw-link-input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+.hw-file-chip { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 12px; }
+.hw-file-chip button { background: none; border: none; color: #c0392b; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+.hw-turnin { width: 100%; background: var(--green); color: #04342c; border: none; border-radius: 10px; padding: 12px; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.hw-turnin:disabled { opacity: .5; cursor: default; }
+.hw-unsubmit { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer; margin-top: 10px; }
+.hw-unsubmit:hover { border-color: #c0392b; color: #c0392b; }
+.hw-resubmit { width: 100%; background: none; border: none; font-size: 12px; color: var(--muted); cursor: pointer; margin-top: 12px; text-decoration: underline; }
+
+.hw-submitted { margin-bottom: 4px; }
+.hw-hint { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; }
+.hw-error { font-size: 12px; color: #c0392b; margin-top: 10px; }
+
+.hw-feedback { background: rgba(37,178,144,.07); border: 1px solid rgba(37,178,144,.25); border-radius: 12px; padding: 14px; margin-top: 14px; }
+.hw-feedback-label { font-size: 11px; font-weight: 800; color: #0d9668; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.hw-feedback p { font-size: 13px; line-height: 1.6; color: var(--ink); margin: 0; white-space: pre-wrap; }
+
+@media (max-width: 800px) {
+  .hw-grid { grid-template-columns: 1fr; }
+  .hw-work { position: static; }
+}
+
+/* ============================================================
+   HOMEWORK — status pill + list rows
+   Reuses .hw-status-* color meaning from the homework detail page
+   (assigned = muted gray, turned_in = blue, returned = green) so
+   status reads the same everywhere it shows up: the dashboard
+   resource card, the homework index list, and the detail page.
+   ============================================================ */
+
+/* Resource-card variant used when a card links to /smportal/homework/[id]
+   instead of opening inline — same .smp-res layout, just an <a> instead
+   of a <button>, so it needs the usual anchor resets. */
+.smp-res-homework {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.smp-hw-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.smp-hw-pill-assigned  { background: rgba(93,103,129,.12); color: var(--muted); }
+.smp-hw-pill-turned_in { background: rgba(25,153,228,.12); color: #0c447c; }
+.smp-hw-pill-returned  { background: rgba(37,178,144,.14); color: #0d9668; }
+
+/* Homework index page — a scannable list rather than a grid of
+   cards, since the point here is comparing status across many
+   items at a glance. */
+.hw-list {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.hw-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.hw-list-row:last-child { border-bottom: none; }
+.hw-list-row:hover { background: var(--paper); }
+.hw-list-title { font-size: 13.5px; font-weight: 700; }
+
+/* Dashboard homework summary card — sits alongside "Today's class"
+   and "Need help?" in the side column. */
+.smp-hw-summary { font-size: 13px; color: var(--muted); margin: 0 0 14px; }

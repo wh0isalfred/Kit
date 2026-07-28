@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import SummerAdmin, { type Cohort, type Week } from "./SummerAdmin";
 import SummerResources, { type Resource } from "./SummerResources";
-import GoLiveControl from "./GoLiveControl";
+import BatchSessionManager, { type BatchOption, type BatchSession } from "./BatchSessionManager";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +31,7 @@ export default async function AdminSummerPage() {
   const { data: weeks } = active
     ? await supabase
         .from("summer_content")
-        .select(
-          "cohort_year, week, published, class_title, class_note, meet_link, next_class_at, updated_at"
-        )
+        .select("cohort_year, week, published, class_title, class_note, updated_at")
         .eq("cohort_year", active.year)
         .order("week")
     : { data: [] };
@@ -58,6 +56,27 @@ export default async function AdminSummerPage() {
         .eq("cohort_year", active.year)
     : { count: 0 };
 
+  /* Batches for this cohort year — course_slug is literally "summer"
+     (confirmed against a real inserted row, not assumed). Batches
+     themselves still only get created by hand in the DB; this just
+     reads whatever exists. */
+  const { data: batches } = active
+    ? await supabase
+        .from("batches")
+        .select("id, cohort_label, status")
+        .eq("year", active.year)
+        .eq("course_slug", "summer")
+        .order("cohort_label")
+    : { data: [] };
+
+  const batchIds = (batches ?? []).map((b) => b.id);
+  const { data: batchSessions } = batchIds.length
+    ? await supabase
+        .from("summer_batch_sessions")
+        .select("batch_id, week, instructor, meet_link, next_class_at, is_live, live_started_at")
+        .in("batch_id", batchIds)
+    : { data: [] };
+
   return (
     <>
       {/* NOTE: no <main> here — the (protected) layout already
@@ -74,14 +93,12 @@ export default async function AdminSummerPage() {
         weeks={(weeks ?? []) as Week[]}
         rosterCount={rosterCount ?? 0}
       />
-      <GoLiveControl
-        cohortYear={active.year}
-        isLive={active.is_live}
-        liveStartedAt={active.live_started_at}
-        nextClassAt={
-          weeks?.find((w) => w.week === active.current_week)?.next_class_at ?? null
-        }
+
+      <BatchSessionManager
+        batches={(batches ?? []) as BatchOption[]}
+        sessions={(batchSessions ?? []) as BatchSession[]}
       />
+
       {active && (
         <SummerResources
           cohortYear={active.year}

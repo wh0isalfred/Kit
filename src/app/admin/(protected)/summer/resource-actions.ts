@@ -47,6 +47,10 @@ export type ResourceInput = {
   published: boolean;
   availableFrom: string | null;
   sortOrder: number;
+  // Only meaningful when kind === "homework" — how the STUDENT submits
+  // their completed work. Distinct from url/storagePath above, which
+  // describe the assignment itself (instructions, a starter file).
+  submissionType: "link" | "file" | null;
 };
 
 export type Result = { ok: true; id?: string } | { ok: false; error: string };
@@ -90,6 +94,7 @@ export async function saveResource(input: ResourceInput): Promise<Result> {
     available_from: input.availableFrom || null,
     sort_order: input.sortOrder,
     created_by: userId,
+    submission_type: input.kind === "homework" ? input.submissionType : null,
   };
 
   if (input.id) {

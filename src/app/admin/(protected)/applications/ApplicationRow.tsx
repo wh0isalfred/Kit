@@ -175,27 +175,45 @@ export default function ApplicationRow({
             </>
           )}
 
-          {/* ── Summer: no batch needed ────────────────────── */}
+          {/* ── Summer: now needs a batch, same as 12-week ─── */}
           {a.approvable && isSummer && mode !== "reject" && (
-            <button
-              className="admin-btn admin-btn-primary"
-              disabled={busy}
-              onClick={() =>
-                run(enrolSummerStudent.bind(null, a.id), (r) => {
-                  const res = r as {
-                    ok: true;
-                    summerId: string;
-                    name: string;
-                    emailSent: boolean;
-                  };
-                  return res.emailSent
-                    ? `Enrolled. ${res.name}'s Summer ID is ${res.summerId}. Emailed to the parent.`
-                    : `Enrolled. ${res.name}'s Summer ID is ${res.summerId} — email NOT sent, copy it to the parent manually.`;
-                })
-              }
-            >
-              {busy ? "Enrolling…" : "Enrol in summer camp"}
-            </button>
+            <>
+              <select value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+                <option value="">Assign to a batch…</option>
+                {eligible.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.cohort_label} — {b.capacity - b.seats_used} seat
+                    {b.capacity - b.seats_used === 1 ? "" : "s"} left
+                  </option>
+                ))}
+              </select>
+
+              {eligible.length === 0 && (
+                <span className="admin-warn-inline">
+                  No batch with space for {a.course_title}. Create one first.
+                </span>
+              )}
+
+              <button
+                className="admin-btn admin-btn-primary"
+                disabled={busy || !batchId}
+                onClick={() =>
+                  run(enrolSummerStudent.bind(null, a.id, batchId), (r) => {
+                    const res = r as {
+                      ok: true;
+                      summerId: string;
+                      name: string;
+                      emailSent: boolean;
+                    };
+                    return res.emailSent
+                      ? `Enrolled. ${res.name}'s Summer ID is ${res.summerId}. Emailed to the parent.`
+                      : `Enrolled. ${res.name}'s Summer ID is ${res.summerId} — email NOT sent, copy it to the parent manually.`;
+                  })
+                }
+              >
+                {busy ? "Enrolling…" : "Enrol in summer camp"}
+              </button>
+            </>
           )}
 
           {/* ── 12-week: batch required ────────────────────── */}

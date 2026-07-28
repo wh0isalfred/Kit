@@ -21,8 +21,6 @@ export type Week = {
   published: boolean;
   class_title: string | null;
   class_note: string | null;
-  meet_link: string | null;
-  next_class_at: string | null;
   updated_at: string | null;
 };
 
@@ -74,6 +72,11 @@ export default function SummerAdmin({
           An unpublished week shows &ldquo;materials coming soon&rdquo; in the
           portal rather than empty sections. Publish a week only once it has
           real content.
+        </p>
+        <p className="admin-hint">
+          Meet link, instructor, and the live toggle live in the
+          &ldquo;Live class &amp; batch sessions&rdquo; section below — those
+          are per batch now, not per cohort.
         </p>
         {[1, 2, 3].map((n) => (
           <WeekForm
@@ -252,8 +255,6 @@ function WeekForm({
   const [published, setPublished] = useState(week?.published ?? false);
   const [title, setTitle] = useState(week?.class_title ?? "");
   const [note, setNote] = useState(week?.class_note ?? "");
-  const [meet, setMeet] = useState(week?.meet_link ?? "");
-  const [nextAt, setNextAt] = useState(toLocalInput(week?.next_class_at ?? null));
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -267,8 +268,6 @@ function WeekForm({
       published,
       classTitle: title,
       classNote: note,
-      meetLink: meet,
-      nextClassAt: fromLocalInput(nextAt),
     });
     setBusy(false);
     if (res.ok) setMsg("Saved.");
@@ -301,25 +300,6 @@ function WeekForm({
             <span>Note to students</span>
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </label>
-
-          <div className="af-row">
-            <label className="af-field">
-              <span>Meet link</span>
-              <input
-                value={meet}
-                onChange={(e) => setMeet(e.target.value)}
-                placeholder="https://meet.google.com/…"
-              />
-            </label>
-            <label className="af-field">
-              <span>Next class at</span>
-              <input
-                type="datetime-local"
-                value={nextAt}
-                onChange={(e) => setNextAt(e.target.value)}
-              />
-            </label>
-          </div>
 
           <label className="af-consent">
             <input
