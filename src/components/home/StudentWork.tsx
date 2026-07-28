@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
+import Reveal from "@/components/site/Reveal";
 
 /* Edit the showcase items here.
    Each card is a gradient placeholder for now (from → to colours).
@@ -34,7 +35,7 @@ export default function StudentWork() {
   return (
     <section className="sw" id="showcase">
       <div className="wrap">
-        <div className="sw-head">
+        <Reveal className="sw-head">
           <div>
             <h2>Things Our Students Build</h2>
             <p>Real projects, designed and built by KIT students.</p>
@@ -47,7 +48,7 @@ export default function StudentWork() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       <div

@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import Reveal from "@/components/site/Reveal";
 
 export default function Hero() {
   return (
     <header className="hero">
       <div className="wrap hero-in">
-        <div className="hero-copy">
+        <Reveal className="hero-copy">
           {/* <span className="eyebrow">Building tomorrow&apos;s innovators today</span> */}
           <h1>
             The future starts with <em>what we build today.</em>
@@ -42,9 +43,9 @@ export default function Hero() {
               Bright Futures
             </span>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="hero-art">
+        <Reveal className="hero-art" delay={0.15}>
           <Image
             src="/heroImage.webp"
             alt="A KIT student building on a laptop with code and project ideas around them"
@@ -54,7 +55,7 @@ export default function Hero() {
             sizes="(max-width:900px) 100vw, 620px"
             style={{ width: "100%", height: "auto" }}
           />
-        </div>
+        </Reveal>
       </div>
     </header>
   );

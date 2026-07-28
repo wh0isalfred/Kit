@@ -148,7 +148,7 @@ export default async function Programs() {
           <p>Choose a path. Build your future.</p>
         </Reveal>
 
-        <div className="prog-grid">
+        <div className="prog-grid reveal-group">
           {live.map((course) => {
             const p = presentation[course.code] ?? defaultPresentation;
             return (

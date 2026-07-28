@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Reveal from "@/components/site/Reveal";
 import {
   campMonth,
   campWeeks,
@@ -59,7 +60,7 @@ export default async function SummerSection() {
     <section className="summer" id="summer">
       <div className="wrap">
         <div className="summer-banner">
-          <div className="summer-content">
+          <Reveal className="summer-content">
             {month && (
               <span className="summer-badge">Happening this {month}!</span>
             )}
@@ -101,7 +102,7 @@ export default async function SummerSection() {
                   drop the line. Left as-is for now, flagged. */}
               <span className="summer-seats">Limited seats available!</span>
             </div>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

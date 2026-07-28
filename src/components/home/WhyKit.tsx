@@ -57,7 +57,7 @@ export default function WhyKit() {
               </Link>
             </Reveal>
 
-            <div className="why-features">
+            <div className="why-features reveal-group">
               {features.map((f) => (
                 <Reveal key={f.key} className={`why-feat wf-${f.accent}`}>
                   <div className="fi"><FeatureIcon name={f.icon} /></div>
