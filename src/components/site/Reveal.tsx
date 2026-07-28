@@ -34,7 +34,7 @@ export default function Reveal({
   children: React.ReactNode;
   delay?: number;
   className?: string;
-  as?: keyof React.JSX.IntrinsicElements;
+  as?: "div" | "p" | "h2" | "h3" | "span";
 }) {
   const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
