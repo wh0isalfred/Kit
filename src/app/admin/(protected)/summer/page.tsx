@@ -111,7 +111,6 @@ const homeworkByWeek = new Map<
   number,
   Array<{ id: string; title: string; submission_type: string | null }>
 >();
-
 activeResources
   .filter((r) => r.submission_type !== null)
   .forEach((r) => {
