@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSummerSession } from "../../summer/summer-session";
-// import Footer from "@/components/site/Footer";
+import Footer from "@/components/site/Footer";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,15 @@ type HomeworkListItem = {
   title: string;
   status: "assigned" | "turned_in" | "returned";
 };
+
+interface Resource {
+  id: string;
+  kind: string;
+  week: number;
+  day_number: number | null;
+  title: string;
+  submission_type: "link" | "file" | null;
+}
 
 export default async function HomeworkListPage() {
   const session = await getSummerSession();
@@ -38,18 +47,14 @@ export default async function HomeworkListPage() {
     statusByResource.set(s.resource_id, s);
   });
 
-  interface Resource {
-    id: string;
-    kind: string;
-    week: number;
-    day_number: number | null;
-    title: string;
-    submission_type: "link" | "file" | null;
-  }
+  // Typed once, here — rather than annotating each callback's parameter
+  // separately, which is what let the chain silently widen to `any[]`
+  // by the time it reached .sort() and failed the build under strict mode.
+  const typedResources = (resources ?? []) as Resource[];
 
-  const items: HomeworkListItem[] = (resources ?? [])
-    .filter((r: Resource) => r.kind === "homework" && r.submission_type !== null)
-    .map((r: Resource) => ({
+  const items: HomeworkListItem[] = typedResources
+    .filter((r) => r.kind === "homework" && r.submission_type !== null)
+    .map((r) => ({
       id: r.id,
       week: r.week,
       day_number: r.day_number,
@@ -79,10 +84,12 @@ export default async function HomeworkListPage() {
           <div className="hw-list">
             {items.map((item) => (
               <a key={item.id} href={`/smportal/homework/${item.id}`} className="hw-list-row">
-                <span className="hw-list-week">
-                  Week {item.week}{item.day_number != null && ` · Day ${item.day_number}`}
-                </span>
-                <span className="hw-list-title">{item.title}</span>
+                <div className="hw-list-main">
+                  <span className="hw-week">
+                    Week {item.week}{item.day_number != null && ` · Day ${item.day_number}`}
+                  </span>
+                  <span className="hw-list-title">{item.title}</span>
+                </div>
                 <span className={`smp-hw-pill smp-hw-pill-${item.status}`}>
                   {item.status === "returned" ? "Returned" : item.status === "turned_in" ? "Turned in" : "Assigned"}
                 </span>
@@ -92,7 +99,7 @@ export default async function HomeworkListPage() {
         )}
       </section>
 
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 }
