@@ -6038,3 +6038,25 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+.hw-list-hero {
+  padding: 32px 0 20px;
+}
+.hw-list-hero h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 4px 0 0;
+}
+.hw-list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.hw-list-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}

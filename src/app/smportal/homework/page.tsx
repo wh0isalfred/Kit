@@ -1,224 +1,98 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
+import { getSummerSession } from "../../summer/summer-session";
+// import Footer from "@/components/site/Footer";
 
-interface HomeworkResource {
+export const dynamic = "force-dynamic";
+
+type HomeworkListItem = {
   id: string;
   week: number;
+  day_number: number | null;
   title: string;
-  kind: string;
-  file_url: string | null;
-  description: string | null;
-}
+  status: "assigned" | "turned_in" | "returned";
+};
 
-interface Submission {
-  id: string;
-  student_id: string;
-  resource_id: string;
-  submission_type: "file" | "link" | null;
-  submitted_at: string | null;
-  file_url: string | null;
-  link_url: string | null;
-  feedback: string | null;
-  status: "turned_in" | "returned" | "not_submitted" | null;
-}
+export default async function HomeworkListPage() {
+  const session = await getSummerSession();
+  if (!session) redirect("/summer");
 
-export default async function HomeworkPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
   const supabase = await createClient();
 
-  // Get student session from cookie
-  const cookieStore = await import("next/headers").then((m) =>
-    m.cookies()
-  );
-  const sessionCookie = cookieStore.get("kit_summer");
-
-  if (!sessionCookie) {
-    return notFound();
-  }
-
-  // Fetch homework resource
-  const { data: resources, error: resourcesError } = await supabase.rpc(
-    "get_summer_resources",
-    {
-      p_cohort_year: new Date().getFullYear(),
-      p_summer_student_id: sessionCookie.value, // This will be validated by RPC
-    }
-  );
+  const [{ data: resources, error: resourcesError }, { data: submissions }] = await Promise.all([
+    supabase.rpc("get_summer_resources", {
+      p_cohort_year: session.year,
+      p_summer_student_id: session.sid,
+    }),
+    supabase.rpc("get_my_submissions", {
+      p_summer_student_id: session.sid,
+    }),
+  ]);
 
   if (resourcesError) {
-    console.error("Error fetching resources:", resourcesError);
-    return notFound();
+    console.error("HomeworkListPage get_summer_resources:", resourcesError.message);
   }
 
-  // Find the homework item
-  const item = (resources as HomeworkResource[] | null)?.find(
-    (r: HomeworkResource) => r.id === id && r.kind === "homework"
-  );
-
-  if (!item) {
-    return notFound();
-  }
-
-  // Fetch student's submission for this homework
-  const { data: submission } = await supabase.rpc("get_my_submission", {
-    p_resource_id: id,
+  const statusByResource = new Map<string, { status: string }>();
+  (submissions ?? []).forEach((s: { resource_id: string; status: string }) => {
+    statusByResource.set(s.resource_id, s);
   });
+
+  interface Resource {
+    id: string;
+    kind: string;
+    week: number;
+    day_number: number | null;
+    title: string;
+    submission_type: "link" | "file" | null;
+  }
+
+  const items: HomeworkListItem[] = (resources ?? [])
+    .filter((r: Resource) => r.kind === "homework" && r.submission_type !== null)
+    .map((r: Resource) => ({
+      id: r.id,
+      week: r.week,
+      day_number: r.day_number,
+      title: r.title,
+      status: (statusByResource.get(r.id)?.status as "turned_in" | "returned" | undefined) ?? "assigned",
+    }))
+    .sort((a, b) => (a.week !== b.week ? a.week - b.week : (a.day_number ?? 99) - (b.day_number ?? 99)));
 
   return (
     <div className="page">
-      <section className="homework-hero">
+      <section className="hw-list-hero">
         <div className="wrap">
-          <Link href="/smportal" className="back-link">
-            ← Back to Portal
-          </Link>
-
-          <div className="homework-header">
-            <div className="homework-meta">
-              <span className="homework-week">Week {item.week}</span>
-              <span className="homework-type">Assignment</span>
-            </div>
-
-            <h1 className="homework-title">{item.title}</h1>
-
-            {item.description && (
-              <p className="homework-description">{item.description}</p>
-            )}
-          </div>
+          <a href="/smportal" className="smp-home" aria-label="Back to Portal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Portal
+          </a>
+          <h1>Homework</h1>
         </div>
       </section>
 
-      <section className="homework-content">
-        <div className="wrap homework-wrap">
-          <div className="homework-main">
-            {/* Instructions/Content */}
-            {item.file_url && (
-              <div className="homework-instructions">
-                <h2>Assignment Details</h2>
-                <a
-                  href={item.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="homework-file-link"
-                >
-                  📥 Download Assignment Files
-                </a>
-              </div>
-            )}
-
-            {/* Submission Status */}
-            <div className="homework-status">
-              <h2>Your Submission</h2>
-
-              {submission ? (
-                <div
-                  className={`status-card status-${submission.status || "not_submitted"}`}
-                >
-                  <div className="status-header">
-                    <span className="status-badge">
-                      {submission.status === "turned_in"
-                        ? "Turned In"
-                        : submission.status === "returned"
-                          ? "Returned with Feedback"
-                          : "Not Submitted"}
-                    </span>
-                    {submission.submitted_at && (
-                      <time className="submitted-time">
-                        {new Date(submission.submitted_at).toLocaleDateString(
-                          "en-NG"
-                        )}
-                      </time>
-                    )}
-                  </div>
-
-                  {/* Show submission content */}
-                  {submission.file_url && (
-                    <div className="submission-file">
-                      <a
-                        href={submission.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="file-download"
-                      >
-                        📄 View Your Submission
-                      </a>
-                    </div>
-                  )}
-
-                  {submission.link_url && (
-                    <div className="submission-link">
-                      <a
-                        href={submission.link_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="link-open"
-                      >
-                        🔗 {submission.link_url}
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Feedback from teacher */}
-                  {submission.feedback && (
-                    <div className="teacher-feedback">
-                      <h3>Teacher Feedback</h3>
-                      <div className="feedback-box">
-                        <p>{submission.feedback}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="status-card status-not_submitted">
-                  <p className="no-submission">
-                    You haven't submitted this assignment yet.
-                  </p>
-                  <a href={`/smportal/homework/${id}/submit`} className="btn btn-primary">
-                    Submit Assignment
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sidebar - Due date, etc */}
-          <aside className="homework-sidebar">
-            <div className="sidebar-card">
-              <h3>Assignment Info</h3>
-              <div className="info-item">
-                <label>Week</label>
-                <span>{item.week}</span>
-              </div>
-              <div className="info-item">
-                <label>Status</label>
-                <span
-                  className={`status-dot status-${submission?.status || "not_submitted"}`}
-                >
-                  {submission?.status === "turned_in"
-                    ? "Submitted"
-                    : submission?.status === "returned"
-                      ? "Reviewed"
-                      : "Not Started"}
+      <section className="wrap">
+        {items.length === 0 ? (
+          <p className="hw-list-empty">No homework assigned yet — check back once your class starts.</p>
+        ) : (
+          <div className="hw-list">
+            {items.map((item) => (
+              <a key={item.id} href={`/smportal/homework/${item.id}`} className="hw-list-row">
+                <span className="hw-list-week">
+                  Week {item.week}{item.day_number != null && ` · Day ${item.day_number}`}
                 </span>
-              </div>
-            </div>
-
-            {!submission && (
-              <div className="sidebar-card highlight">
-                <h3>Ready to Submit?</h3>
-                <p>Upload your work or share a link to your project.</p>
-                <a href={`/smportal/homework/${id}/submit`} className="btn btn-secondary">
-                  Start Submission
-                </a>
-              </div>
-            )}
-          </aside>
-        </div>
+                <span className="hw-list-title">{item.title}</span>
+                <span className={`smp-hw-pill smp-hw-pill-${item.status}`}>
+                  {item.status === "returned" ? "Returned" : item.status === "turned_in" ? "Turned in" : "Assigned"}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </section>
+
+      {/* <Footer /> */}
     </div>
   );
 }
