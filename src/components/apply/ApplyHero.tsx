@@ -67,7 +67,7 @@ export default function ApplyHero() {
               <em className="hl-teal">future.</em>
             </h1>
             <p className="apply-hero-body">
-              Join the kids (10–16) who are learning, building, and creating with
+              Join the kids (10–15) who are learning, building, and creating with
               real digital skills.
             </p>
           </Reveal>
