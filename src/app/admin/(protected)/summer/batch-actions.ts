@@ -225,3 +225,57 @@ export async function setBatchLive(
   revalidatePath("/smportal");
   return { ok: true };
 }
+
+export type GradingQueueItem = {
+  submission_id: string;
+  summer_student_id: string;
+  student_name: string;
+  summer_id: string;
+  batch_id: string;
+  resource_id: string;
+  resource_title: string;
+  week: number;
+  day_number: number | null;
+  submission_type: "link" | "file" | null;
+  url: string | null;
+  storage_path: string | null;
+  submitted_at: string;
+};
+
+// Same pattern as getHomeworkRoster — createClient(), not assertAdmin().
+// The RPC's own is_admin() check is the real gate; this mirrors the
+// existing convention rather than inventing a second one.
+export async function getGradingQueue(
+  batchId: string | null
+): Promise<{ ok: true; queue: GradingQueueItem[] } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("get_grading_queue", {
+    p_batch_id: batchId,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, queue: (data ?? []) as GradingQueueItem[] };
+}
+
+
+export async function getSubmissionFileUrl(
+  storagePath: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const supabase = await assertAdmin();
+
+  const { data, error } = await supabase.storage
+    .from("summer")   // was "submissions" — that bucket doesn't exist.
+                       // uploadSubmissionFile (summer-session.ts) writes
+                       // everything to "summer" under a submissions/ prefix.
+    .createSignedUrl(storagePath, 600);
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Could not generate a file URL." };
+  }
+
+  return { ok: true, url: data.signedUrl };
+}

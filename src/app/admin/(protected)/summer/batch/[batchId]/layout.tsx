@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import BatchTabs from "./BatchTabs";
+import { getGradingQueue } from "../../batch-actions";
+
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,8 @@ export default async function BatchShellLayout({
   params: Promise<{ batchId: string }>;
 }) {
   const { batchId } = await params;
+  const queueRes = await getGradingQueue(batchId);
+const gradingCount = queueRes.ok ? queueRes.queue.length : 0;
   const supabase = await createClient();
 
   // Same check as batch-actions.ts's assertAdmin(), done here rather
@@ -75,7 +79,7 @@ const {
         <span className={`admin-pill stat-${batch.status}`}>{batch.status}</span>
       </header>
 
-      <BatchTabs batchId={batchId} />
+      <BatchTabs batchId={batchId} gradingCount={gradingCount} />
 
       <div className="batch-shell-body">{children}</div>
     </div>

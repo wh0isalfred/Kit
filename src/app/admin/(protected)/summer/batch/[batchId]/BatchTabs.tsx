@@ -9,7 +9,13 @@ const TABS = [
   { slug: "homework", label: "Homework" },
 ] as const;
 
-export default function BatchTabs({ batchId }: { batchId: string }) {
+export default function BatchTabs({
+  batchId,
+  gradingCount,
+}: {
+  batchId: string;
+  gradingCount: number;
+}) {
   const pathname = usePathname();
 
   return (
@@ -20,7 +26,9 @@ export default function BatchTabs({ batchId }: { batchId: string }) {
         return (
           <a key={tab.slug} href={href} className={`batch-tab${active ? " batch-tab-active" : ""}`}>
             {tab.label}
-            {/* Grading count badge lands here in step 5 — not wired yet */}
+            {tab.slug === "homework" && gradingCount > 0 && (
+              <span className="batch-tab-badge">{gradingCount}</span>
+            )}
           </a>
         );
       })}
