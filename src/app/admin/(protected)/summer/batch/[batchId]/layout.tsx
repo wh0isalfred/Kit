@@ -18,7 +18,7 @@ export default async function BatchShellLayout({
   // Same check as batch-actions.ts's assertAdmin(), done here rather
   // than assumed from (protected)/layout.tsx — see conversation notes.
   // Redirect, not throw, since this is a page render, not a Server Action.
-  const {
+const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/admin/login");
