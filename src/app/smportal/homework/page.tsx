@@ -29,7 +29,7 @@ export default async function HomeworkPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Get student session from cookie
   const cookieStore = await import("next/headers").then((m) =>
