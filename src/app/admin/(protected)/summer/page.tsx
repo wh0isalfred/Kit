@@ -108,21 +108,22 @@ export default async function SummerAdminPage() {
 
   /* Group homework resources by week for easy lookup in BatchSessionManager */
 const homeworkByWeek = new Map<
-    number,
-    Array<{ id: string; title: string; submission_type: string | null }>
-  >();
-  activeResources
-    .filter((r) => r.submission_type !== null)
-    .forEach((r) => {
-      if (!homeworkByWeek.has(r.week)) {
-        homeworkByWeek.set(r.week, []);
-      }
-      homeworkByWeek.get(r.week)!.push({
-        id: r.id,
-        title: r.title,
-        submission_type: r.submission_type as "link" | "file",
-      });
+  number,
+  Array<{ id: string; title: string; submission_type: string | null }>
+>();
+
+activeResources
+  .filter((r) => r.submission_type !== null)
+  .forEach((r) => {
+    if (!homeworkByWeek.has(r.week)) {
+      homeworkByWeek.set(r.week, []);
+    }
+    homeworkByWeek.get(r.week)!.push({
+      id: r.id,
+      title: r.title,
+      submission_type: r.submission_type as "link" | "file" | null,  // ← Add the cast here
     });
+  });
 
   return (
     <>
