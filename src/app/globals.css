@@ -5996,3 +5996,16 @@ html {
 .admin-batch-grading strong {
   color: #c8324a;
 }
+
+.admin-res-tag-shared {
+  color: var(--muted);
+  font-weight: 700;
+}
+.admin-res-tag-batch {
+  color: #0c447c;
+  font-weight: 700;
+}
+.admin-res-cohort-link {
+  font-size: 12.5px;
+  text-decoration: underline;
+}

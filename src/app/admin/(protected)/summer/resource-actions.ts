@@ -47,13 +47,38 @@ export type ResourceInput = {
   published: boolean;
   availableFrom: string | null;
   sortOrder: number;
-  // Only meaningful when kind === "homework" — how the STUDENT submits
-  // their completed work. Distinct from url/storagePath above, which
-  // describe the assignment itself (instructions, a starter file).
   submissionType: "link" | "file" | null;
+  // Null/omitted = shared (visible to every batch). Set = a
+  // supplement only that batch sees (ADR 005, 0025). Cohort-level
+  // SummerResources.tsx never sets this — hence optional — so
+  // everything it creates stays shared by default, unchanged behaviour.
+  batchId?: string | null;
 };
 
 export type Result = { ok: true; id?: string } | { ok: false; error: string };
+
+// Full row shape for the batch-scoped Resources tab — same fields as
+// SummerResources.tsx's Resource type, plus batch_id, which that type
+// never needed since the cohort-level screen only ever shows/creates
+// shared rows.
+export type BatchResource = {
+  id: string;
+  cohort_year: number;
+  week: number;
+  day_number: number | null;
+  title: string;
+  description: string | null;
+  kind: string;
+  url: string | null;
+  storage_path: string | null;
+  code_body: string | null;
+  code_language: string | null;
+  published: boolean;
+  available_from: string | null;
+  sort_order: number;
+  submission_type: "link" | "file" | null;
+  batch_id: string | null;
+};
 
 export async function saveResource(input: ResourceInput): Promise<Result> {
   const { supabase, userId } = await assertAdmin();
@@ -62,9 +87,6 @@ export async function saveResource(input: ResourceInput): Promise<Result> {
     return { ok: false, error: "Give it a title — students see this." };
   }
 
-  /* A resource with no payload renders as a dead card in a child's
-     portal. The DB constraint catches it too; this is the friendly
-     version of the same rule. */
   const usesUrl = ["link", "video", "recording"].includes(input.kind);
   const usesFile = ["file", "slides", "homework"].includes(input.kind);
   const usesCode = input.kind === "code";
@@ -95,6 +117,7 @@ export async function saveResource(input: ResourceInput): Promise<Result> {
     sort_order: input.sortOrder,
     created_by: userId,
     submission_type: input.kind === "homework" ? input.submissionType : null,
+    batch_id: input.batchId ?? null,
   };
 
   if (input.id) {
@@ -138,8 +161,6 @@ export async function toggleResourcePublished(
 export async function deleteResource(id: string): Promise<Result> {
   const { supabase } = await assertAdmin();
 
-  // Remove the stored file too, or the bucket fills with orphans
-  // nothing references.
   const { data: existing } = await supabase
     .from("summer_resources")
     .select("storage_path")
@@ -155,6 +176,78 @@ export async function deleteResource(id: string): Promise<Result> {
 
   bump();
   return { ok: true };
+}
+
+/**
+ * Delete from inside a BATCH page. Refuses outright on a shared row
+ * (batch_id IS NULL) — doc 06 §IV: shared curriculum is deleted from
+ * the cohort-level Resources section on /admin/summer, not from a
+ * batch's own tab. deleteResource() above is unrestricted and stays
+ * that way for that cohort-level screen.
+ */
+export async function deleteBatchResource(id: string): Promise<Result> {
+  const { supabase } = await assertAdmin();
+
+  const { data: existing } = await supabase
+    .from("summer_resources")
+    .select("batch_id, storage_path")
+    .eq("id", id)
+    .single();
+
+  if (!existing) {
+    return { ok: false, error: "Resource not found." };
+  }
+
+  if (existing.batch_id === null) {
+    return {
+      ok: false,
+      error: "This is shared curriculum — delete it from the Resources section on /admin/summer instead.",
+    };
+  }
+
+  const { error } = await supabase.from("summer_resources").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  if (existing.storage_path) {
+    await supabase.storage.from("summer").remove([existing.storage_path]);
+  }
+
+  bump();
+  return { ok: true };
+}
+
+/**
+ * Resources visible to one batch — shared (batch_id IS NULL) plus
+ * this batch's own supplements. Same ADR 005 predicate as
+ * getBatchHomeworkAssignments in batch-actions.ts, just unfiltered by
+ * kind, since this tab shows every resource type, not just homework.
+ */
+export async function getBatchResources(
+  batchId: string
+): Promise<{ ok: true; resources: BatchResource[] } | { ok: false; error: string }> {
+  const { supabase } = await assertAdmin();
+
+  const { data: batch, error: batchError } = await supabase
+    .from("batches")
+    .select("year")
+    .eq("id", batchId)
+    .single();
+
+  if (batchError || !batch) {
+    return { ok: false, error: batchError?.message ?? "Batch not found." };
+  }
+
+  const { data, error } = await supabase
+    .from("summer_resources")
+    .select("*")
+    .eq("cohort_year", batch.year)
+    .or(`batch_id.is.null,batch_id.eq.${batchId}`)
+    .order("week", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, resources: (data ?? []) as BatchResource[] };
 }
 
 /**
@@ -179,10 +272,6 @@ export async function uploadResourceFile(
 
   if (!file || file.size === 0) return { ok: false, error: "No file selected." };
 
-  /* Supabase's free tier is 1GB total. A single screen recording
-     eats a meaningful slice of that, so large files are refused
-     here with a pointer to the cheaper option rather than silently
-     consuming the quota. */
   const MAX_BYTES = 25 * 1024 * 1024;
   if (file.size > MAX_BYTES) {
     return {
@@ -237,7 +326,7 @@ export async function moveResource(
 
   const index = siblings.findIndex((s) => s.id === id);
   const swapWith = direction === "up" ? siblings[index - 1] : siblings[index + 1];
-  if (!swapWith) return { ok: true }; // already at the end
+  if (!swapWith) return { ok: true };
 
   await supabase
     .from("summer_resources")
