@@ -182,10 +182,11 @@ async function sendSummerIdEmail(
     to: app.parent_email,
     subject: `${args.name}'s Summer ID is ready`,
     html: `
-      <p>Hi,</p>
-      <p>${args.name}'s Summer ID is <strong>${args.summerId}</strong>.</p>
-      <p>Use it to sign in at the KIT Summer portal once the camp gate opens.</p>
-    `,
+  <p>Hi,</p>
+  <p>${args.name}'s Summer ID is <strong>${args.summerId}</strong>.</p>
+  <p>Use it to sign in at https://kitacademy.net/summer</p>
+  <p><a href="https://kitacademy.net/summer" style="background: #1999E4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Go to Summer Portal</a></p>
+`,
   });
 
   if (sendError) {
