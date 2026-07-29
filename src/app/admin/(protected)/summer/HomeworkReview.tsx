@@ -1,18 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { returnHomework, getHomeworkRoster } from "./batch-actions";
+import { returnHomework, getHomeworkRoster, type HomeworkRosterItem } from "./batch-actions";
 
-export type HomeworkRosterItem = {
-  summer_student_id: string;
-  name: string;
-  status: "assigned" | "turned_in" | "returned";
-  submitted_at: string | null;
-  submission_url: string | null;
-  submission_storage_path: string | null;
-  feedback: string | null;
-  returned_at: string | null;
-};
 
 export default function HomeworkReview({
   resourceId,
@@ -53,30 +43,29 @@ export default function HomeworkReview({
     returned: roster.filter((r) => r.status === "returned").length,
   };
 
-  async function handleReturn(studentId: string) {
-    setBusy(true);
-    setError(null);
-    setSuccess(null);
+  async function handleReturn(submissionId: string) {
+  setBusy(true);
+  setError(null);
+  setSuccess(null);
 
-    const res = await returnHomework(resourceId, studentId, feedbackText);
-    setBusy(false);
+  const res = await returnHomework(submissionId, feedbackText);
+  setBusy(false);
 
-    if (!res.ok) {
-      setError(res.error);
-    } else {
-      setSuccess(`Returned to ${roster.find((r) => r.summer_student_id === studentId)?.name}`);
-      setExpandedStudent(null);
-      setFeedbackText("");
-      /* Ideally refetch roster here, but for now just update the local state */
-      setRoster(
-        roster.map((r) =>
-          r.summer_student_id === studentId
-            ? { ...r, status: "returned" as const, feedback: feedbackText, returned_at: new Date().toISOString() }
-            : r
-        )
-      );
-    }
+  if (!res.ok) {
+    setError(res.error);
+  } else {
+    setSuccess(`Returned to ${roster.find((r) => r.submission_id === submissionId)?.name}`);
+    setExpandedStudent(null);
+    setFeedbackText("");
+    setRoster(
+      roster.map((r) =>
+        r.submission_id === submissionId
+          ? { ...r, status: "returned" as const, feedback: feedbackText, returned_at: new Date().toISOString() }
+          : r
+      )
+    );
   }
+}
 
   if (loading) {
     return (
@@ -227,7 +216,7 @@ export default function HomeworkReview({
                       />
                       <button
                         className="hw-review-btn"
-                        onClick={() => handleReturn(student.summer_student_id)}
+                        onClick={() => handleReturn(student.submission_id!)}
                         disabled={busy}
                       >
                         {busy ? "Returning…" : "Return assignment"}

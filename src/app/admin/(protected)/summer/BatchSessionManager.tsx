@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { saveBatchSession, setBatchLive } from "./batch-actions";
 import HomeworkReview from "./HomeworkReview";
-import type { HomeworkRosterItem } from "./HomeworkReview";
+import type { HomeworkRosterItem } from "./batch-actions";
 
 export type BatchOption = { id: string; cohort_label: string; status: string };
 export type BatchSession = {

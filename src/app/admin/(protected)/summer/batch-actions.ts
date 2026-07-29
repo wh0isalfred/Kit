@@ -115,16 +115,29 @@ export async function deleteBatch(batchId: string): Promise<Result> {
   return { ok: true };
 }
 
+// Mapped explicitly from get_homework_roster's real column names,
+// rather than passed through as `any` — a shape mismatch now fails
+// at this line instead of rendering "undefined" in the UI.
+export type HomeworkRosterItem = {
+  summer_student_id: string;
+  submission_id: string | null;
+  name: string;
+  status: "assigned" | "turned_in" | "returned";
+  submitted_at: string | null;
+  submission_url: string | null;
+  submission_storage_path: string | null;
+  feedback: string | null;
+  returned_at: string | null;
+};
+
 export async function returnHomework(
-  resourceId: string,
-  summerId: string,
+  submissionId: string,
   feedback: string
 ): Promise<Result> {
   const supabase = await assertAdmin();
 
   const { error } = await supabase.rpc("return_homework", {
-    p_resource_id: resourceId,
-    p_summer_student_id: summerId,
+    p_submission_id: submissionId,
     p_feedback: feedback.trim() || null,
   });
 
@@ -139,7 +152,7 @@ export async function returnHomework(
 export async function getHomeworkRoster(
   resourceId: string,
   batchId: string
-): Promise<{ ok: true; roster: any[] } | { ok: false; error: string }> {
+): Promise<{ ok: true; roster: HomeworkRosterItem[] } | { ok: false; error: string }> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_homework_roster", {
@@ -151,16 +164,20 @@ export async function getHomeworkRoster(
     return { ok: false, error: error.message };
   }
 
-  return { ok: true, roster: data ?? [] };
-}
+  const roster: HomeworkRosterItem[] = (data ?? []).map((row: any) => ({
+    summer_student_id: row.summer_student_id,
+    submission_id: row.submission_id,
+    name: row.student_name,
+    status: row.status,
+    submitted_at: row.submitted_at,
+    submission_url: row.url,
+    submission_storage_path: row.storage_path,
+    feedback: row.feedback,
+    returned_at: row.returned_at,
+  }));
 
-export type BatchSessionInput = {
-  batch_id: string;
-  week: number;
-  instructor: string | null;
-  meet_link: string | null;
-  next_class_at: string | null;
-};
+  return { ok: true, roster };
+}
 
 export async function saveBatchSession(input: BatchSessionInput): Promise<Result> {
   const supabase = await assertAdmin();
