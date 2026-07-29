@@ -5560,42 +5560,6 @@ html {
   margin: 0 0 16px;
 }
 
-/* ─ Buttons ──────────────────────────────────────────────────── */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-primary {
-  background: #25b290;
-  color: #ffffff;
-}
-
-.btn-primary:hover {
-  background: #1a9470;
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background: #1999e4;
-  color: #ffffff;
-}
-
-.btn-secondary:hover {
-  background: #1277c9;
-  transform: translateY(-2px);
-}
-
 /* ════════════════════════════════════════════════════════════════
    RESPONSIVE
    ════════════════════════════════════════════════════════════════ */
