@@ -5,7 +5,7 @@ import SummerResources from "./SummerResources";
 import BatchSessionManager from "./BatchSessionManager";
 import type { Cohort, Week } from "./SummerAdmin";
 import type { Resource } from "./SummerResources";
-import type { BatchSession } from "./BatchSessionManager";
+import type { BatchSession, HomeworkResource } from "./BatchSessionManager";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +106,21 @@ export default async function SummerAdminPage() {
     (s) => batchesWithSeats.some((b) => b.id === s.batch_id)
   ) as BatchSession[];
 
+  /* Group homework resources by week for easy lookup in BatchSessionManager */
+  const homeworkByWeek = new Map<number, { id: string; title: string; submission_type: string | null }>();
+  activeResources
+    .filter((r) => r.submission_type !== null)
+    .forEach((r) => {
+      if (!homeworkByWeek.has(r.week)) {
+        homeworkByWeek.set(r.week, []);
+      }
+      homeworkByWeek.get(r.week)!.push({
+        id: r.id,
+        title: r.title,
+        submission_type: r.submission_type as "link" | "file",
+      });
+    });
+
   return (
     <>
       <header className="admin-head">
@@ -131,6 +146,7 @@ export default async function SummerAdminPage() {
           status: b.status,
         }))}
         sessions={activeSessions}
+        homeworkByWeek={homeworkByWeek}
       />
 
       {/* ── Weekly content & resources ──────────────────────── */}

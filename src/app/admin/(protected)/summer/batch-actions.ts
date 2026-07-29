@@ -114,3 +114,97 @@ export async function deleteBatch(batchId: string): Promise<Result> {
   revalidatePath("/admin/summer");
   return { ok: true };
 }
+
+export async function returnHomework(
+  resourceId: string,
+  summerId: string,
+  feedback: string
+): Promise<Result> {
+  const supabase = await assertAdmin();
+
+  const { error } = await supabase.rpc("return_homework", {
+    p_resource_id: resourceId,
+    p_summer_student_id: summerId,
+    p_feedback: feedback.trim() || null,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/admin/summer");
+  return { ok: true };
+}
+
+export async function getHomeworkRoster(
+  resourceId: string,
+  batchId: string
+): Promise<{ ok: true; roster: any[] } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("get_homework_roster", {
+    p_resource_id: resourceId,
+    p_batch_id: batchId,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, roster: data ?? [] };
+}
+
+export type BatchSessionInput = {
+  batch_id: string;
+  week: number;
+  instructor: string | null;
+  meet_link: string | null;
+  next_class_at: string | null;
+};
+
+export async function saveBatchSession(input: BatchSessionInput): Promise<Result> {
+  const supabase = await assertAdmin();
+
+  if (input.week < 1 || input.week > 3) {
+    return { ok: false, error: "Week must be between 1 and 3." };
+  }
+
+  const { error } = await supabase
+    .from("summer_batch_sessions")
+    .upsert(
+      {
+        batch_id: input.batch_id,
+        week: input.week,
+        instructor: input.instructor?.trim() || null,
+        meet_link: input.meet_link?.trim() || null,
+        next_class_at: input.next_class_at || null,
+      },
+      { onConflict: "batch_id,week" }
+    );
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/summer");
+  revalidatePath("/smportal");
+  return { ok: true };
+}
+
+export async function setBatchLive(
+  batchId: string,
+  week: number,
+  live: boolean
+): Promise<Result> {
+  const supabase = await assertAdmin();
+
+  const { error } = await supabase.rpc("set_batch_live", {
+    p_batch_id: batchId,
+    p_week: week,
+    p_live: live,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/summer");
+  revalidatePath("/smportal");
+  return { ok: true };
+}

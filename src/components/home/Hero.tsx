@@ -46,7 +46,7 @@ export default function Hero() {
 
         <Reveal className="hero-art" delay={0.15}>
           <Image
-            src="/heroImage.webp"
+            src="/hero.webp"
             alt="A KIT student building on a laptop with code and project ideas around them"
             width={1402}
             height={1122}

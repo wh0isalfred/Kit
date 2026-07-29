@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { saveBatchSession, setBatchLive } from "./actions";
+import { saveBatchSession, setBatchLive } from "./batch-actions";
+import HomeworkReview from "./HomeworkReview";
+import type { HomeworkRosterItem } from "./HomeworkReview";
 
 export type BatchOption = { id: string; cohort_label: string; status: string };
 export type BatchSession = {
@@ -14,6 +16,12 @@ export type BatchSession = {
   live_started_at: string | null;
 };
 
+export type HomeworkResource = {
+  id: string;
+  title: string;
+  submission_type: "link" | "file" | null;
+};
+
 const toLocalInput = (iso: string | null) =>
   iso ? new Date(iso).toISOString().slice(0, 16) : "";
 const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
@@ -21,12 +29,15 @@ const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
 export default function BatchSessionManager({
   batches,
   sessions,
+  homeworkByWeek,
 }: {
   batches: BatchOption[];
   sessions: BatchSession[];
+  homeworkByWeek: Map<number, HomeworkResource[]>;
 }) {
   const [batchId, setBatchId] = useState(batches[0]?.id ?? "");
   const [week, setWeek] = useState(1);
+  const [reviewingHomework, setReviewingHomework] = useState<string | null>(null);
 
   if (batches.length === 0) {
     return (
@@ -42,6 +53,7 @@ export default function BatchSessionManager({
   }
 
   const session = sessions.find((s) => s.batch_id === batchId && s.week === week) ?? null;
+  const homework = homeworkByWeek.get(week) ?? [];
 
   return (
     <section className="admin-section">
@@ -76,6 +88,50 @@ export default function BatchSessionManager({
       {/* key forces a remount on batch/week change, so form state
           doesn't leak from one selection into another */}
       <BatchSessionForm key={`${batchId}-${week}`} batchId={batchId} week={week} session={session} />
+
+      {/* Homework review section */}
+      {homework.length > 0 && (
+        <div className="hw-review-section" style={{ marginTop: 24 }}>
+          <h3>Homework for this week</h3>
+          <div className="hw-review-homework-list">
+            {homework.map((hw) => (
+              <button
+                key={hw.id}
+                className="hw-review-hw-btn"
+                onClick={() => {
+                  setReviewingHomework(hw.id);
+                  // In a real app, fetch the roster here
+                }}
+              >
+                {hw.title}
+                <span className="hw-review-hw-type">
+                  {hw.submission_type === "link" ? "🔗" : hw.submission_type === "file" ? "📎" : "📝"}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {reviewingHomework && (
+            <div className="hw-review-modal-overlay" onClick={() => setReviewingHomework(null)}>
+              <div className="hw-review-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="hw-review-modal-close"
+                  onClick={() => setReviewingHomework(null)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+                <HomeworkReview
+                  resourceId={reviewingHomework}
+                  resourceTitle={homework.find((h) => h.id === reviewingHomework)?.title ?? ""}
+                  batchId={batchId}
+                  submissionType={homework.find((h) => h.id === reviewingHomework)?.submission_type ?? null}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -91,91 +147,100 @@ function BatchSessionForm({
 }) {
   const [instructor, setInstructor] = useState(session?.instructor ?? "");
   const [meetLink, setMeetLink] = useState(session?.meet_link ?? "");
-  const [nextAt, setNextAt] = useState(toLocalInput(session?.next_class_at ?? null));
+  const [nextClass, setNextClass] = useState(toLocalInput(session?.next_class_at));
+  const [live, setLive] = useState(session?.is_live ?? false);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const [liveBusy, setLiveBusy] = useState(false);
-  const [liveErr, setLiveErr] = useState<string | null>(null);
-  const isLive = session?.is_live ?? false;
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   async function onSave() {
-    setBusy(true); setErr(null); setMsg(null);
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+
     const res = await saveBatchSession({
-      batchId,
+      batch_id: batchId,
       week,
-      instructor,
-      meetLink,
-      nextClassAt: fromLocalInput(nextAt),
+      instructor: instructor.trim() || null,
+      meet_link: meetLink.trim() || null,
+      next_class_at: fromLocalInput(nextClass),
     });
+
     setBusy(false);
-    if (res.ok) setMsg("Saved.");
-    else setErr(res.error);
+
+    if (!res.ok) {
+      setError(res.error);
+    } else {
+      setSuccess("Session saved");
+    }
   }
 
-  async function toggleLive(live: boolean) {
-    setLiveBusy(true);
-    setLiveErr(null);
-    const res = await setBatchLive(batchId, week, live);
-    setLiveBusy(false);
-    if (!res.ok) setLiveErr(res.error);
+  async function onToggleLive() {
+    setBusy(true);
+    setError(null);
+
+    const res = await setBatchLive(batchId, week, !live);
+    setBusy(false);
+
+    if (!res.ok) {
+      setError(res.error);
+    } else {
+      setLive(!live);
+    }
   }
 
   return (
     <div className="admin-card">
       <div className="admin-week-body">
         <label className="af-field">
-          <span>Instructor</span>
+          <span>Instructor name</span>
           <input
             value={instructor}
             onChange={(e) => setInstructor(e.target.value)}
-            placeholder="e.g. Tolu Adeyemi"
+            placeholder="e.g. Chidi Okonkwo"
+            disabled={busy}
           />
         </label>
 
-        <div className="af-row">
-          <label className="af-field">
-            <span>Meet link</span>
-            <input
-              value={meetLink}
-              onChange={(e) => setMeetLink(e.target.value)}
-              placeholder="https://meet.google.com/…"
-            />
-          </label>
-          <label className="af-field">
-            <span>Next class at</span>
-            <input
-              type="datetime-local"
-              value={nextAt}
-              onChange={(e) => setNextAt(e.target.value)}
-            />
-          </label>
-        </div>
+        <label className="af-field">
+          <span>Meet link</span>
+          <input
+            value={meetLink}
+            onChange={(e) => setMeetLink(e.target.value)}
+            placeholder="https://meet.google.com/..."
+            disabled={busy}
+          />
+          <em className="af-hint">
+            Share this with students when the batch is live. Can be blank.
+          </em>
+        </label>
 
-        {err && <p className="af-submit-error">{err}</p>}
-        {msg && <p className="admin-result">{msg}</p>}
+        <label className="af-field">
+          <span>Next class at</span>
+          <input
+            type="datetime-local"
+            value={nextClass}
+            onChange={(e) => setNextClass(e.target.value)}
+            disabled={busy}
+          />
+        </label>
+
+        <label className="af-checkbox">
+          <input
+            type="checkbox"
+            checked={live}
+            onChange={onToggleLive}
+            disabled={busy}
+          />
+          <span>{live ? "🔴 This batch is live" : "⚪ Go live"}</span>
+        </label>
+
+        {error && <p className="af-submit-error">{error}</p>}
+        {success && <p className="af-submit-note">{success}</p>}
 
         <button className="af-submit" onClick={onSave} disabled={busy}>
-          {busy ? "Saving…" : "Save session details"}
+          {busy ? "Saving…" : "Save session"}
         </button>
-
-        <div className="admin-live" style={{ marginTop: 16 }}>
-          <div className="admin-live-status">
-            <span className={`admin-live-dot ${isLive ? "" : "off"}`} />
-            <div>
-              <strong>{isLive ? "Class is live" : "Class is off"}</strong>
-            </div>
-          </div>
-          <button
-            className={`admin-btn ${isLive ? "admin-btn-danger" : "admin-btn-primary"}`}
-            disabled={liveBusy}
-            onClick={() => toggleLive(!isLive)}
-          >
-            {liveBusy ? "…" : isLive ? "End class" : "Go live"}
-          </button>
-          {liveErr && <p className="af-submit-error">{liveErr}</p>}
-        </div>
       </div>
     </div>
   );

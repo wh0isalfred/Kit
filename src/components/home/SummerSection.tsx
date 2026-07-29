@@ -7,34 +7,14 @@ import {
 } from "@/lib/summer";
 import SummerCountdown from "./SummerCountdown";
 
-/* ────────────────────────────────────────────────────────────
-   Server component now. Everything that used to be hardcoded —
-   the close date, the month, the year, the prize, the length —
-   comes from the active row in `summer_cohorts`, editable from
-   /admin/summer with no redeploy.
-
-   The countdown itself stays a client component because it ticks;
-   it receives dates as props and fetches nothing.
-
-   Every dated claim degrades to silence when the data isn't set.
-   A section that says "Happening this August!" with no dates
-   behind it is a promise nobody has made.
-   ──────────────────────────────────────────────────────────── */
-
 export default async function SummerSection() {
   const cohort = await getActiveSummerCohort();
-
-  // No active cohort at all — don't render a summer pitch for a
-  // camp that doesn't exist.
   if (!cohort) return null;
 
   const month = campMonth(cohort.startsOn);
   const weeks = campWeeks(cohort.startsOn, cohort.endsOn);
-
   const heading = cohort.label || `KIT Summer Tech Camp ${cohort.year}`;
 
-  // "3 Weeks · 3 Courses · 1 Competition · ₦30,000 Prize Pool"
-  // Each segment appears only if it's actually known.
   const facts = [
     weeks ? `${weeks} Week${weeks === 1 ? "" : "s"}` : null,
     "3 Courses",
@@ -62,18 +42,29 @@ export default async function SummerSection() {
         <div className="summer-banner">
           <Reveal className="summer-content">
             {month && (
-              <span className="summer-badge">Happening this {month}!</span>
+              <span className="summer-badge">⚡ Happening this {month}!</span>
             )}
 
-            <h2>{heading}</h2>
+            <h2>
+              Build Skills They'll Use for Years.{" "}
+              <span className="green-text">In Just 3 Weeks.</span>
+            </h2>
 
-            <p className="summer-stats">{facts.join(" · ")}</p>
-
-            <p className="summer-tag">
+            {/* <p className="summer-tag">
               {dateRange
                 ? `${dateRange} · Live classes. Real projects. Limitless possibilities.`
                 : "Live classes. Real projects. Limitless possibilities."}
+            </p> */}
+
+            <p className="summer-description">
+              Your child will learn to build websites, create professional graphics, and use AI to solve real problems, all while working on projects they can proudly show off.
             </p>
+
+            <div className="summer-benefits">
+              <span>✔ Live Online Classes</span>
+              <span>✔ Real Projects</span>
+              <span>✔ ₦30,000 Team Challenge</span>
+            </div>
 
             <SummerCountdown
               opensAt={cohort.registrationOpensAt}
@@ -94,13 +85,7 @@ export default async function SummerSection() {
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </Link>
-              {/* NOTE: there is no seat cap for summer anywhere in the
-                  schema — no capacity column on summer_cohorts, no
-                  limit in enrol_summer_student(). This line is a
-                  marketing claim with nothing enforcing it. Either add
-                  a capacity field and show real remaining seats, or
-                  drop the line. Left as-is for now, flagged. */}
-              <span className="summer-seats">Limited seats available!</span>
+              <span className="summer-seats">Applications close once seats are filled.</span>
             </div>
           </Reveal>
         </div>

@@ -53,22 +53,27 @@ export default function AboutHero() {
         <div className="about-hero-copy">
           <span className="eyebrow about-eyebrow">About KIT</span>
           <h1>
-            Building
-            <br />
-            confidence.
-            <br />
-            <em>Creating possibilities.</em>
+            We don't just teach<br />
+            technology.<br />
+            <em>We prepare children<br />for what's next.</em>
           </h1>
           <p className="about-hero-body">
-            KIT is a movement to empower kids (10–16) with real digital skills, the right mindset, and the confidence to build solutions and shape Africa&apos;s future.
+            Every profession is changing because of technology. The children who understand how to use it will have opportunities that others won't.
           </p>
+        </div>
+
+        <div className="about-hero-image">
+          <img src="/cute_baby.webp" alt="Child with laptop" />
         </div>
       </div>
 
       {/* Right-side quote callout */}
-      {/* <div className="about-quote-box">
-        <p>We don't just teach tech. We help kids believe in what they can build.</p>
-      </div> */}
+      <div className="about-quote-box">
+        <p className="about-quote-text">
+          &quot;Today's children won't compete with AI. They'll compete with people who know how to use it.&quot;
+        </p>
+        <p className="about-quote-attr">— KIT</p>
+      </div>
     </section>
   );
 }

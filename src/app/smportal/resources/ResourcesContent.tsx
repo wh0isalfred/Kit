@@ -30,19 +30,21 @@ function formatSize(bytes: number | null): string | null {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/* Shared click/open behaviour for both the list and grid layouts —
-   identical logic to ResourceCard in PortalContent.tsx (url → open,
-   storage_path → signed URL, code_body → inline toggle). Kept local
-   to this file rather than a cross-file hook, since I don't have
-   visibility into this project's path-alias setup to guarantee a
-   shared hook file would resolve its own imports correctly from
-   every call site. */
+/* Shared click/open behaviour for both the list and grid layouts.
+   Homework resources navigate to /smportal/homework/[id] instead of
+   opening a URL or file. */
 function useResourceOpen(r: ResourceWithSize) {
   const [busy, setBusy] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function open() {
+    /* Homework has a dedicated detail page */
+    if (r.kind === "homework") {
+      window.location.href = `/smportal/homework/${r.id}`;
+      return;
+    }
+
     if (r.url) {
       window.open(normalizeUrl(r.url), "_blank", "noopener,noreferrer");
       return;
