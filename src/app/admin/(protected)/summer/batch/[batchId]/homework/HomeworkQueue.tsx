@@ -20,8 +20,8 @@ function isStale(iso: string): boolean {
   return Date.now() - new Date(iso).getTime() > 3 * 24 * 60 * 60 * 1000;
 }
 
-// HomeworkQueue's props type gains one field
 export default function HomeworkQueue({
+  batchId,
   initialQueue,
   initialError,
   assignments,
@@ -128,10 +128,6 @@ function QueueCard({
 
   const isImage = item.submission_type === "file" && !!item.storage_path && IMAGE_EXT.test(item.storage_path);
 
-  // Eagerly fetch the signed URL for images only, so the preview
-  // renders without a click. Non-image files stay lazy (fetched on
-  // click in onOpenFile) — no point spending a signed-URL call on a
-  // file nobody opens.
   useEffect(() => {
     if (isImage && item.storage_path) {
       (async () => {
@@ -167,9 +163,6 @@ function QueueCard({
     setBusy(true);
     setError(null);
 
-    // Optimistic removal first — doc 06 §V.a: at 20 submissions, a
-    // round-trip wait per card is the difference between five
-    // minutes and fifteen.
     onRemove();
 
     const res = await returnHomework(item.submission_id, feedback);
