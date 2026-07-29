@@ -1,8 +1,8 @@
 # KIT — Technical Reference Manual
 
-**For:** Developers picking up this codebase (human or AI)  
-**Read when:** Starting any feature build, debugging, or migration work  
-**Last updated:** 29 July 2026
+**For:** Developers picking up this codebase (human or AI)
+**Read when:** Starting any feature build, debugging, or migration work
+**Last updated:** 29 July 2026 (session 7 — Phase 3.6 shipped)
 
 ---
 
@@ -12,19 +12,21 @@
 
 ```
 Next.js App Router (TypeScript strict)
-  ├─ Route groups: (marketing), (summer), admin
-  ├─ Server Actions (authentication + DB writes)
-  ├─ API Route Handlers (Paystack webhook, Resend)
+  ├─ Route groups: (marketing), admin, summer, smportal
+  ├─ Server Actions (authentication + DB writes + reads that need service-role trust)
+  ├─ API Route Handlers (Paystack webhook)
   └─ Middleware (session refresh on /admin only)
       ↓
 Supabase (Postgres 16)
   ├─ Row-Level Security (on every sensitive table)
-  ├─ SECURITY DEFINER functions (public write gates)
+  ├─ SECURITY DEFINER functions (public write gates + all summer reads)
   ├─ Auth (12-week only; summer uses signed cookies)
-  └─ Storage (files bucketed by year/week)
+  └─ Storage (files bucketed — see §VI, corrected in this revision)
 ```
 
-**Why no backend service?** Supabase RLS + SECURITY DEFINER functions handle authz. Faster deployment, fewer moving parts, fits pre-revenue phase.
+**Why no backend service?** Supabase RLS + SECURITY DEFINER functions handle authz. Fewer moving parts, fits pre-revenue phase.
+
+**New in this revision — the Server Actions layer.** Phase 3.6 introduced two files that are now the primary way the admin side talks to the database: `src/app/admin/(protected)/summer/batch-actions.ts` and `.../resource-actions.ts`. Every one of them either calls a raw RPC (documented in §V) or calls `.from(table)` directly under an admin-authenticated Supabase client. §VII below documents these as their own reference, since they're now a real architectural layer, not just glue code.
 
 ---
 
@@ -38,33 +40,25 @@ Supabase (Postgres 16)
 1. Visit `/summer`
 2. Enter ID → calls `verify_summer_id(id)` RPC
 3. RPC checks roster against rate limit (5 attempts per IP per day)
-4. On match: signs an HMAC cookie with HS256 (secret = service role key, expires 24h)
-5. Cookie grants access to `/smportal` (shared page) and student portal data
+4. On match: signs an HMAC cookie (HS256, secret = service role key, expires 24h)
+5. Cookie grants access to `/smportal` and student portal data
 
-**Database:** Every summer read goes through a SECURITY DEFINER function that:
-- Checks the signed cookie (no Supabase Auth session exists)
-- Returns cohort-scoped data only
+**Database:** Every summer read goes through a SECURITY DEFINER function that verifies the signed cookie (there is no Supabase Auth session) and returns cohort/batch-scoped data only.
 
-**Why this design?**
-- No parent email confirmation needed (faster onboarding)
-- No Supabase Auth overhead (lighter, cheaper)
-- One URL per cohort (students bookmark it)
-- No per-student data exposure risk (everything is cohort-wide anyway)
-
-**Critical:** If summer ever needs per-student data (grades, private feedback, etc.), this model breaks. ADR 002 would need to reopen.
+**Critical:** If summer ever needs per-student private data beyond what a SECURITY DEFINER function can scope safely, ADR 002 needs to reopen.
 
 ### B. 12-Week Program (Real Auth)
 
-**User:** Student or teacher with Supabase Auth account.
+**User:** Student, teacher, or admin with a Supabase Auth account.
 
 **Flow:**
-1. Sign up at `/login` OR admin creates account
-2. Supabase Auth issues JWT (stores in `auth.users`, linked to `profiles`)
-3. Every query scoped via RLS policies: `WHERE user_id = auth.uid() AND batch_id = profiles.batch_id`
+1. Sign in at `/admin/login` (admin) or student/teacher equivalents (not built yet)
+2. Supabase Auth issues a session, linked to `profiles`
+3. Every query scoped via RLS: `WHERE user_id = auth.uid()` and batch checks where relevant
 
-**Database:** RLS policies on every table. Teachers can't SELECT all `students`, only via `students_for_teacher` (4 columns, teacher's batch only).
+**The admin auth gate — corrected in this revision.** An earlier version of this document (and of doc 05) described `admin/(protected)/layout.tsx` as not yet having an auth check — a `# Future: auth gate here` comment implied it was still to be built. **This was stale. The gate exists and works:** it calls `supabase.auth.getUser()`, then checks `profiles.role === 'admin'`, and redirects to `/admin/login` otherwise. Every route under `(protected)/`, including the entire batch shell (`batch/[batchId]/*`), inherits this check from the parent layout — there is deliberately no redundant re-check in the batch shell's own layout, to avoid two auth checks doing the same query on every page load. If you're auditing this, verify by reading the actual file rather than trusting this paragraph.
 
-**Middleware:** Refresh session on `/admin/*` only (catch expired tokens early). Scoped matcher to prevent `/apply/callback` 404s.
+**Middleware:** Refreshes the session on `/admin/*` only.
 
 ---
 
@@ -75,59 +69,47 @@ Supabase (Postgres 16)
 **All amounts stored in kobo (bigint). NEVER naira.**
 
 ```sql
--- WRONG ❌
-payments.amount = 7500  -- is this kobo or naira? unclear
+-- WRONG
+payments.amount = 7500  -- kobo or naira? unclear
 
--- RIGHT ✅
-payments.amount_kobo = 750000  -- obviously kobo
--- Then at display boundary: ₦ ${amount_kobo / 100}
+-- RIGHT
+payments.amount_kobo = 750000
+-- Display boundary only: ₦ ${amount_kobo / 100}
 ```
-
-**Why?** Floats lose precision. Kobo is the atomic unit in Nigeria's financial system. Every view that displays naira does the `/100` conversion.
-
-**Places this matters:**
-- `applications.amount_kobo` (what they pay)
-- `payments.amount_kobo` (what was received)
-- `kit_points_rules.reward_naira` is an exception (display value only, never do math with it)
 
 ### Profiles (WATCH OUT)
 
 **Primary key is `user_id` (FK to auth.users), NOT `id`.**
 
 ```sql
--- WRONG ❌
+-- WRONG
 SELECT * FROM profiles WHERE id = $1;
 
--- RIGHT ✅
+-- RIGHT
 SELECT * FROM profiles WHERE user_id = auth.uid();
 ```
 
-This bug caused three production issues. When querying profiles, always use `user_id`.
-
 ### Summer Tables
 
-| Table | Purpose | Rows |
-|-------|---------|------|
-| `summer_cohorts` | Cohort metadata (dates, reg window, prize, live toggle) | 1–2 at a time (active + planning) |
-| `summer_students` | Roster (one row per enrolled student) | ~50–200 per cohort |
-| `summer_content` | Shared content (one row per cohort) | 1 per cohort |
-| `summer_resources` | Weekly resources (one row per file) | ~30–50 per cohort (3 weeks × ~10–15 files) |
-| `summer_access_attempts` | Audit log for ID gate (rate limiting) | grows over time |
-
-**Invariants:**
-- Only one row in `summer_cohorts` can have `active = true`
-- `summer_resources.published_week >= current_week` (future weeks hidden)
-- `summer_students` has **no password field** (no Auth account exists)
+| Table | Purpose |
+|-------|---------|
+| `summer_cohorts` | Cohort metadata (dates, reg window, prize, `current_week` — cohort-wide, see doc 01 §IV) |
+| `summer_students` | Roster (one row per enrolled student, `batch_id` FK) |
+| `summer_content` | Per-week cohort-wide content (title, note) |
+| `summer_resources` | Weekly resources — **now has a nullable `batch_id` column (0025).** `NULL` = shared/visible to every batch; set = visible only to that batch. Confirmed present via direct schema query. |
+| `summer_batch_sessions` | Per-batch, per-week session state: instructor, meet link, next class time, `is_live`, `live_started_at` |
+| `summer_submissions` | Homework submissions. See §V for the state model. |
+| `batches` | Shared with the 12-week program — has `course_slug`, `year`, `cohort_number`, `cohort_label`, `capacity`, `status`. Summer batches all have `course_slug = 'summer'`. |
 
 ### 12-Week Tables
 
 | Table | Purpose | RLS? |
 |-------|---------|------|
-| `courses` | Catalog (title, price, type='term', track, status) | Yes (public read, admin write) |
-| `batches` | Cohorts (one per course × year × cohort_number, max 15 students) | Yes (teacher sees own batch) |
-| `profiles` | User identity (user_id FK, role, batch_id) | Yes (user sees own, admin sees all) |
-| `students` | 12-week roster (linked to auth.users via profiles.user_id) | Yes (student sees self, teacher sees batch) |
-| `teachers` | Staff (linked to auth.users, can have multiple batches) | Yes (teacher sees own detail) |
+| `courses` | Catalog | Yes (public read, admin write) |
+| `batches` | Shared table, see above | Yes |
+| `profiles` | User identity (`user_id` FK, role, batch_id) | Yes |
+| `students` | 12-week roster | Yes |
+| `teachers` | Staff | Yes |
 
 ---
 
@@ -135,116 +117,67 @@ This bug caused three production issues. When querying profiles, always use `use
 
 ### RLS
 
-Every table with student/batch data has RLS enabled. Example:
-
-```sql
-CREATE POLICY "students_see_own" ON students
-  FOR SELECT USING (
-    auth.uid() = profiles.user_id
-    AND profiles.batch_id = students.batch_id
-  );
-```
-
-**If you add a table with sensitive data:**
-1. Enable RLS (immediate)
-2. Deny all by default (`CREATE POLICY ... USING (false)`)
-3. Add explicit allow policies for each role
+Every table with student/batch data has RLS enabled. If you add a table with sensitive data: enable RLS immediately, deny all by default, add explicit allow policies per role.
 
 ### SECURITY DEFINER
 
-Functions like `submit_application()` and `verify_summer_id()` are SECURITY DEFINER (run as `postgres` role, bypass RLS). They are public.
-
-**Rules:**
-- Always pin `search_path = public, extensions` (prevents `profiles` shadowing)
-- Input validation happens INSIDE the function (don't trust caller)
-- Deduplicate logic (if two functions do the same thing, one is a bug)
-- Audit what they do (write to `audit_log`)
-
-Example:
-
-```sql
-CREATE FUNCTION submit_application(
-  p_student_name TEXT,
-  ... -- all inputs
-) RETURNS TABLE (...) 
-  SECURITY DEFINER
-  SET search_path = public, extensions
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_amount_kobo BIGINT;
-BEGIN
-  -- Validate inputs (don't trust form submission)
-  IF p_student_name IS NULL OR length(trim(p_student_name)) < 2 THEN
-    RAISE EXCEPTION 'Student name required and must be at least 2 chars';
-  END IF;
-  
-  -- Compute amount server-side (don't trust form)
-  SELECT price_kobo INTO v_amount_kobo FROM courses WHERE id = p_course_id;
-  
-  -- Insert + audit
-  INSERT INTO applications (..., amount_kobo, ...) VALUES (..., v_amount_kobo, ...);
-  PERFORM write_audit('application_submitted', 'applications', v_app_id, ...);
-  
-  RETURN QUERY SELECT * FROM applications WHERE id = v_app_id;
-END;
-$$;
-```
+Public write/read gates like `submit_application()`, `verify_summer_id()`, and every `get_summer_*` function run as `postgres`, bypassing RLS. Rules:
+- Always pin `search_path = public, extensions`
+- Input validation happens INSIDE the function
+- Audit sensitive writes
 
 ---
 
-## V. KEY FUNCTIONS (Verify Signatures in pg_proc)
+## V. KEY RPC FUNCTIONS (Verify Signatures in `pg_proc` — Not Here)
 
 ### Public Write Gates
 
-| Function | Signature | Returns | When to call |
-|----------|-----------|---------|--------------|
-| `submit_application` | `(name, dob, parent_email, course_id, payment_plan)` → uuid | application uuid | Anon at /apply (client calls via Server Action) |
-| `verify_summer_id` | `(id TEXT, ip TEXT, ua TEXT)` → RECORD | student ID + name or ERROR | Anon at /summer (client calls via Server Action, rate-limited) |
-| `enrol_summer_student` | Two paths: from application OR bare enrollment | student uuid + summer_id | Admin only |
+| Function | Signature | Notes |
+|----------|-----------|-------|
+| `submit_application` | `(name, dob, parent_email, course_id, payment_plan)` → uuid | Anon, via Server Action |
+| `verify_summer_id` | `(id text, ip text, ua text)` → RECORD | Anon, rate-limited |
+| `enrol_summer_student` | two call paths (from application or bare) | Admin only |
 
 ### Admin Functions
 
-| Function | Signature | Returns | Notes |
-|----------|-----------|---------|-------|
-| `approve_application` | `(app_id uuid, batch_id uuid)` → RECORD | student_id, kit_id, etc. | Requires payment_status='paid' |
-| `reject_application` | `(app_id uuid, reason TEXT)` → RECORD | refund_due (true/false), amount_kobo | Refund policy live; amount surfaces exposure |
-| `set_summer_live` | `(cohort_year INT, is_live BOOL)` → void | (audited) | Admin only, no guard rails (single source of truth) |
-| `set_batch_live` | `(p_batch_id uuid, p_week integer, p_live boolean)` → void | (audited) | Per-batch-week live toggle. Upserts into `summer_batch_sessions`. |
-| `return_homework` | `(p_submission_id uuid, p_feedback text)` → void | — | **2 args, submission-keyed.** `is_admin()` gated. |
-| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` | roster + status, non-submitters as 'assigned' | `is_admin()` gated |
-| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` | all `turned_in` submissions, oldest first | 0026. NULL = whole cohort — call once, group client-side for per-batch counts. |
+| Function | Signature | Notes |
+|----------|-----------|-------|
+| `approve_application` | `(app_id uuid, batch_id uuid)` → RECORD | Requires `payment_status='paid'` |
+| `reject_application` | `(app_id uuid, reason text)` → RECORD | Surfaces refund exposure |
+| `set_summer_live` | `(cohort_year int, is_live bool)` → void | **Legacy, cohort-wide.** Superseded by `set_batch_live` (0022). The component built for this (`GoLiveControl.tsx`) is no longer wired to it — see §VII. |
+| `set_batch_live` | `(p_batch_id uuid, p_week int, p_live bool)` → void | Per-batch-per-week. Upserts `summer_batch_sessions`. The live toggle every batch actually uses. |
+| `return_homework` | `(p_submission_id uuid, p_feedback text)` → void | **2 args, keyed on the submission row.** Confirmed against migration 0023. |
+| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` | 2 args, no week param. LEFT JOINs so non-submitters return as `status = 'assigned'`. |
+| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` | 0026. `NULL` = whole cohort. **Call once and group client-side for per-batch counts — never in a loop.** |
 
 ### Student Read Paths (Summer)
 
-All `get_summer_*` functions return cohort-scoped data only:
+| Function | Inputs | Returns |
+|----------|--------|---------|
+| `get_summer_portal` | `(p_cohort_year int, p_summer_student_id uuid)` | class_title, meet_link, is_live, next_class_at (batch-scoped) |
+| `get_summer_resources` | `(p_cohort_year int, p_summer_student_id uuid)` | resources where `week <= current_week`, published, `batch_id IS NULL OR = student's batch` |
+| `get_my_submission` | `(p_summer_student_id uuid, p_resource_id uuid)` | status, url, storage_path, submitted_at, feedback, returned_at |
+| `get_my_submissions` | `(p_summer_student_id uuid)` | **All of one student's submission statuses, one call.** Use this for any list view — the homework list page uses exactly this to avoid an N+1. |
+| `turn_in_homework` | `(p_summer_student_id, p_resource_id, p_url, p_storage_path)` | id, status, submitted_at |
+| `unsubmit_homework` | `(p_summer_student_id uuid, p_resource_id uuid)` → void | Blocked once status = 'returned' |
 
-| Function | Inputs | Returns | Rate? |
-|----------|--------|---------|-------|
-| `get_summer_portal` | `(p_cohort_year int, p_summer_student_id uuid)` | class_title, meet_link, is_live, next_class_at (batch-scoped via the student's batch) | No |
-| `get_summer_resources` | `(p_cohort_year int, p_summer_student_id uuid)` | resources where `week <= current_week`, published, and `batch_id IS NULL OR = student's batch` | No |
-| `get_my_submission` | `(p_summer_student_id uuid, p_resource_id uuid)` | status, url, storage_path, submitted_at, feedback, returned_at | No |
-| `get_my_submissions` | `(p_summer_student_id uuid)` | ALL of one student's statuses in one call — use this on the homework LIST page instead of N queries | No |
-| `turn_in_homework` | `(p_summer_student_id, p_resource_id, p_url, p_storage_path)` | id, status, submitted_at | No |
-| `unsubmit_homework` | `(p_summer_student_id uuid, p_resource_id uuid)` → void | deletes the row; blocked once status = 'returned' | No |
+### ⚠️ Confirmed Signatures — History of Errors
 
-### ⚠️ VERIFIED SIGNATURES — these were WRONG in earlier revisions
+These were documented wrong at various points and caused real, deployed bugs. Confirmed directly against migration files, not against any prior revision of this document:
 
-Confirmed against migrations 0022/0023/0024 on 29 July 2026. Do not trust memory here:
-
-| Function | ACTUAL signature | Previously documented as |
+| Function | ACTUAL signature | Previously documented / implemented as |
 |---|---|---|
-| `return_homework` | **`(p_submission_id uuid, p_feedback text)`** — 2 args, keyed on the SUBMISSION row | ~~`(p_resource_id, p_summer_student_id, p_feedback)`~~ — wrong, does not exist |
-| `get_my_submission` | **`(p_summer_student_id uuid, p_resource_id uuid)`** — 2 args | ~~`(p_resource_id)`~~ — wrong |
-| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` — 2 args, no week param | (correct) |
-| `set_batch_live` | `(p_batch_id uuid, p_week integer, p_live boolean)` — 3 args | (correct) |
-| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` — added in 0026 | (new) |
+| `return_homework` | `(p_submission_id uuid, p_feedback text)` — 2 args | An earlier component called it with 3 args, `(p_resource_id, p_summer_student_id, p_feedback)` — wrong, does not exist as a function signature |
+| `get_my_submission` | `(p_summer_student_id uuid, p_resource_id uuid)` — 2 args | A misplaced file (see doc 06) called it with 1 arg |
+| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` | Correct everywhere it's used |
+| `set_batch_live` | `(p_batch_id uuid, p_week int, p_live bool)` | Correct |
+| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` | Added 0026, correct |
 
-**Consequence of the `return_homework` shape:** you can only return work that has a submission row. There is no "return" on a student who never submitted — which is correct, but it means the Missing list's only action is a nudge, never a return.
+**Consequence of `return_homework`'s shape:** you can only return work that has a submission row. There is no "return" for a student who never submitted — correct behavior, but it means the Missing filter's only possible action is a nudge, never a return.
 
-### Homework state machine
+### Homework State Machine
 
-There are three states but only two persist as rows — same model as Google Classroom:
+Three states, two rows:
 
 ```
 assigned   →  NO ROW in summer_submissions
@@ -252,48 +185,87 @@ turned_in  →  row exists, status = 'turned_in'
 returned   →  row exists, status = 'returned', feedback + returned_at set
 ```
 
-`get_homework_roster` LEFT JOINs and does `coalesce(sub.status, 'assigned')`, so non-submitters come back as `assigned` and sort to the top (`ORDER BY (sub.id IS NOT NULL), name`). **The "who hasn't done it" list is therefore free** — a client-side filter on data you already fetched, not a new query.
+`get_homework_roster` and `get_grading_queue` both LEFT JOIN and `coalesce(sub.status, 'assigned')`, so non-submitters come back as `assigned` for free — no separate query for "who hasn't done this."
 
-Re-submitting after a return **clears** the prior feedback and `returned_at`. That is deliberate: it is new work, the old review no longer applies.
-
-**Critical:** These are SECURITY DEFINER. They do the summer_student_id check inside the function. Don't trust the caller to pass the right ID.
+Re-submitting after a return **clears** the prior feedback and `returned_at` — deliberate: it's new work, the old review no longer applies.
 
 ---
 
 ## VI. STORAGE & FILES
 
-### Buckets
+### Buckets — CORRECTED in this revision
 
-| Bucket | Path structure | RLS policy | Who can upload |
-|--------|----------------|-----------|----------------|
-| `public-assets` | `/year/week{n}/filename` | anyone read, admin write | Admin only |
-| `batch-resources` | `/batch_id/week{n}/filename` | teacher + students in batch read, teacher write | Teachers |
-| `submissions` | `/batch_id/assignment_id/student_id/filename` | student see own, teacher see batch | Students (via Server Action) |
-| `certificates` | `/batch_id/student_id/filename` | student see own, admin see all | Admin only |
-| `summer` | `/year/week{n}/filename` | anyone read, admin write | Admin only |
+An earlier revision of this document listed a bucket named `submissions` with its own path structure. **That bucket does not exist.** Homework file uploads (`uploadSubmissionFile` in `summer-session.ts`) write to the **`summer`** bucket, under a `submissions/` path prefix:
+
+```
+summer/submissions/{summer_student_id}/{resource_id}/{timestamp}-{filename}
+```
+
+An admin-side function built during Phase 3.6 assumed the old (wrong) bucket table and called `.storage.from("submissions")`, which silently 404'd every file preview with a generic "Object not found" — indistinguishable at first from a permissions error. It was fixed by matching the real upload path. **If you see "Object not found" from Supabase Storage, check the bucket name before assuming an RLS problem** — Supabase Storage returns the same generic error for "wrong bucket" and "no permission," as a deliberate security-through-obscurity measure.
+
+| Bucket | Path structure | Who reads | Who writes |
+|--------|----------------|-----------|------------|
+| `public-assets` | `/year/week{n}/filename` | anyone | Admin only |
+| `batch-resources` | `/batch_id/week{n}/filename` | teacher + batch students | Teachers |
+| `certificates` | `/batch_id/student_id/filename` | student (own), admin (all) | Admin only |
+| `summer` | `/year/week{n}/filename` for cohort resources; `/submissions/{student_id}/{resource_id}/filename` for homework uploads | admin (all), students (via signed URL, own submissions only) | Admin (resources), students via Server Action (submissions) |
 
 ### Uploads (File Size Limits)
 
-- Summer resources: ≤25 MB (slides, PDFs, videos)
-- Homework submissions: ≤10 MB (student work)
-- Certificates: ≤5 MB (PNG/PDF)
+- Summer resources: ≤25 MB
+- Homework submissions: ≤10 MB (enforced client-side in the upload form; server-side cap in `uploadResourceFile`/`uploadSubmissionFile` is 25 MB — tighten if you want a hard student-facing limit)
+- Certificates: ≤5 MB
 
 ### Signed URLs
 
 ```typescript
-// Server-side, NEVER client-side
-const url = await supabase.storage
+// Server-side only, never client-side
+const { data, error } = await supabase.storage
   .from('summer')
-  .createSignedUrl(`2026/week1/slides.pdf`, 600); // 10-min expiry
-
-// Client-side: <a href={url}>Download</a>
+  .createSignedUrl('submissions/abc-123/def-456/1234-file.pdf', 600); // 10-min expiry
 ```
 
-**Why server-side?** Signed URLs work via secret key. Leaking the URL is fine; leaking the key is catastrophic.
+**Two different code paths generate these, with two different trust models — know which one you're touching:**
+- **Student-facing** (`getSummerFileUrl` in `summer-session.ts`): students have no Supabase Auth session, so this function is the entire security boundary — it checks the requesting student's session against the file path before signing. **Known bug (see doc 01 §IV):** its check assumes every path starts with the cohort year, which is true for resources but not for submission paths. Not yet fixed.
+- **Admin-facing** (`getSubmissionFileUrl` in `batch-actions.ts`): the calling Server Action is already gated by `assertAdmin()`, so this function just signs — there's no additional path-ownership check needed, since only admins can reach it at all.
+
+**Why server-side?** Signed URLs work via a secret key. Leaking the URL (10-minute expiry, forwardable) is an acceptable, documented risk. Leaking the key is catastrophic.
 
 ---
 
-## VII. ENVIRONMENT VARIABLES
+## VII. SERVER ACTIONS REFERENCE (New in This Revision)
+
+Two files carry almost all of the batch shell's data access. Both live under `src/app/admin/(protected)/summer/`.
+
+### `batch-actions.ts`
+
+| Export | Type | What it does |
+|---|---|---|
+| `createBatch`, `updateBatch`, `deleteBatch` | mutation | Batch CRUD. `deleteBatch` refuses if students are enrolled. |
+| `HomeworkRosterItem` (type), `getHomeworkRoster` | read | Wraps `get_homework_roster`. Maps the RPC's raw column names (`student_name`, `url`, `storage_path`) onto typed fields explicitly — this used to be passed through as `any[]`, which silently let a shape mismatch (a missing `submission_id`) reach the UI as `undefined` instead of a type error. |
+| `returnHomework` | mutation | Wraps `return_homework(p_submission_id, p_feedback)`. |
+| `BatchSessionInput` (type), `saveBatchSession` | mutation | Upserts `summer_batch_sessions` on `(batch_id, week)`. |
+| `setBatchLive` | mutation | Wraps `set_batch_live`. |
+| `GradingQueueItem` (type), `getGradingQueue` | read | Wraps `get_grading_queue`. Called with `null` for the whole-cohort view (batch cards), or a specific `batchId` for one batch's queue tab. |
+| `getSubmissionFileUrl` | read | See §VI — the admin-side signed URL function, pointed at the `summer` bucket. |
+| `HomeworkAssignment` (type), `getBatchHomeworkAssignments` | read | Lists gradeable homework resources visible to one batch (`kind = 'homework' AND submission_type IS NOT NULL`), applying the ADR 005 predicate: `batch_id IS NULL OR batch_id = this batch`. |
+| `BatchOverview` (type), `getBatchOverview` | read | One bundled call for the Overview tab — roster count, live status, next class, assignments published vs. graded — rather than the page firing five separate queries. |
+
+### `resource-actions.ts`
+
+| Export | Type | What it does |
+|---|---|---|
+| `saveResource` | mutation | Create/update a `summer_resources` row. `ResourceInput.batchId` is **optional** — the cohort-level editor never sets it (always shared/`NULL`); the batch-level Resources tab always sets it to the current batch for new rows. |
+| `deleteResource` | mutation | Unrestricted delete — used only by the cohort-level editor. |
+| `deleteBatchResource` | mutation | **Refuses outright if the row is shared** (`batch_id IS NULL`) — deleting shared curriculum from inside a batch page is blocked by design (ADR 005); the error message points back to the cohort-level screen. |
+| `getBatchResources` | read | Resources visible to one batch — same `batch_id IS NULL OR = batch` predicate as `getBatchHomeworkAssignments`, but unfiltered by `kind`, since this tab shows every resource type. |
+| `toggleResourcePublished`, `uploadResourceFile`, `moveResource` | mutation | Unchanged from before Phase 3.6. |
+
+**Pattern across both files:** functions that mutate use `assertAdmin()`, which throws if the caller isn't an authenticated admin. Functions that only read and wrap a SECURITY DEFINER RPC use plain `createClient()` instead — the RPC's own `is_admin()` check inside Postgres is the real gate, and re-checking in the Server Action would be a redundant round trip. `getSubmissionFileUrl` is the one read-only exception: since there's no RPC standing between it and Supabase Storage, `assertAdmin()` there is load-bearing, not decorative.
+
+---
+
+## VIII. ENVIRONMENT VARIABLES
 
 ### Required (Production)
 
@@ -301,223 +273,94 @@ const url = await supabase.storage
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY (keep secret)
-PAYSTACK_SECRET_KEY (keep secret, use sk_live on prod)
-NEXT_PUBLIC_SITE_URL (used for Paystack callback URL construction)
-RESEND_API_KEY (WIRED - sends fail silently if missing)
+PAYSTACK_SECRET_KEY (keep secret; sk_live_ in prod — rotated 29 July 2026 after an earlier leak)
+NEXT_PUBLIC_SITE_URL
+RESEND_API_KEY
 ```
 
 ### Baked at Build Time
 
-`NEXT_PUBLIC_SITE_URL` and `PAYSTACK_SECRET_KEY` are baked into the Next.js build. After changing them in Vercel env vars, you must **redeploy** (even with no code changes).
+`NEXT_PUBLIC_SITE_URL` and `PAYSTACK_SECRET_KEY` are baked into the build. Redeploy after any change:
 
 ```bash
-# Force a redeploy after env change (on Vercel)
 git commit --allow-empty -m "chore: redeploy to pick up env changes"
 git push
 ```
 
-### Local Development
-
-`.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ... (anon key)
-SUPABASE_SERVICE_ROLE_KEY=eyJ... (service-role key)
-PAYSTACK_SECRET_KEY=sk_test_... (test key)
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-RESEND_API_KEY=re_test_... (or leave blank)
-```
-
 ---
 
-## VIII. COMMON PATTERNS & GOTCHAS
+## IX. COMMON PATTERNS & GOTCHAS
 
 ### Cookies Outside Request Scope
 
-**WRONG ❌**
 ```typescript
-// At module scope
-const session = cookies().get('kit_summer');  // ERROR!
-export default function Page() { ... }
-```
+// WRONG — module scope
+const session = cookies().get('kit_summer');
 
-**RIGHT ✅**
-```typescript
-// Inside async component
+// RIGHT — inside an async function
 export default async function Page() {
-  const session = cookies().get('kit_summer');  // OK
-  ...
+  const session = cookies().get('kit_summer');
 }
 ```
 
-Cookies are request-scoped. Module-scope calls fail with `"cookies called outside request scope"`.
+### A Dynamic Route Folder Does Not Serve Its Parent Path
 
-### Money Math
-
-**WRONG ❌**
-```typescript
-const naira = 15000;
-const kobo = naira / 100;  // Precision loss! Use *100 instead
-const saved = kobo * 100;  // Might be 14999.99
-```
-
-**RIGHT ✅**
-```typescript
-const kobo = 1500000;  // Store this
-const naira = kobo / 100;  // Display this
-```
+This one caused a real, shipped bug during Phase 3.6. `src/app/smportal/homework/[id]/page.tsx` handles `/smportal/homework/abc-123`. It does **not** handle `/smportal/homework` — that needs its own `page.tsx` sitting directly in `homework/`. A file with `{ id }`-shaped detail-page logic was found sitting at the parent path; every visit got `params.id === undefined`, matched nothing, and fell through to `notFound()` unconditionally. If a route 404s and you can see a `page.tsx` file that looks related, check whether it's actually the file for *that exact path*, not a same-named file for a child route.
 
 ### RLS Debugging
 
-If a query returns no rows but you expect results:
+```sql
+SELECT tablename, policyname, qual FROM pg_policies WHERE tablename = 'students';
+SELECT current_user, current_role;
+```
+
+### Verifying a Migration Actually Ran
+
+Don't trust a document's claim. Check directly:
 
 ```sql
--- Check RLS policies
-SELECT tablename, policyname, qual FROM pg_policies 
-WHERE tablename = 'students';
+-- Does a column exist?
+SELECT column_name FROM information_schema.columns WHERE table_name = 'summer_resources';
 
--- Test with a known ID
-SELECT * FROM students WHERE id = 'some-uuid';  -- Might return nothing if RLS denies
-
--- Check your role
-SELECT current_user, current_role;
-
--- Temporarily disable RLS for testing
-ALTER TABLE students DISABLE ROW LEVEL SECURITY;  -- DO NOT LEAVE THIS ON
--- ... test ...
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+-- Does a function exist, and with what signature?
+SELECT proname, pg_get_functiondef(p.oid) FROM pg_proc p WHERE proname = 'get_grading_queue';
 ```
 
-### Migrations with Complex Logic
-
-After running a migration that touches functions:
-
-```bash
-# Verify function signature
-SELECT proname, pg_get_functiondef(p.oid) 
-FROM pg_proc p WHERE proname = 'submit_application';
-
-# Run smoke test (if it exists)
-psql $DATABASE_URL < db-tests/smoke_test.sql
-```
+This is exactly how 0025 and 0026 were confirmed run during the Phase 3.6 build, after an earlier document claimed they were still pending.
 
 ---
 
-## IX. DEPLOYMENT PIPELINE
+## X. DEPLOYMENT PIPELINE
 
-### Local → Production
-
-1. **Code change** (e.g., new Server Action)
-2. **Test locally** (`npm run dev`, verify Supabase connection)
-3. **Git commit** (human-readable message, no backticks/`$`/`"` for PowerShell)
-4. **Push to `main`** (GitHub)
-5. **Vercel auto-deploys** (check deploy log for env var errors)
-6. **Test on live URL** (especially Paystack, Resend, RLS)
-
-### Database Migrations
-
-1. **Write migration file** (`migrations/` folder)
-2. **Test locally** (`supabase migration up`)
-3. **Verify function signatures** (`pg_proc`)
-4. **Run smoke test** (if applicable)
-5. **Commit** (include `#migration` tag in message for clarity)
-6. **Supabase auto-runs** on linked branch, or manually via dashboard
-
-### Secrets Rotation
-
-Paystack key compromised? Stripe key leaked? **Do this:**
-
-1. Generate new key in service dashboard (Paystack, Stripe, Resend, etc.)
-2. Update in Vercel env vars
-3. **Redeploy** (force with empty commit if needed)
-4. Revoke old key in service dashboard (after confirming new one works)
+1. Code change → test locally → git commit (no backticks/`$`/`"`) → push to `main` → Vercel auto-deploys → test on live URL.
+2. **On a build failure, read the actual error and the actual file the error names.** Two files can share a generic name (`page.tsx` appears dozens of times in this codebase) — a fix aimed at the wrong one won't show up in the error and won't fix anything.
+3. **If a build fails with a missing-name error** (`Cannot find name 'X'`) in a file that's been edited more than once this session, the most likely cause is a dropped piece from a manual diff merge, not new broken logic. Ask for the complete current file and reconstruct it, rather than patching around the missing piece.
 
 ---
 
-## X. MONITORING & DEBUGGING
+## XI. MONITORING & DEBUGGING
 
-### Error: "column X does not exist"
+### "column X does not exist" / "function X does not exist"
 
-**Cause:** Assumed a migration ran that didn't.
+Don't assume a migration didn't run just because a doc says so, and don't assume it did either — check directly (§IX above).
 
-**Fix:**
-```bash
-# Check migration status
-supabase migration list
+### "Object not found" from Supabase Storage
 
-# Check table structure
-SELECT column_name FROM information_schema.columns 
-WHERE table_name = 'applications';
-```
-
-### Error: "relation 'profiles' does not exist inside this stored procedure"
-
-**Cause:** SECURITY DEFINER function running without `search_path = public, extensions`.
-
-**Fix:** Recreate function with `SET search_path = public, extensions`.
+Could mean wrong bucket name **or** an RLS/permissions denial — Supabase deliberately returns the same message for both. Check the actual upload code's bucket name first (cheapest to rule out); only chase RLS policies if the bucket and path are confirmed correct.
 
 ### Webhook not firing
 
-**Symptom:** Application paid but `payment_status` stays `pending_payment`.
-
-**Check:**
-1. Webhook URL in Paystack dashboard matches deployed URL
-2. `NEXT_PUBLIC_SITE_URL` is correct (baked at build time)
-3. Redeploy after any URL change
-4. Test webhook manually from Paystack dashboard
-
-### RLS denying all reads
-
-**Symptom:** Query returns 0 rows even though data exists.
-
-**Check:**
-```sql
--- List all policies on the table
-SELECT tablename, policyname, qual, with_check 
-FROM pg_policies 
-WHERE tablename = 'students';
-
--- Temporarily disable RLS for testing ONLY
-ALTER TABLE students DISABLE ROW LEVEL SECURITY;
-SELECT * FROM students LIMIT 1;  -- Does this return data?
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-
--- If data appears, RLS is overly restrictive
-```
+Check the webhook URL in the Paystack dashboard matches the deployed domain, and that `NEXT_PUBLIC_SITE_URL` is correct and was baked in via a redeploy after any change. **As of this revision, this has been flagged as unverified twice and still has no confirmation it was actually tested on kitacademy.net.**
 
 ---
 
-## XI. PERFORMANCE NOTES
+## XII. PERFORMANCE NOTES
 
-- **Paystack init timeout:** 15s (configured in Server Action)
-- **Rate limit:** 5 summer ID attempts per IP per day
-- **Signed URL expiry:** 10 minutes (files)
-- **Session cookie expiry:** 24 hours (summer)
-- **JWT expiry:** Supabase default (1 hour, auto-refreshed by middleware on `/admin`)
-
-For large-scale deployments (500+ students):
-- Index `summer_students(cohort_year)` and `applications(status, course_id)`
-- Add database replication (Supabase Pro or higher)
-- Consider caching cohort metadata in Redis (future)
+- Rate limit: 5 summer ID attempts per IP per day
+- Signed URL expiry: 10 minutes
+- Session cookie expiry: 24 hours (summer)
+- `get_grading_queue(null)` is called once per page load for the whole-cohort batch-card view, and once more per batch when that batch's own Homework tab badge count is computed in the batch shell layout — a known, accepted minor redundancy (two RPC calls instead of one, for one batch, on one page), not a loop across batches.
 
 ---
 
-## XII. THE SMOKE TEST (Run After Migrations)
-
-```bash
-# Connect to Supabase
-psql $DATABASE_URL < db-tests/smoke_test.sql
-
-# This tests:
-# - All migrations applied
-# - Functions exist with correct signatures
-# - Constraints enforced
-# - RLS policies exist
-# - Storage buckets configured
-```
-
-**Result:** All tests pass, or errors are surfaced. Commit-blocking test.
-
----
-
-**Need help?** Refer to this doc, check `pg_proc`, or run the smoke test. Empiricism > assumptions.
+**Need help?** Check `pg_proc` and `information_schema`, not memory, and not this document, if there's any doubt. Empiricism over assumptions — this document exists to save you time, not to replace verification.

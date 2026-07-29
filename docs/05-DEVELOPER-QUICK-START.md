@@ -1,8 +1,9 @@
 # Developer Quick Start Guide
 
-**For:** New developers or AI assistants picking up KIT  
-**Time to first build:** 15 minutes  
-**Prerequisites:** Node 18+, PostgreSQL client (or Supabase CLI), git
+**For:** New developers or AI assistants picking up KIT
+**Time to first build:** 15–20 minutes
+**Prerequisites:** Node 18+, Supabase CLI or a Postgres client, git
+**Last updated:** 29 July 2026 (session 7 — real folder structure, corrected auth-gate note)
 
 ---
 
@@ -21,98 +22,146 @@ npm install
 Create `.env.local`:
 
 ```
-# Supabase (get from Supabase project settings)
 NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...  # anon key
-SUPABASE_SERVICE_ROLE_KEY=eyJ...  # service-role key (KEEP SECRET)
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# Payments (Paystack test keys)
-PAYSTACK_SECRET_KEY=sk_test_1234...  # https://dashboard.paystack.com
+PAYSTACK_SECRET_KEY=sk_test_1234...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-# Email (not yet wired, but set to avoid errors)
-RESEND_API_KEY=re_test_1234...  # https://resend.com/api-keys
+RESEND_API_KEY=re_test_1234...
 ```
 
 ### 3. Run Dev Server
 
 ```bash
 npm run dev
-# Opens http://localhost:3000
+# http://localhost:3000
 ```
 
 ### 4. Verify Setup
 
 - [ ] Home page loads
 - [ ] Apply form loads
-- [ ] Admin dashboard loads (no auth required locally)
+- [ ] Admin dashboard loads at `/admin` (see note on the auth gate below — locally, if you're not signed in as an admin user, you'll be redirected to `/admin/login`, same as production)
 - [ ] No console errors
 
 ---
 
-## II. FOLDER STRUCTURE
+## II. FOLDER STRUCTURE — THE REAL ONE
+
+**Important correction from earlier revisions of this document:** the root app folder is `src/app/`, not `app/`. And the comment that used to sit above `admin/(protected)/` — `# Future: auth gate here` — was wrong. The gate exists, in `admin/(protected)/layout.tsx`, and it works: it checks `auth.getUser()` then `profiles.role === 'admin'`, redirecting to `/admin/login` otherwise. Every route nested under `(protected)/`, including the entire batch shell below, inherits that check — there's no second, redundant auth check inside the batch shell's own layout, by design (see doc 02 §II).
 
 ```
-Kit/
-├── app/                          # Next.js App Router
-│   ├── (marketing)/              # Route group: home, about, apply
-│   │   ├── page.tsx              # Home
-│   │   ├── about/
+src/
+├── proxy.ts
+├── app/
+│   ├── layout.tsx                       Root layout (nav, footer)
+│   ├── globals.css                      Single CSS file — all styles, everywhere
+│   ├── global.css                       (legacy — check before assuming which one is loaded)
+│   │
+│   ├── (marketing)/                     Route group: public site
+│   │   ├── layout.tsx
+│   │   ├── page.tsx                     Home
+│   │   ├── about/page.tsx
 │   │   ├── apply/
-│   │   └── refund-policy/
+│   │   │   ├── page.tsx
+│   │   │   ├── actions.ts
+│   │   │   └── callback/page.tsx
+│   │   └── refund-policy/page.tsx
 │   │
-│   ├── admin/                    # /admin routes (no auth gate — test env only!)
-│   │   └── (protected)/          # Future: auth gate here
-│   │       ├── summer/
+│   ├── admin/
+│   │   ├── layout.tsx                   Deliberately NO auth check here — see below
+│   │   ├── login/
+│   │   │   ├── page.tsx
+│   │   │   └── AdminLoginForm.tsx
+│   │   └── (protected)/                 Auth gate lives HERE, in this layout
+│   │       ├── layout.tsx               ← the real gate: getUser() + role check
+│   │       ├── AdminRail.tsx
+│   │       ├── page.tsx                 Admin dashboard landing
 │   │       ├── applications/
-│   │       └── layout.tsx
+│   │       │   ├── actions.ts
+│   │       │   ├── ApplicationRow.tsx
+│   │       │   ├── ApplicationsView.tsx
+│   │       │   └── page.tsx
+│   │       └── summer/
+│   │           ├── page.tsx             THE HUB — batches (primary) + cohort settings + collapsed shared resources
+│   │           ├── actions.ts           Cohort/week-level Server Actions
+│   │           ├── batch-actions.ts     Batch shell's main Server Actions file — see doc 02 §VII
+│   │           ├── resource-actions.ts  Resource CRUD, batch-scoped variants — see doc 02 §VII
+│   │           ├── BatchManagement.tsx  Batch cards + create/edit/delete forms
+│   │           ├── SummerAdmin.tsx      Cohort settings + weekly content
+│   │           ├── SummerResources.tsx  Cohort-level (shared-only) resource editor
+│   │           ├── CollapsibleResources.tsx   Client wrapper that collapses SummerResources by default
+│   │           ├── HomeworkReview.tsx   Assignment roster with inline grading — used by the By-Assignment view
+│   │           ├── BatchSessionManager.tsx    LEGACY — no longer rendered anywhere; superseded by the Class tab
+│   │           ├── GoLiveControl.tsx    LEGACY — built for the old cohort-wide live toggle; its visual design was
+│   │           │                        reused for the Class tab's live toggle, but this file itself is unused
+│   │           └── batch/
+│   │               └── [batchId]/
+│   │                   ├── layout.tsx           Header, tabs, seat/live computation for this batch
+│   │                   ├── page.tsx             Redirects → /overview
+│   │                   ├── BatchTabs.tsx        Tab nav, active-tab highlight, Homework grading-count badge
+│   │                   ├── overview/page.tsx    Read-only summary
+│   │                   ├── class/
+│   │                   │   ├── page.tsx
+│   │                   │   └── ClassSessionForm.tsx    Instructor, meet link, next class, live toggle
+│   │                   ├── resources/
+│   │                   │   ├── page.tsx
+│   │                   │   └── BatchResourceList.tsx   Scoped resource list, Shared/Batch-only tagging
+│   │                   └── homework/
+│   │                       ├── page.tsx
+│   │                       ├── HomeworkQueue.tsx        Segmented control: queue vs. by-assignment
+│   │                       └── ByAssignmentView.tsx     Assignment picker, wraps HomeworkReview
 │   │
-│   ├── summer/                   # /summer (ID gate)
-│   │   └── page.tsx
+│   ├── summer/                          /summer — the Summer ID gate (no auth session)
+│   │   ├── page.tsx
+│   │   ├── summer-session.ts            getSummerSession(), getSummerFileUrl(), turnInHomework(), etc.
+│   │   └── SummerSignIn.tsx
 │   │
-│   ├── smportal/                 # /smportal (shared student portal)
-│   │   └── page.tsx
+│   ├── smportal/                        The shared student portal (post-gate)
+│   │   ├── page.tsx
+│   │   ├── PortalContent.tsx
+│   │   ├── homework/
+│   │   │   └── page.tsx                 The homework LIST — get_summer_resources + get_my_submissions
+│   │   │       (Note: this file was rebuilt from scratch in session 7. It used to have
+│   │   │       detail-page logic wrongly sitting at this path, which 404'd on every visit
+│   │   │       because a [id]-shaped route param can't exist at a parent path.)
+│   │   └── resources/
+│   │       ├── page.tsx
+│   │       └── ResourcesContent.tsx
 │   │
-│   ├── api/                      # API routes
-│   │   ├── paystack/
-│   │   │   └── webhook/
-│   │   └── resend/
-│   │
-│   ├── layout.tsx                # Root layout (nav, footer)
-│   ├── globals.css               # Single CSS file (all styles)
-│   └── page.tsx                  # / route
+│   └── api/
+│       └── paystack/webhook/route.ts
 │
 ├── components/
-│   ├── site/                     # Reusable components (Header, Footer, etc.)
-│   ├── admin/                    # Admin-specific components
-│   └── forms/                    # Form components
+│   ├── apply/                           Application form pieces
+│   ├── home/                            Marketing homepage sections
+│   └── site/                            Nav, Footer, shared UI
 │
-├── lib/
-│   ├── supabase.ts               # Supabase client (server + browser)
-│   ├── email/                    # Email templates + Resend integration
-│   ├── summer.ts                 # Summer-specific helpers (ID gate, etc.)
-│   └── utils.ts                  # General utilities
-│
-├── migrations/                   # Supabase migrations (19 total)
-│   ├── 20260721000001_*.sql
-│   ├── 20260722000002_*.sql
-│   └── ...
-│
-├── db-tests/
-│   └── smoke_test.sql            # Comprehensive database test
-│
-├── public/
-│   ├── cute_baby.webp            # Summer portal hero image
-│   ├── summersectionImage.webp   # Home page image
-│   └── ...
-│
-├── .env.local                    # (create this, NOT in git)
-├── .env.example                  # Example env vars
-├── next.config.js                # Next.js config (Turbopack, etc.)
-├── tsconfig.json                 # TypeScript strict
-├── package.json
-└── README.md
+└── lib/
+    ├── courses.ts
+    ├── database.types.ts
+    ├── paystack.ts
+    ├── summer.ts
+    ├── email/resend.ts
+    └── supabase/
+        ├── admin.ts
+        ├── middleware.ts
+        └── server.ts                    createClient() — always await it
+
+supabase/
+├── config.toml
+├── seed.sql
+└── migrations/
+    ├── 20260721000001–000012_*.sql      Foundational schema (12 files)
+    ├── 0013–0026_*.sql                  Feature migrations, sequential
+    └── -- 0019 · Live class indicator.sql   (note the unusual filename — a stray leading
+                                              "-- " comment marker got saved as part of the
+                                              filename itself; harmless but worth cleaning up)
 ```
+
+**One honest gap in this section:** the tree above for `batch/[batchId]/*` is reconstructed from the actual build history of this session (every file listed was built, committed, and confirmed via a successful Vercel build), not from a fresh automated directory scan — the most recent `tree`/`Get-ChildItem` export available while writing this document didn't include that subtree at all, for reasons that weren't diagnosed. **If you're touching these files, confirm the exact paths yourself** rather than trusting this listing blindly, the same way everything else in this codebase should be verified rather than assumed.
 
 ---
 
@@ -121,253 +170,123 @@ Kit/
 ### Add a New Page
 
 ```bash
-# Example: Add /team page
-mkdir app/team
-touch app/team/page.tsx
+mkdir src/app/team
+touch src/app/team/page.tsx
 ```
 
-**`app/team/page.tsx`:**
 ```typescript
 import Footer from "@/components/site/Footer";
 
 export default function TeamPage() {
   return (
-    <>
-      <div className="page">
-        <section>
-          <div className="wrap">
-            <h1>The Team</h1>
-            <p>...</p>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    </>
-  );
-}
-```
-
-### Add a New Component
-
-```bash
-# Example: Add a "TeamCard" component
-mkdir components/site/TeamCard
-touch components/site/TeamCard.tsx
-touch components/site/TeamCard.css  # if complex styling
-```
-
-**`components/site/TeamCard.tsx`:**
-```typescript
-interface Props {
-  name: string;
-  role: string;
-  image: string;
-}
-
-export default function TeamCard({ name, role, image }: Props) {
-  return (
-    <div className="team-card">
-      <img src={image} alt={name} />
-      <h3>{name}</h3>
-      <p className="role">{role}</p>
+    <div className="page">
+      <section>
+        <div className="wrap">
+          <h1>The Team</h1>
+        </div>
+      </section>
+      <Footer />
     </div>
   );
 }
 ```
 
-**Add CSS to `globals.css`:**
-```css
-.team-card {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 24px;
-  text-align: center;
-}
+### Fetch Data (Server Component)
 
-.team-card img {
-  width: 100%;
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
+```typescript
+import { createClient } from "@/lib/supabase/server";
 
-.team-card .role {
-  color: var(--muted);
-  font-size: 13px;
+export default async function SomePage() {
+  const supabase = await createClient(); // always await — it's a Promise
+  const { data } = await supabase.from("courses").select("*").eq("status", "live");
+  return <section>{data?.map((c) => <div key={c.id}>{c.title}</div>)}</section>;
 }
 ```
 
-### Fetch Data from Supabase (Server Component)
+### Write a Server Action — the pattern this codebase actually uses
+
+Every mutation-side Server Action in the batch shell follows this shape: a typed `Result` union, an `assertAdmin()` gate at the top for mutations, `createClient()` alone for reads that already have an RPC-level gate.
 
 ```typescript
-// app/page.tsx
-import { createClient } from "@/lib/supabase";
-
-export default async function HomePage() {
-  const supabase = createClient();
-
-  // Fetch courses
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("status", "live");
-
-  return (
-    <section>
-      {courses?.map((course) => (
-        <div key={course.id}>{course.title}</div>
-      ))}
-    </section>
-  );
-}
-```
-
-### Call a Server Action
-
-```typescript
-// app/apply/page.tsx
-"use client";
-
-import { submitApplication } from "@/app/apply/actions";
-
-export default function ApplyForm() {
-  const handleSubmit = async (formData: FormData) => {
-    const result = await submitApplication(formData);
-    if (result.error) {
-      console.error(result.error);
-    } else {
-      // Success
-      window.location.href = "/apply/callback";
-    }
-  };
-
-  return (
-    <form action={handleSubmit}>
-      <input name="student_name" required />
-      <button type="submit">Apply</button>
-    </form>
-  );
-}
-```
-
-### Write a Server Action
-
-```typescript
-// app/apply/actions.ts
 "use server";
 
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
-export async function submitApplication(formData: FormData) {
-  const supabase = createClient();
+async function assertAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
 
-  // Validate
-  const name = formData.get("student_name")?.toString();
-  if (!name || name.length < 2) {
-    return { error: "Invalid name" };
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", user.id) // NOT .eq("id", ...) — see doc 02
+    .single();
 
-  // Call SECURITY DEFINER function
-  const { data, error } = await supabase.rpc("submit_application", {
-    p_student_name: name,
-    // ... other params
-  });
+  if (profile?.role !== "admin") throw new Error("Not authorised");
+  return supabase;
+}
 
-  if (error) return { error: error.message };
-  return { data };
+type Result = { ok: true; id?: string } | { ok: false; error: string };
+
+export async function doSomething(input: string): Promise<Result> {
+  const supabase = await assertAdmin();
+  const { error } = await supabase.from("some_table").insert({ value: input });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 ```
+
+For a read that wraps a SECURITY DEFINER RPC (which already checks `is_admin()` inside Postgres), skip `assertAdmin()` and just use `createClient()` — see `getHomeworkRoster` or `getGradingQueue` in `batch-actions.ts` for real examples.
+
+### Editing a File With Edit History — read this before you patch anything
+
+If a file has already been changed once this session (by you, a previous session, or another contributor), **ask for or view the complete current file before making further edits**, rather than describing a targeted diff to be applied by hand. This project hit the identical bug three separate times in one build — a type definition, a prop destructure, and a code block, each silently dropped while a person hand-merged a described change into a file whose exact current state wasn't fully visible. Each one cost a full build-and-deploy cycle to catch. It's slower to paste a whole file back and forth than a five-line diff, but it's categorically safer once a file has more than one round of history.
 
 ---
 
 ## IV. DATABASE WORKFLOW
 
-### Pull Latest Schema
-
 ```bash
-# Supabase CLI (must be installed)
+# Pull latest schema
 supabase db pull
-# Generates migrations based on live database
-```
 
-### Run Migrations Locally
-
-```bash
-# Start local Postgres container (Docker required)
+# Local Postgres (Docker required)
 supabase start
-
-# Run all migrations
 supabase migration up
-
-# Check status
 supabase migration list
-```
 
-### Add a New Migration
-
-```bash
-# Supabase automatically versions migrations
+# New migration
 supabase migration new add_new_column
-# Creates: migrations/20260730123456_add_new_column.sql
-
-# Edit the file, add SQL:
-# ALTER TABLE students ADD COLUMN phone_number TEXT;
-
-# Apply locally
+# Edit the generated file, then:
 supabase migration up
-
-# Test it works, then deploy to live
 ```
 
-### Query the Database Directly
+**Verifying a migration actually ran on the live database** — don't trust any document's claim, including this one:
 
-```bash
-# Connect to local database
-psql postgresql://postgres:postgres@localhost:54322/postgres
+```sql
+-- Column exists?
+SELECT column_name FROM information_schema.columns WHERE table_name = 'summer_resources';
 
-# Or connect to live (get connection string from Supabase dashboard)
-psql "postgresql://postgres:[password]@[project].supabase.co:5432/postgres"
-
-# Test a query
-SELECT * FROM courses WHERE status = 'live';
+-- Function exists, and with what signature?
+SELECT proname, pg_get_functiondef(p.oid) FROM pg_proc p WHERE proname = 'get_grading_queue';
 ```
 
 ---
 
 ## V. STYLING GUIDE
 
-**Golden rule:** Everything lives in `globals.css`. No CSS modules, no Tailwind.
-
-### Adding Styles
+**Golden rule:** everything lives in `globals.css`. No CSS modules, no Tailwind.
 
 ```css
-/* 1. Define in globals.css using BEM-flat naming */
 .team-card {
-  /* styles */
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
-.team-card-title {
-  /* styles */
-}
-
-/* 2. Use brand tokens (defined in :root) */
-.team-card {
-  background: var(--paper);           /* #fcfdff */
-  border: 1px solid var(--line);      /* #e8ebf2 */
-  color: var(--ink);                  /* #1F2C4F */
-}
-
-/* 3. Responsive with media queries */
 @media (max-width: 768px) {
-  .team-card {
-    padding: 16px;  /* smaller on mobile */
-  }
-}
-
-/* 4. Hover states */
-.team-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 24px rgba(31, 44, 79, 0.1);
+  .team-card { padding: 16px; }
 }
 ```
 
@@ -375,169 +294,74 @@ SELECT * FROM courses WHERE status = 'live';
 
 ```css
 :root {
-  /* Neutrals */
-  --navy: #1F2C4F;          /* Primary dark)
-  --ink: #1F2C4F;           /* Text */
-  --muted: #5d6781;         /* Secondary text */
-  --faint: #97a0b5;         /* Tertiary text */
-  --line: #e8ebf2;          /* Borders */
-  --paper: #fcfdff;         /* Backgrounds */
-
-  /* Colors */
-  --blue: #1999E4;          /* Info, secondary CTA */
-  --green: #25B290;         /* Success, primary CTA */
-
-  /* Layout */
-  --maxw: 1160px;           /* Max width for content */
-
-  /* Gradient */
-  --grad: linear-gradient(122deg, #1F2C4F, #1999E4, #25B290);
+  --navy: #1F2C4F;
+  --ink: #1F2C4F;
+  --muted: #5d6781;
+  --faint: #97a0b5;
+  --line: #e8ebf2;
+  --paper: #fcfdff;
+  --blue: #1999E4;
+  --green: #25B290;
+  --maxw: 1160px;
 }
 ```
+
+**Before writing new CSS, search the file first.** More than once during the batch shell build, classes that looked like they'd need to be invented already existed — built during an earlier, abandoned or unfinished attempt at a similar feature (the live-toggle styling for the Class tab, and the entire homework-list-page styling scheme, were both discovered this way, already fully built and just sitting unused). Grep before you write.
 
 ---
 
 ## VI. DEBUGGING TIPS
 
-### "Form submission fails silently"
+### "Page shows 'Page not found' but a file exists at that route"
 
-**Check:**
-1. Browser DevTools → Network → POST request (what's the error?)
-2. Next.js terminal (server-side error?)
-3. Supabase logs (is the RPC returning an error?)
+Check whether the file is actually at *that exact path*, versus a same-named file for a nested dynamic route. `src/app/smportal/homework/[id]/page.tsx` does not serve `/smportal/homework` — that needs its own `page.tsx` directly in `homework/`. This exact mistake shipped once (see the note in section II above) and caused every visit to the parent path to 404 unconditionally.
 
-**Example:**
-```typescript
-// Add logging
-const { data, error } = await supabase.rpc("submit_application", { ... });
-if (error) {
-  console.error("RPC error:", error.message, error.details);
-}
-```
+### "cookies() outside request scope"
 
-### "Page shows 'Page not found' but file exists"
+Move the cookie read inside an async function/component; it can't happen at module scope.
 
-**Cause:** Route group naming or `page.tsx` missing.
+### "Object not found" from Supabase Storage
 
-**Check:**
-```
-app/
-├── (marketing)/
-│   └── about/
-│       └── page.tsx  ← This is what makes /about work
-```
+Could be a wrong bucket name, or an RLS denial — Storage returns the same message for both. Check the bucket name in the actual upload code first (cheap to rule out) before chasing RLS policies. See doc 02 §VI for the real bucket table (there is no bucket literally named `submissions`).
 
-If file is missing, route 404s.
+### Environment variable not found
 
-### "Database query hangs"
-
-**Causes:** RLS policy denying access, missing index, slow query.
-
-**Debug:**
-```sql
--- Disable RLS temporarily (local only!)
-ALTER TABLE students DISABLE ROW LEVEL SECURITY;
-SELECT * FROM students LIMIT 1;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-
--- If it returns data, RLS is the issue
-```
-
-### "Environment variable not found"
-
-**Remember:**
-- `NEXT_PUBLIC_*` = bundled into frontend (safe, no secrets)
-- Other vars = server-side only (secrets OK here)
-
-**If using in a Client Component:** Prefix with `NEXT_PUBLIC_`
-
-```typescript
-// ❌ WRONG - this won't exist in browser
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// ✅ RIGHT - for public values
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-```
+`NEXT_PUBLIC_*` = bundled into the client. Anything else is server-only. Using a server-only var in a Client Component silently returns `undefined`.
 
 ---
 
 ## VII. GIT WORKFLOW (PowerShell)
 
 ```powershell
-# Check status
 git status
-
-# Make a change
 git add .
-
-# Commit (no special characters for PowerShell compatibility)
 git commit -m "feat: add team page"
-
-# Push to main
 git push origin main
-
-# View logs
 git log --oneline -5
 ```
 
-**Commit message tips:**
-- Start with verb: feat, fix, chore, docs, refactor
-- No backticks, `$`, or double quotes (PowerShell breaks)
-- Example: `feat: rebuild portal redesign to match new CSS`
+**Commit message rules:** start with a verb (feat/fix/chore/docs/refactor), no backticks, `$`, or double quotes — PowerShell's quoting breaks on them.
 
 ---
 
 ## VIII. TESTING LOCALLY
 
-### Smoke Test (Database)
+**Apply flow:** `/apply` → fill form → test card `4111 1111 1111 1111` → `/apply/callback` should succeed.
 
-```bash
-# Download smoke test from Supabase
-psql $DATABASE_URL < db-tests/smoke_test.sql
+**Summer ID gate:** `/summer` → use a real Summer ID (`SELECT summer_id FROM summer_students LIMIT 1;`) → should set a signed cookie → `/smportal` should load.
 
-# All tests pass? Good to go
-```
-
-### Manual User Flows
-
-**Apply flow:**
-1. Go to http://localhost:3000/apply
-2. Fill form
-3. Click "Pay with Paystack"
-4. Use test card: 4111 1111 1111 1111, any future date, any CVV
-5. Return to /apply/callback (should show success)
-
-**Summer ID gate:**
-1. Go to http://localhost:3000/summer
-2. Use a real Summer ID from the database:
-   ```sql
-   SELECT summer_id FROM summer_students LIMIT 1;
-   ```
-3. Enter ID → should set signed cookie
-4. Portal page should load
-
-**Admin:**
-1. Go to http://localhost:3000/admin
-2. Verify it loads (no auth gate locally)
+**Admin / batch shell:** `/admin` (auth required — sign in first) → `/admin/summer` → open any batch → confirm all four tabs render → try the live toggle on Class → try Returning a test submission on Homework.
 
 ---
 
-## IX. DEPLOYMENT (For First-Time Deploy)
+## IX. DEPLOYMENT
 
 ```bash
-# 1. Make sure code is clean
-npm run build  # Should succeed with no errors
-
-# 2. Push to GitHub
-git push origin main
-
-# 3. Vercel auto-deploys (check Vercel dashboard)
-
-# 4. Monitor
-# - Check Vercel deploy logs for errors
-# - Test live URL (same flows as local)
-# - Check Supabase dashboard for query errors
+npm run build       # must succeed locally before pushing
+git push origin main # Vercel auto-deploys
 ```
+
+**If the build fails on a specific file and line**, read the error carefully — check you're not confusing two files with the same name in different directories (`page.tsx` appears dozens of times in this tree). If the error is a missing name (`Cannot find name 'X'`) in a file edited earlier this session, suspect a dropped piece from a hand-merged diff before suspecting new broken logic.
 
 ---
 
@@ -545,19 +369,17 @@ git push origin main
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `"Module not found: @/components/..."` | Import path wrong | Check file path spelling |
-| `"cookies() outside request scope"` | Cookie at module scope | Move inside async function |
-| `"RPC function does not exist"` | Migration not run | `supabase migration up` |
-| `"RLS policy denies all reads"` | Policy too restrictive | Check `pg_policies` |
-| `"Paystack webhook not firing"` | URL not registered | Update in Paystack dashboard + redeploy |
-| `"Email not sending"` | Resend not wired | Set RESEND_API_KEY in .env.local |
+| `"Module not found: @/components/..."` | Import path wrong | Check the file's actual path — note `src/app`, not `app` |
+| `"cookies() outside request scope"` | Cookie at module scope | Move inside an async function |
+| `"function X does not exist"` | Wrong RPC arity/name, or migration not run | Verify against `pg_proc` directly — don't trust a doc |
+| `"column X does not exist"` | Migration assumed but not run, or vice versa | Verify against `information_schema.columns` directly |
+| `"Object not found"` (Storage) | Wrong bucket name OR RLS denial — indistinguishable from the message alone | Check the actual upload code's bucket name first |
+| Route 404s even though a `page.tsx` exists somewhere nearby | The file is for a *different* route (often a `[id]` child route sitting at the parent path) | Check the file's exact folder location, not just its filename |
+| `Cannot find name 'X'` at build time, in a file edited more than once this session | A piece dropped during manual diff merging | Ask for the complete current file; reconstruct rather than patch around it |
+| Paystack webhook not firing | URL not registered, or registered but never actually tested | Update in Paystack dashboard, redeploy, **then run a real test transaction** |
 
 ---
 
-**Still stuck?** Check:
-1. Technical Reference (II-TECHNICAL-REFERENCE.md)
-2. Supabase docs (https://supabase.com/docs)
-3. Next.js docs (https://nextjs.org/docs)
-4. Ask Alfred (alfredenyinna03@gmail.com)
+**Still stuck?** Doc 02 (Technical Reference), Supabase docs, Next.js docs, or Alfred (alfredenyinna03@gmail.com).
 
-**Last verified:** 29 July 2026
+**Last verified:** 29 July 2026 (session 7)

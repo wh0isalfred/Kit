@@ -1,15 +1,20 @@
 # KIT Project Documentation — Complete Reference
 
-**Last updated:** 29 July 2026 (session 6)  
-**Project:** KIT Port Harcourt — Kids' tech education platform  
-**Live at:** https://kitacademy.net  
-**Status:** Deployed. Summer 2026 launches 10 Aug. 12-week program in planning.
+**Last updated:** 29 July 2026 (session 7 — Phase 3.6 shipped)
+**Project:** KIT Port Harcourt — kids' tech education platform
+**Live at:** https://kitacademy.net
+**Status:** Deployed. Summer 2026 launches 10 August. Batch shell + homework grading system (Phase 3.6) is built, tested, and live. 12-week program is schema-ready; UI not started.
 
-> ### ⚠️ READ THIS FIRST — two runtime bugs are live
-> 1. `/smportal/homework/[id]/page.tsx` may call `get_my_submission` with ONE argument. The real signature takes TWO: `(p_summer_student_id, p_resource_id)`. It may also reference a `file_url` column that doesn't exist (real columns: `url`, `storage_path`). Compiles clean, fails when a student opens an assignment.
-> 2. `HomeworkReview.tsx` may call `return_homework` with THREE arguments. The real signature is TWO: `(p_submission_id, p_feedback)`.
+> ### This documentation set was rewritten end-to-end on 29 July 2026
+> Everything below reflects what is actually running in production, not what was planned. Where the previous revision of these docs described bugs, gaps, or half-built features, those sections have been corrected or removed. If you're reading an older printout of these files, throw it away — several things it says are now wrong.
 >
-> Earlier revisions of doc 02 recorded the wrong signature for `return_homework`. It has been corrected. **Verify function signatures against the migration files, not against these docs.**
+> One standing rule survives from the old docs and should outlive this rewrite too: **verify RPC signatures against the migration files, not against any document, including this one.** Documentation drifts. `pg_proc` doesn't lie.
+
+---
+
+## Why These Docs Were Rewritten
+
+Phase 3.6 — the batch shell and homework grading system — went from "designed, not built" to fully shipped across nine build steps in a single long session. Along the way, three genuinely serious bugs were found and fixed (wrong RPC arities, a storage bucket that didn't exist, a homework list page that 404'd on every single visit), and two of the old docs turned out to describe things that weren't true anymore — one said an auth gate didn't exist when it did, another said a `git` history detail was still pending when it had shipped weeks earlier. The pattern across all of it: **docs that describe code, rather than the docs being generated from the code, will always drift.** This rewrite is a snapshot, not a promise — treat every claim below the same skeptical way the project itself was built: verify before you rely on it.
 
 ---
 
@@ -18,173 +23,64 @@
 ### 📍 **START HERE**
 
 #### 1. **01-MASTER-ROADMAP.md** (READ FIRST)
-**Purpose:** Project overview, timeline, and strategic roadmap  
-**Covers:**
-- What KIT is (summer vs 12-week)
-- Completed work (Phases 0–3) ✅
-- Active builds (Phase 3.5–5) 🟠
-- Known gaps (not blocking launch)
-- Tech stack and conventions
-- Immediate next steps (priority order)
-- Full roadmap to 2027
-
+**Purpose:** Project overview, timeline, and strategic roadmap
+**Covers:** What KIT is, what's complete (Phases 0–3.6, all done), what's next (Phase 4), the full ADR decision log, and the architecture diagram.
 **Who should read:** Everyone. This is the authoritative project status.
-
-**Time:** 15 minutes
-
----
+**Time:** 15–20 minutes
 
 #### 2. **02-TECHNICAL-REFERENCE.md** (FOR DEVELOPERS)
-**Purpose:** Deep technical manual for builders and debuggers  
-**Covers:**
-- Architecture at a glance (Next.js + Supabase)
-- Two access models (summer cookie vs 12-week Auth)
-- Database schema essentials (money handling, profiles, summer tables)
-- Security rules (RLS, SECURITY DEFINER)
-- Function signatures (verify in pg_proc)
-- Storage & file buckets (signed URLs)
-- Environment variables
-- Common patterns & gotchas
-- Deployment pipeline
-- Monitoring & debugging
-- Performance notes
-
-**Who should read:** Developers, DevOps, database admins
-
-**Time:** 20 minutes (skim first, refer back as needed)
-
-**Critical sections to memorize:**
-- All money is kobo (never naira in DB)
-- profiles.user_id is the PK (not id)
-- Cookies must be inside async functions (not module scope)
-- SECURITY DEFINER functions pin search_path
-
----
+**Purpose:** Deep technical manual — architecture, security model, verified RPC signatures, storage buckets.
+**Covers:** The two access models (summer cookie vs. 12-week Auth), database schema essentials, every RPC used by the batch shell with its confirmed signature, the real storage bucket layout (corrected — `submissions` is not a real bucket name), environment variables, common gotchas.
+**Who should read:** Developers, DevOps, anyone about to write a Server Action or RPC call.
+**Time:** 20–25 minutes (skim first, refer back as needed)
 
 #### 3. **03-ADMIN-OPERATIONS-MANUAL.md** (FOR ALFRED/OPERATORS)
-**Purpose:** Day-to-day workflows and how to manage cohorts  
-**Covers:**
-- Summer cohort settings (dates, current week, live toggle)
-- Weekly content publishing (resources, Meet link, publish workflow)
-- Batch management (create, edit, delete)
-- Student enrolment & KIT ID generation
-- Applications & approvals (seat counting, payment checks)
-- Homework grading (Google Classroom style)
-- Courses & pricing
-- Pre-launch checklist
-- Weekly operations checklist
-- Troubleshooting (students see "coming soon", Meet button gray, etc.)
-
-**Who should read:** Alfred (founder), any ops person managing the platform
-
-**Time:** 20 minutes
-
-**Most important:** Remember to bump `current_week` every Monday morning!
-
----
+**Purpose:** Day-to-day workflows — now describing the actual batch shell, not the old single-page admin.
+**Covers:** Cohort settings, weekly content, the batch shell's four tabs (Overview, Class, Resources, Homework), the grading queue workflow, resource scoping (Shared vs. batch-only), student enrolment.
+**Who should read:** Alfred, any ops person managing the platform.
+**Time:** 20–25 minutes
 
 #### 4. **04-DEPLOYMENT-AND-DOMAIN.md** (FOR DEPLOYMENT)
-**Purpose:** Production deployment, domain migration, rollback procedures  
-**Covers:**
-- Pre-launch deployment checklist
-- Launch day timeline
-- Domain migration (when kit.ng is bought)
-- SSL/TLS setup (auto-handled)
-- Performance monitoring post-launch
-- Rollback procedure (if something breaks)
-- Emergency contacts & escalation
-- Cost optimization tips
-
-**Who should read:** DevOps, Alfred (deployment day), anyone managing domains
-
+**Purpose:** Production deployment, domain migration template, rollback procedures.
+**Covers:** Launch checklist, launch-day timeline, generic domain migration steps (kept as a reusable template for the *next* migration), rollback procedure.
+**Who should read:** DevOps, Alfred on deployment day.
 **Time:** 15 minutes
-
----
 
 #### 5. **05-DEVELOPER-QUICK-START.md** (FOR NEW DEVS)
-**Purpose:** Get a new developer up and running in 15 minutes  
-**Covers:**
-- Local setup (clone, install, env vars)
-- Folder structure (where every file goes)
-- Common tasks (add page, add component, fetch data, Server Action)
-- Database workflow (migrations, queries)
-- Styling guide (globals.css, brand tokens)
-- Debugging tips
-- Git workflow (PowerShell compatible)
-- Testing locally (smoke test, manual flows)
-- Common errors & fixes
+**Purpose:** Get a new developer (human or AI) productive in 15 minutes.
+**Covers:** Local setup, the **real, current** folder structure (including the batch shell tree), common tasks, styling guide, git workflow, common errors — including the specific ones this project actually hit.
+**Who should read:** New developers, onboarding checklist.
+**Time:** 15–20 minutes
 
-**Who should read:** New developers (human or AI), onboarding checklist
-
-**Time:** 15 minutes (reference as needed)
-
----
-
-#### 6. **06-BATCH-SHELL-SPEC.md** (THE NEXT BUILD)
-**Purpose:** Full build spec for the per-batch admin area and homework grading system
-**Covers:**
-- Route structure (`/admin/summer/batch/[id]/...` with real routes per tab)
-- Batch cards with live grading counts
-- The homework queue: FIFO, inline feedback, optimistic removal, empty states
-- By-assignment roster with Missing filter
-- Resources tab with Shared / Batch-only tagging
-- The 3-state / 2-row submission model and what it forbids
-- Traps, build order, and what was explicitly deferred (with reasons)
-
-**Who should read:** Anyone building Phase 3.6. Read this BEFORE writing code.
-
-**Time:** 15 minutes
+#### 6. **06-BATCH-SHELL-SPEC.md** (AS-BUILT RECORD)
+**Purpose:** What was originally designed, and what actually got built — now marked complete, with every deviation from the original spec called out explicitly.
+**Covers:** Route structure, the four tabs, the FIFO grading queue, the by-assignment roster, resource scoping, the state model, and — new in this revision — a "What Actually Shipped vs. What Was Specified" section documenting every place the real implementation diverged from the plan and why.
+**Who should read:** Anyone extending Phase 3.6, or building the next similar feature.
+**Time:** 20 minutes
 
 ---
 
 ## Quick Navigation by Role
 
-### 👨‍💼 **Founder / Manager (Alfred)**
+### 👨‍💼 Founder / Operator (Alfred)
+**Read:** 01 (status) → 03 (workflows) → 04 (launch checklist)
+**Bookmark:** 03, for bumping `current_week`, grading homework, publishing content.
 
-**Read:**
-1. 01-MASTER-ROADMAP (full project status)
-2. 03-ADMIN-OPERATIONS-MANUAL (day-to-day workflows)
-3. 04-DEPLOYMENT-AND-DOMAIN (launch checklist)
+### 👨‍💻 Developer (Building Features)
+**Read:** 01 (overview) → 02 (critical details) → 05 (local setup, patterns)
+**Bookmark:** 02, for RPC signatures and the storage bucket table.
 
-**Bookmark:** 03-ADMIN-OPERATIONS-MANUAL for recurring workflows (bumping current week, publishing content, grading homework)
+### 🤖 AI Assistant (Claude / GPT / any coding agent)
+**Read:** 01 → 02 → 05 → 03
+**Critical to internalize before writing any code:**
+- All money is **kobo**, never naira, in the database.
+- `profiles.user_id` is the PK, not `id`.
+- Cookies only work inside async request scope.
+- **Never guess an RPC signature or a storage bucket name.** Ask for the migration file or the calling code. This project shipped broken code from wrong signatures more than once, and a wrong bucket name caused a full outage of file previews that took a working feature down for hours.
+- **When editing a file that's been touched across multiple sessions or several edit rounds, ask for or regenerate the complete current file rather than describing a diff to apply by hand.** This project hit the same class of bug three times in one session — a piece dropped while a person manually merged a diff into a file neither party could see in the same state. Full-file replacement is slower per message but categorically avoids this failure mode.
 
----
-
-### 👨‍💻 **Backend Developer (Building Features)**
-
-**Read:**
-1. 01-MASTER-ROADMAP (quick overview)
-2. 02-TECHNICAL-REFERENCE (critical details)
-3. 05-DEVELOPER-QUICK-START (local setup, common tasks)
-
-**Bookmark:** 02-TECHNICAL-REFERENCE for security rules, function signatures, debugging
-
----
-
-### 🤖 **AI Assistant (Claude / GPT)**
-
-**Read:**
-1. 01-MASTER-ROADMAP (understand project scope)
-2. 02-TECHNICAL-REFERENCE (security rules, patterns, gotchas)
-3. 05-DEVELOPER-QUICK-START (local workflow if building code)
-4. 03-ADMIN-OPERATIONS-MANUAL (understand workflows you might implement)
-
-**Critical to follow:**
-- All money is **kobo** in database, never naira
-- `profiles.user_id` is the PK
-- Cookies only inside async functions
-- RLS policies are NOT optional
-
----
-
-### 🚀 **DevOps / Deployment Engineer**
-
-**Read:**
-1. 01-MASTER-ROADMAP (what's deployed)
-2. 02-TECHNICAL-REFERENCE (sections: env vars, deployment pipeline, monitoring)
-3. 04-DEPLOYMENT-AND-DOMAIN (full deployment guide)
-
-**Bookmark:** 04-DEPLOYMENT-AND-DOMAIN (domain migration, rollback procedures)
+### 🚀 DevOps / Deployment Engineer
+**Read:** 01 (what's deployed) → 02 (env vars, deployment pipeline) → 04 (full deployment guide)
 
 ---
 
@@ -193,66 +89,41 @@
 ### The Project
 - **Two products:** Summer (3 weeks, no Auth) + 12-week (Saturdays, real Auth)
 - **Launch:** 10 August 2026
-- **Status:** Deployed at kitacademy.net. Summer fully built ✅; 12-week schema ready, UI pending
-- **Email:** Resend WIRED — sends Summer ID on enrol, KIT ID + password link on approve
+- **Status:** Summer fully built and live, including the batch shell (Phase 3.6). 12-week schema ready, UI not started.
 - **Owner:** Alfred (solo founder)
 
 ### Money Handling
-- **Stored in kobo (integer), never naira**
-- Kobo = naira × 100
-- Display does `/100`, storage never does
-- Paystack confirms in kobo
+- Stored in kobo (integer), never naira. Kobo = naira × 100. Display does `/100`; storage never does.
 
 ### Database
-- **24 migrations live; 0025–0026 written and pending**
-- `profiles.user_id` is the PK (not `id`)
-- RLS on every sensitive table
-- SECURITY DEFINER functions pin `search_path`
+- **26 migrations, all confirmed live** as of this revision (0025 and 0026 — the batch-scoped resources column and the grading queue function — were confirmed run and verified directly against `information_schema.columns` and `pg_proc`, not just assumed from a doc).
+- `profiles.user_id` is the PK, not `id`.
+- RLS on every sensitive table; SECURITY DEFINER functions pin `search_path`.
 
 ### Deployment
-- **Next.js 16 on Vercel**
-- **Supabase (Postgres) on Supabase**
-- Env baked at build time (redeploy after env changes)
-- Paystack webhook required for payments to work
+- Next.js 16 on Vercel. Supabase (Postgres) for everything else.
+- Env vars baked at build time — redeploy after any change.
+- **Paystack live key was rotated** after a leaked key was pasted into a chat session earlier in the build. Confirmed done.
 
-### Summer vs 12-Week
-| Aspect | Summer | 12-Week |
-|--------|--------|---------|
-| Auth | Signed cookie (no account) | Supabase Auth |
-| RLS | Via SECURITY DEFINER functions | Via RLS policies |
-| Batches | One roster per cohort | Max 15 per batch (many batches per course) |
-| KIT ID | SM26734 (summer-year-seq) | WD2601-0042 (course-year-cohort-seq) |
+### Storage — corrected in this revision
+- There is **no bucket literally named `submissions`.** Homework file submissions live in the `summer` bucket, under a `submissions/{student_id}/{resource_id}/...` path prefix. An earlier build session assumed a separate bucket existed (it doesn't), which silently broke every admin file preview until caught and fixed. See doc 02, section VI, for the corrected bucket table.
 
 ---
 
 ## Critical Gotchas (Don't Forget)
 
-1. **Cookies outside request scope:** Module-level cookie reads fail. Move inside async.
-2. **profiles.user_id is the PK:** Not `id`. Queries using `id` silently return nothing.
-3. **All money is kobo:** Display logic does `/100`. Storage never does.
-4. **Bump current_week Mondays:** Students see nothing new until you increment it.
-5. **Redeploy after env changes:** Env vars are baked at build time.
-6. **SECURITY DEFINER + search_path:** Functions must pin it or privilege escalation risk.
-7. **Webhook URL in Paystack:** If not set, payments never mark as paid. Must point at kitacademy.net now.
-8. **`createClient()` returns a Promise** — always `await` it. Server import is `@/lib/supabase/server`.
-9. **Verify RPC signatures in the migration files**, never from memory or from these docs. Two were recorded wrong.
-10. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster`.
-11. **Adding a scoping column to `summer_resources`?** Patch `get_summer_resources` in the SAME migration, or you silently leak across batches.
-
----
-
-## File Sizes & Scope
-
-| File | Size | Read Time | Purpose |
-|------|------|-----------|---------|
-| 01-MASTER-ROADMAP | 8 KB | 15 min | Project overview + roadmap |
-| 02-TECHNICAL-REFERENCE | 14 KB | 20 min | Deep technical guide |
-| 03-ADMIN-OPERATIONS | 10 KB | 20 min | Operational workflows |
-| 04-DEPLOYMENT-AND-DOMAIN | 11 KB | 15 min | Launch + domain migration |
-| 05-DEVELOPER-QUICK-START | 10 KB | 15 min | Onboarding + common tasks |
-| 06-BATCH-SHELL-SPEC | 14 KB | 15 min | Build spec for the next feature |
-
-**Total:** ~53 KB (fully searchable, plain markdown)
+1. **Cookies outside request scope fail.** Move cookie reads inside async functions.
+2. **`profiles.user_id` is the PK**, not `id`. Queries using `id` silently return nothing.
+3. **All money is kobo.** Display logic does `/100`. Storage never does.
+4. **Bump `current_week` Mondays** — students see nothing new until it's incremented. It is cohort-wide, not per-batch (see doc 01, Known Gaps).
+5. **Redeploy after env var changes** — they're baked at build time.
+6. **SECURITY DEFINER functions must pin `search_path`.**
+7. **Verify RPC signatures against migration files**, never from memory or from a doc. This project shipped broken code from wrong signatures twice before the rule was taken seriously.
+8. **There is no `submissions` storage bucket.** It's `summer`, with a path prefix. See above.
+9. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster` and `get_grading_queue`.
+10. **A dynamic route folder (`[id]/`) does not serve its parent path.** `/smportal/homework/page.tsx` and `/smportal/homework/[id]/page.tsx` are two separate files with two separate responsibilities. This project once had detail-page logic sitting at the list-page path, which meant the list page 404'd on every single visit — the `id` param was always `undefined`.
+11. **When adding a scoping column** (like `summer_resources.batch_id`), update every function that reads that table in the *same* migration, or you silently leak data across scopes. This is why 0025 shipped the column and the leak fix together.
+12. **On a file that's been edited more than once in a session, ask for the complete current file before making further changes.** See the AI Assistant section above — this isn't optional advice, it's a lesson paid for in real build time.
 
 ---
 
@@ -260,107 +131,61 @@
 
 | Version | Date | What Changed |
 |---------|------|--------------|
-| 1.0 | 29 July 2026 | Initial consolidated documentation (consolidated from 14 older files) |
-| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC — the full build spec for the batch shell and homework grading system. |
-| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Resend confirmed wired. Corrected `return_homework` and `get_my_submission` signatures (both were wrong). Added migrations 0020–0024 to the timeline, plus pending 0025–0026. Added Phase 3.6 (batch shell + grading queue) and ADRs 005–006. Flagged cohort-wide `current_week` and the duplicate `.btn-primary`. |
+| 1.0 | 29 July 2026 | Initial consolidated documentation (from 14 older files). |
+| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Corrected `return_homework` and `get_my_submission` signatures. Added Phase 3.6 design (batch shell + grading queue) as a spec, not yet built. |
+| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC as a full build spec. |
+| **3.0** | **29 July 2026 (session 7)** | **Phase 3.6 fully built across all 9 spec steps and shipped.** Full documentation rewrite. Corrected: the storage bucket table (no `submissions` bucket), doc 05's stale claim that the admin auth gate didn't exist (it does, and works), doc 01's stale "0025/0026 pending" status (both confirmed run), the misplaced homework list-page logic. Paystack key rotation confirmed complete. `/admin/summer` reorganized (batches first, cohort settings second, shared-resources editor collapsed by default) now that the batch shell owns per-batch work. |
 
 ---
 
 ## How to Use This Documentation
 
-### When Starting a Feature
-1. Read 01-MASTER-ROADMAP (find the phase)
-2. Read relevant sections of 02-TECHNICAL-REFERENCE
-3. Check 05-DEVELOPER-QUICK-START for common patterns
-4. Ask: "Does this match existing patterns?"
+**Starting a feature:** Read 01 to find where it fits, check 02 for the relevant technical section, check 05 for local patterns, then ask: does this match how the batch shell was built?
 
-### When Debugging
-1. Check 02-TECHNICAL-REFERENCE (Common errors & fixes section)
-2. Run smoke test if database is involved
-3. Check Vercel/Supabase logs
-4. Refer to gotchas list above
+**Debugging:** Check 02's gotchas and RPC signature table first. If it's a "column does not exist" or "function does not exist" error, verify against the actual database (`information_schema.columns`, `pg_proc`) before assuming the docs are current.
 
-### When Launching
-1. Print 01-MASTER-ROADMAP
-2. Follow 04-DEPLOYMENT-AND-DOMAIN checklist
-3. Have emergency contacts ready
-4. Monitor for 24 hours
-
-### When Handing Off to Someone Else
-1. Have them read this README
-2. Have them read 01-MASTER-ROADMAP
-3. Have them read the doc relevant to their role (see navigation above)
-4. Have them run local setup from 05-DEVELOPER-QUICK-START
-5. Pair program on first task
-
----
-
-## Feedback & Updates
-
-**This documentation is the source of truth.** If you find:
-- **A gap:** Add it
-- **An error:** Fix it immediately (this is production code documentation)
-- **An outdated section:** Update the date and version number
-
-**After each major release (summer launch, phase 4 start, etc.):**
-- Update 01-MASTER-ROADMAP
-- Update version history
-- Date each file
+**Handing off to someone else:** Have them read this README, then 01, then whichever doc matches their role above. Have them run local setup from 05. Pair on the first real task.
 
 ---
 
 ## Related Resources
 
-**Not in this doc but useful:**
 - Supabase docs: https://supabase.com/docs
 - Next.js docs: https://nextjs.org/docs
 - Paystack docs: https://paystack.com/developers
 - Vercel docs: https://vercel.com/docs
 
-**Real files (not in this doc):**
-- Database migrations: `migrations/` folder
-- Smoke test: `db-tests/smoke_test.sql`
-- Components: `components/` folder
-- Server actions: `app/*/actions.ts` files
+**Real files, not covered by this doc set:**
+- Database migrations: `supabase/migrations/`
+- Server actions: `src/app/**/actions.ts`, `batch-actions.ts`, `resource-actions.ts`
 
 ---
 
 ## Contact & Support
 
-**Technical questions:** Refer to documentation first, then ask Alfred (alfredenyinna03@gmail.com)  
-**Deployment issues:** Check 04-DEPLOYMENT-AND-DOMAIN, then contact DevOps  
-**Operational questions:** See 03-ADMIN-OPERATIONS-MANUAL, then contact Alfred
+**Technical questions:** This documentation first, then Alfred (alfredenyinna03@gmail.com)
+**Deployment issues:** Doc 04, then Alfred
+**Operational questions:** Doc 03, then Alfred
 
 ---
 
-**Last verified:** 29 July 2026 (day before launch)  
+**Last verified:** 29 July 2026 (session 7 — Phase 3.6 shipped)
 **Next review:** 15 August 2026 (post-launch retrospective)
 
 ---
 
 ## Summary: What You've Just Inherited
 
-**You now have:**
-- 📍 The complete project roadmap (past + future)
-- 🔒 Security rules you MUST follow
-- 🛠️ Technical patterns (money handling, auth, RLS)
-- 📋 Operational procedures (admin workflows)
-- 🚀 Deployment guides (local → production → domain)
-- 👶 Developer onboarding (get up in 15 min)
+A fully built, deployed platform for the Summer 2026 cohort, including a purpose-built admin system (the batch shell) for running multiple batches with independent class schedules, homework grading queues, and resource scoping — built, tested, and documented in one continuous session. The 12-week program's database schema exists but has no UI yet; that's the next major phase.
 
-**You're ready to:**
-- Build features (know the patterns)
-- Debug issues (know where to look)
-- Deploy to production (follow the checklist)
-- Hand off to someone else (this doc covers it)
+**You must remember:**
+1. All money is kobo.
+2. Bump `current_week` Mondays.
+3. `profiles.user_id` is the PK.
+4. Redeploy after env changes.
+5. Verify RPC signatures and bucket names against the actual database — not this document, not any document.
+6. When editing a file with edit history, get the whole file, not a diff.
 
-**You MUST remember:**
-1. All money is kobo
-2. Bump current_week Mondays
-3. profiles.user_id is the PK
-4. Redeploy after env changes
-5. Run smoke test after migrations
+**Good luck.**
 
-**Good luck!** 🚀
-
-—Alfred & Claude
+— Alfred & Claude

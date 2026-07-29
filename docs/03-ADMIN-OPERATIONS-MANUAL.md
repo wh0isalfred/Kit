@@ -1,464 +1,234 @@
 # KIT Admin Operations Manual
 
-**For:** Alfred (founder/admin) and future admins  
-**What:** Day-to-day workflows at `/admin` and how the system works  
-**Live at:** https://kitacademy.net/admin  
-**Last updated:** 29 July 2026 (session 6)
+**For:** Alfred (founder/admin) and future admins
+**What:** Day-to-day workflows at `/admin` and how the system works
+**Live at:** https://kitacademy.net/admin
+**Last updated:** 29 July 2026 (session 7 — reflects the batch shell, Phase 3.6)
+
+> **What changed since the last revision:** almost everything to do with a single batch — its class schedule, its live toggle, its homework grading, its own resources — moved off the main `/admin/summer` page and into a dedicated space per batch: `/admin/summer/batch/[batchId]`. The old single-page workflow this manual used to describe no longer exists. Read this version, not an older printout.
 
 ---
 
-## I. SUMMER PROGRAM MANAGEMENT (`/admin/summer`)
+## I. THE TWO SCREENS YOU WORK IN NOW
 
-### A. Cohort Settings
+**`/admin/summer`** — the hub. Shows, in order: your batches (as cards, click through to any of them), cohort-wide settings (dates, prize, active cohort, per-week titles), and a collapsed shared-curriculum editor.
 
-**Where:** `/admin/summer` → "Cohort Settings" card
+**`/admin/summer/batch/[batchId]`** — one specific batch's home, opened by clicking "Open batch" on its card. Has four tabs:
 
-**What you control:**
-- **Label:** Display name (e.g., "Summer 2026")
-- **Current week:** Which week are we in? (1–3 for summer)
-- **Camp start/end dates:** When does the camp run? (Used for countdown timer)
-- **Registration opens/closes:** When can parents apply? (Registration closes are enforced at the gate)
-- **Prize amount:** How much is the prize pool? (₦30,000 default)
-- **Active toggle:** Only ONE cohort can be active (you control which one)
+```
+[ Overview ] [ Class ] [ Resources ] [ Homework 7 ]
+```
 
-**Important:**
-- If dates are incomplete, the homepage countdown shows nothing (intentional — better than a broken timer)
-- Changing dates retroactively doesn't affect students already enrolled
-- Active toggle must be ON for ID gate to work (unset it, all ID checks fail with "invalid cohort")
+The number on Homework is how many submissions are waiting to be graded for that batch, right now — that's the number you should learn to glance at every morning.
 
-### B. Weekly Content Publishing
+---
 
-**Where:** `/admin/summer` → "Weekly Content" tabs (Week 1, 2, 3)
+## II. `/admin/summer` — THE HUB
 
-**Per week, you set:**
-- **Title:** Week name (e.g., "HTML & CSS Basics")
-- **Note:** Short description (e.g., "Building your first website")
-- **Meet link:** Zoom/Google Meet URL for live class
-- **Next class time:** When is the next session? (Shows in portal countdown: "Next class in X hours")
-- **Publish toggle:** OFF = students see "Coming soon"; ON = full content visible
+### A. Batch Cards
+
+Each batch shows a seat-fill bar, current week, a live indicator if that batch is in class right now, and a grading count if anything's waiting. Click **"Open batch →"** to go to its shell.
+
+**Creating a batch:** "+ Add batch" at the bottom of the Batches section. You set a label (e.g. "Morning cohort") and a capacity. The system auto-numbers the cohort.
+
+**Editing:** click Edit on any card — you can change the label and capacity.
+
+**Deleting:** blocked entirely if the batch has any students enrolled. Reassign or remove them first.
+
+### B. Cohort Settings
+
+Below the batches. What you control:
+- **Label:** display name (e.g., "Summer 2026")
+- **Current week:** 1–3. **This is cohort-wide, not per-batch** — see the warning below.
+- **Camp start/end dates**, **registration open/close** (drives the homepage countdown)
+- **Prize amount**
+- **Active toggle:** only one cohort is active at a time; the ID gate at `/summer` checks this
+
+**⚠️ `current_week` is cohort-wide, not per-batch.** Bumping it unlocks that week's content for *every* batch simultaneously. If your batches run on genuinely different schedules (Batch 1 meets Monday, Batch 2 meets Thursday), bumping the week after Batch 1's Monday class unlocks Week 2 material for Batch 2 three days before their class actually happens. This is a known, deliberately-deferred limitation — fixing it properly means adding a `current_week` column to `summer_batch_sessions`, not just moving the existing dropdown onto a batch page. If your batches share a schedule, this doesn't matter. If they don't, flag it — it's real scoped work, not a quick fix.
+
+### C. Weekly Content
+
+Still cohort-wide — title and a short note per week, plus the publish toggle (unpublished = "coming soon" in the portal). Meet link, instructor, and the live toggle are **not** here anymore; they live inside each batch's own Class tab.
+
+### D. Shared Resources (Collapsed by Default)
+
+Click to expand. This is where you create curriculum every batch should see — slides, videos, homework assignments, code snippets. Anything created here is visible to every batch automatically (it has no `batch_id`, meaning "shared" in the database).
+
+**This is the only place shared curriculum can be created or deleted.** If you want a resource visible to only one batch, do that from inside that batch's own Resources tab instead — see §IV below. The reverse isn't true: you cannot delete a shared resource from inside a batch page; the system will point you back here.
+
+---
+
+## III. THE CLASS TAB — LIVE TOGGLE & SCHEDULE
+
+**Where:** open a batch → Class tab.
+
+**What you set, per week:**
+- Instructor name
+- Meet link
+- Next class time
+- The **Go Live / End Class** toggle
+
+**The live toggle is deliberately the biggest, most decisive thing on the page.** This is not automatic and never has been — you are the clock. Click **Go Live** when you are actually in the meeting and class is starting; click **End Class** when it ends. If a student clicks "Join" into an empty room, that's a worse experience than seeing "not live yet" a few minutes early.
+
+**If you leave a batch live for a long time**, the page will warn you — something has probably just been forgotten, not intentionally left running for hours. Check and end it.
+
+**Each batch's live status is completely independent.** Batch 1 being live has no effect on Batch 2 — this used to be a single cohort-wide toggle; it isn't anymore.
+
+---
+
+## IV. THE RESOURCES TAB — SHARED VS. BATCH-ONLY
+
+**Where:** open a batch → Resources tab.
+
+You'll see everything visible to this batch — shared curriculum from the cohort-level screen, plus anything created specifically for this batch — each tagged clearly:
+
+```
+Week 2 · Day 3   Intro to Flexbox          Shared
+Week 2 · Day 3   Extra grid worksheet      [Batch label] only
+```
+
+**Editing a shared row from here works**, but you'll be asked to confirm — the change applies to every batch, not just this one.
+
+**Deleting a shared row from here is blocked.** The system tells you to go to the cohort-level Resources section (§II.D) instead. This is deliberate: it keeps exactly one place where "delete this for everyone" gets decided.
+
+**Adding a new resource from here** defaults to "this batch only" — the assumption is that if you're inside a specific batch's page adding something, you're adding a supplement for that batch, not core curriculum for everyone. If you want to add something shared, do it from the cohort-level screen instead.
+
+---
+
+## V. THE HOMEWORK TAB — GRADING
+
+**Where:** open a batch → Homework tab. Two views, switched with a toggle at the top.
+
+### A. Needs Grading (the default view)
+
+Every submission waiting on you for this batch, oldest first — a queue to work through, not a list to browse. Each card shows the student, the assignment, when it was turned in, the submission itself (a link to open, or an inline image preview / file link), and a feedback box.
 
 **Workflow:**
-1. Sunday (prep): Fill in all fields for the upcoming week
-2. Monday (go-live): Click publish
-3. Thursday (prep next): Set week 2 details
-4. Next Monday: Publish week 2
+1. Open the file or link, read it.
+2. Type feedback (optional — you don't have to write something for every piece of good work).
+3. Click **Return**. The card disappears from the queue immediately.
+4. If you're not ready to grade one yet, click **Skip** — it moves to the bottom of your current list without saving anything. It comes back if you reload the page.
 
-**What students see:**
-- If week is unpublished: "Next lesson coming 10 Aug — get ready!"
-- If week is published but not live: "Class starts in X hours" (countdown)
-- If week is published AND live: Green "Join" button + Meet link appears
+**When the queue is empty:** "Nothing waiting" — everyone's graded work is caught up. This does **not** mean everyone has submitted; it means nothing turned-in is left ungraded. To see who hasn't submitted at all, switch to By Assignment.
 
-### C. Current Week Management
+### B. By Assignment
 
-**The single most important operational rule:** Bump `current_week` each Monday at 9 AM (or whenever first class starts).
+Pick an assignment (grouped by week) to see the full roster for it — every student, whatever their status. Filter chips at the top let you narrow to **All / Turned in / Returned / Missing**. "Missing" is students who haven't submitted at all — this list costs nothing extra to produce; it's the same data, just filtered.
 
-**Why?** Summer resources are gated: `published_week >= current_week`. If you're in week 1 but `current_week = 1`, students see week 1 only. The moment you increment to week 2, students unlock week 1 archives + see week 2 content (if published).
+Click a student's row to expand it, see their submission, type feedback, and Return — same inline behavior as the queue, never a separate page.
 
-**How:**
-1. At the edit screen for weekly content, the current week is a dropdown
-2. Change it to 2 (or 3)
-3. Save
-4. Watch portal refresh: previous week archives now visible, new week shows "coming soon" (if not published yet)
+### C. What You Cannot Do (Yet)
 
-**Gotcha:** If you publish week 2 on Saturday but don't change `current_week` until Monday, students never see it (future weeks are hidden). Always:
-1. Set `current_week` FIRST
-2. Then publish the week
-
-### D. Resource Management (Files, Homework, etc.)
-
-**Where:** `/admin/summer` → "Resources" or inline in weekly content
-
-**File upload limits:**
-- Summer resources (slides, PDFs, videos): ≤25 MB
-- Student submissions: ≤10 MB
-- Certificate files: ≤5 MB
-
-**Workflow:**
-1. Click "Add resource" for a week
-2. Upload file (auto-resizes if image, stores in `summer/2026/week1/filename`)
-3. Set resource type (slide deck, homework, video, resource, etc.)
-4. Resource is immediately visible (no separate publish toggle per file)
-
-**Best practice:** Upload all week 1 resources on Sunday. Publish week 1 on Monday morning.
-
-### E. The Live Toggle
-
-**Where:** `/admin/summer` → "Go Live" / "End Class" button
-
-**What it does:**
-- ON = Students see green "Join" button + Meet link on `/smportal`
-- OFF = Students see "Class starts in X hours" countdown
-
-**Critical:** This is NOT time-based. You are the clock. If a student clicks Join into an empty Zoom room, that's a bad experience. So:
-- Click "Go Live" when YOU are in the Zoom room and class is actually starting
-- Click "End Class" when class ends (or don't click it; expires after 1 hour)
-
-**Multi-batch note:** Each batch has its own live toggle — `set_batch_live(batch_id, week, live)` writes to `summer_batch_sessions`, and two batches are never live at the same moment. You control each independently.
-
-**⚠️ `current_week` is COHORT-wide, not per-batch.** Resource unlocking gates on `summer_cohorts.current_week` for every batch at once. If Batch 1 runs Monday and Batch 2 runs Thursday, bumping the week on Monday night unlocks Week 2 material for Batch 2 three days before their class. Fine if your batches share a schedule. If they stagger, this needs a `current_week` column on `summer_batch_sessions`.
+- **Edit feedback after returning.** If you need to change what you told a student, ask them to resubmit — note that this **wipes** your previous feedback deliberately, since it's new work and the old review no longer applies.
+- **Nudge a missing student's parent** with one click. Not built yet — flagged as genuinely valuable, deliberately not built for launch week.
+- **See a progress matrix** (everyone × every assignment, at a glance). Also not built yet, deliberately — there's no data worth looking at until week 2 anyway.
 
 ---
 
-## II. BATCH MANAGEMENT
-
-### A. What Is a Batch?
-
-A batch is a cohort of students in a 12-week program. Each batch:
-- Has a course (Web Dev, Game Dev, Python, etc.)
-- Has a year (2026, 2027, etc.)
-- Has a cohort number (01, 02, 03, etc. — auto-numbered)
-- Has a label (e.g., "Web Dev Cohort 1, Aug 2026")
-- Has a max capacity (usually 15 students)
-- Generates KIT IDs for every student in it (WD2601-0001, WD2601-0002, etc.)
-
-### B. Creating a Batch
-
-**Where:** `/admin/summer` → "Batches" card → "+ Add Batch"
-
-**Fill in:**
-- **Course:** Dropdown (tied to `courses` table, must exist)
-- **Year:** 2026, 2027, etc.
-- **Cohort number:** Auto-fills as next number (if 0 batches exist, it's 01; if 1 exists, it's 02)
-- **Label:** Human-readable name (e.g., "Web Dev Batch 1")
-- **Capacity:** Max students (default 15)
-- **Start date:** When does the batch begin?
-- **End date:** When does it end?
-
-**Result:** Batch created. Students can now be approved into it.
-
-### C. Editing a Batch
-
-**You can change:**
-- Label
-- Capacity (only if you have fewer students than the new capacity)
-- Start/end dates
-- Teacher assignment (later)
-
-**You cannot change:**
-- Course, year, or cohort number (these are locked; they determine KIT IDs)
-
-### D. Deleting a Batch
-
-**Rule:** You can only delete a batch if it has zero students enrolled.
-
-**If it has students:** You must first unenrol them (rarely done; usually you just leave it as-is or change capacity to 0).
-
----
-
-## III. STUDENT ENROLMENT & KIT IDs
+## VI. STUDENT ENROLMENT & KIT IDs
 
 ### A. How Students Get KIT IDs
 
-**Summer students:** ID generated on enrolment (e.g., `SM26734`). No batch assigned.
+**Summer students:** ID generated on enrolment (e.g., `SM26734`). No batch tied to the ID format itself, but every summer student does belong to a batch (`summer_students.batch_id`), which is what scopes their class schedule, live status, and batch-specific resources.
 
-**12-week students:** ID generated when approved (e.g., `WD2601-0042`):
-- `WD` = course code (Web Dev)
-- `26` = year (2026)
-- `01` = cohort number (batch's cohort number)
-- `0042` = sequence (42nd student in that batch)
+**12-week students:** `WD2601-0042` = course code + year + cohort number + sequence. Not built yet — see doc 01.
 
-### B. Enroling a Student (Summer)
+### B. Enroling a Summer Student
 
-**Via paid application:**
-1. Student applies + pays via Paystack
-2. You approve at `/admin/applications`
-3. Click "Enrol to summer" (summer applications)
-4. Confirm → Summer ID generated + stored
+**Via paid application:** apply → pay → you approve at `/admin/applications` → click "Enrol to summer" → Summer ID generated, assigned to a batch, email sent automatically to the parent address on file.
 
-**Via roster import (admin-only):**
-1. At `/admin/summer` → "Roster" → "+ Add student manually"
-2. Name, age, parent email, parent phone
-3. Save → Summer ID generated
+**Via roster import:** `/admin/summer` → pick a batch → add a student manually (name, age, parent contact). No application row exists for this path, so there's no parent email to send to automatically — copy the ID and pass it on by hand.
 
-**What happens next:**
-- Student gets a Summer ID (e.g., `SM26734`)
-- **An email is sent automatically** to the parent address on the application, from `noreply@kitacademy.net`, containing the Summer ID
-- They use it to gate into `/smportal` at https://kitacademy.net/summer
-- The enrol result returns `emailSent: true/false` — if false, the send failed and you must pass the ID on by hand. Check the Resend dashboard.
-- **Roster-import path has no email.** `enrol_summer_student` also supports bare import (name + cohort year, no application row). That path has no `parent_email` to read, so no email is sent. Copy the ID manually for those.
-
-### C. Enroling a Student (12-Week)
-
-**Via paid application:**
-1. Student applies + pays via Paystack
-2. You approve at `/admin/applications`
-3. Click "Approve" (term applications)
-4. Batch picker appears → select a batch with available seats
-5. Confirm → Student approved, KIT ID generated (based on course + year + cohort number)
-
-**No other enrolment path for 12-week** (Summer has the manual roster; term doesn't).
+**If the enrol result says the email failed to send:** the ID was still generated; you need to pass it along manually. Check the Resend dashboard for why it failed.
 
 ---
 
-## IV. APPLICATIONS & APPROVALS
+## VII. APPLICATIONS & APPROVALS
 
-### A. The Applications Screen (`/admin/applications`)
-
-**Columns:**
-- Student name + age
-- Course choice
-- Payment plan (upfront OR monthly × 3)
-- Parent contact (email + phone)
-- Amount (naira, converted from kobo)
-- Payment status (pending_payment, paid, refunded)
-- Submitted date
-
-**Filters:**
-- Pending (not approved, not rejected)
-- Approved (approved and enroled)
-- Rejected (rejected, reason stored)
-- All
-
-### B. Approving an Application
-
-**Requirement:** `payment_status = 'paid'` (Paystack webhook must have fired)
-
-**Steps:**
-1. Click the application row
-2. "Approve" button appears (if payment is confirmed)
-3. Select a batch (shows only batches with available seats)
-4. Confirm → KIT ID generated, student enroled
-
-**What happens:**
-- `applications.status` → 'approved'
-- Student UUID created + linked to batch
-- KIT ID generated (based on course + batch cohort number)
-- Welcome email sent with KIT ID + a Supabase password-set link (**wired** — `provisionStudentAccount()`)
-
-### C. Rejecting an Application
-
-**Reason required** (stores in database for audit).
-
-**Steps:**
-1. Click the application row
-2. "Reject" button
-3. Type a reason (e.g., "Age below minimum"; "Course full")
-4. Confirm
-
-**What happens:**
-- `applications.status` → 'rejected'
-- Reason stored + visible in audit log
-- App shows refund exposure (how much you might owe)
-- **Note:** Refunds are manual in Paystack (no auto-refund). You must process them via Paystack dashboard.
-
-### D. Manual Payment Recording
-
-**When:** A parent pays via bank transfer (months 2–3 of a 3-month plan) or you want to mark a payment as received without Paystack.
-
-**Where:** `/admin` → "Payments" (when that screen is built)
-
-**For now (manual workaround):**
-1. Go to Paystack dashboard → Transactions
-2. Find the payment
-3. Manually update the app status in Supabase (or ask founder)
-
-**Future:** Admin screen will have a "Record payment" button.
+Unchanged from before Phase 3.6. `/admin/applications` — filter by pending/approved/rejected, click a row, approve (requires `payment_status = 'paid'`, select a batch) or reject (reason required, surfaces refund exposure). Refunds themselves are manual via the Paystack dashboard — there's no auto-refund.
 
 ---
 
-## V. HOMEWORK GRADING (Google Classroom Style)
-
-### A. Assigning Homework
-
-**Where:** `/admin/summer` → pick batch + week → "Add homework"
-
-**Fill in:**
-- Title
-- Description
-- Due date
-- Resource type (homework, challenge, project, etc.)
-
-**Result:** Homework appears in portal → students see it for submission.
-
-### B. Students Submit
-
-**Student journey:**
-1. In `/smportal`, clicks homework
-2. Sees submission form
-3. Uploads file OR types response
-4. Clicks "Submit"
-5. See "Submitted" status + timestamp
-
-### C. You Grade It (Teacher Workflow)
-
-**Where (today):** `/admin/summer` → pick batch + week → "Homework" section  
-**Where (Phase 3.6, designed not built):** `/admin/summer/batch/[id]/homework` — a dedicated per-batch grading page with a needs-grading queue as the default view.
-
-**Steps:**
-1. Click an assignment → roster modal opens
-2. See all students + their status:
-   - Not turned in (gray)
-   - Turned in (blue pill)
-   - Returned with feedback (green pill)
-3. Click a student row → expand
-4. See their submission (file link or text)
-5. Type feedback in textarea
-6. Click "Return assignment"
-
-**What happens:**
-- Feedback stored in database
-- Status changes to "Returned"
-- Student sees returned assignment + your feedback in portal
-- No email on return (only on enrol/approve). Nudge-on-missing is planned, not built.
-
-### D. Editing Feedback
-
-**Current limitation:** Once you return an assignment, you can't edit feedback from the modal.
-
-**Workaround:** Ask the student to resubmit, then return again. Note that resubmitting **wipes** your previous feedback and the returned timestamp by design — it's new work, so the old review no longer applies.
-
-### E. Who Hasn't Submitted
-
-The roster already gives you this. `get_homework_roster` LEFT JOINs students to submissions, so anyone who never turned in appears with status `assigned`, sorted to the TOP of the list (that's the actionable list). No separate query needed.
-
-Once Phase 3.6 lands this becomes a `Missing (3)` filter chip with a nudge action that emails those parents.
-
----
-
-## VI. COURSES & PRICING
-
-### A. The Courses Table
-
-**Current courses:**
-- Web Dev (WD) — ₦75,000 or ₦27,000×3
-- Game Dev (GD) — same price
-- Python (PY) — same price
-- AI for Kids (AI) — same price
-- (More can be added without redeploy)
-
-**Where to manage:** `/admin/courses` (when built)
-
-**What you can edit:**
-- Title
-- Description
-- Price (kobo)
-- Monthly price (kobo)
-- Age band (e.g., 10–12, 13–15)
-- Status (live, coming_soon, archived)
-- Sort order (display order on home)
-
-### B. Adding a New Course
-
-**Steps (manual for now):**
-1. Contact founder
-2. Provide: code (2–3 letters), title, price, age band, description
-3. Founder inserts into `courses` table
-4. Immediately live (no redeploy needed)
-
-**Example:** Add "Robotics" → `ROBOTICS` code → ₦75,000 → ages 10–12 → appears on home.
-
----
-
-## VII. COMMON OPERATIONS CHECKLIST
+## VIII. COMMON OPERATIONS CHECKLIST
 
 ### Pre-Launch (Before 10 Aug)
 
 - [ ] Cohort settings complete (dates, prize, active = true)
 - [ ] All 3 weeks have titles + descriptions
-- [ ] Meet links added for each week
-- [ ] First week resources uploaded
-- [ ] Week 1 published
-- [ ] Test ID gate at `/summer` (manually verify it works)
-- [ ] Test student portal at `/smportal` (manually verify it loads)
+- [ ] Each batch's Class tab has an instructor, meet link, and next-class time set
+- [ ] Week 1 shared resources uploaded and published
+- [ ] Test the ID gate at `/summer` and the portal at `/smportal`
+- [ ] Open each batch's shell once and confirm all four tabs load
 
-### Weekly (Saturdays)
+### Weekly
 
-- [ ] Review homework submissions for the week
-- [ ] Return graded assignments with feedback
-- [ ] Upload resources for next week
-- [ ] Check "current week" is correct (bump to next week if starting new week Monday)
+- [ ] Work through each batch's grading queue (Homework tab → Needs Grading)
+- [ ] Check the By Assignment → Missing filter for anyone falling behind
+- [ ] Upload next week's shared resources from the cohort-level screen
+- [ ] Confirm `current_week` is correct before students need the new content
 
-### Each Monday (Class Day)
+### Each Class Day, Per Batch
 
-- [ ] 9 AM: Bump `current_week` to unlock archived content
-- [ ] 15 min before class: Click "Go Live" (if Meet link is set)
-- [ ] After class: Click "End Class" (or leave it; expires after 1 hour)
+- [ ] A few minutes before: open that batch's Class tab, click **Go Live**
+- [ ] After class: click **End Class**
+- [ ] Don't forget — if you leave one live for hours, the page will start warning you, but check anyway
 
-### Monday Night (Admin Wrap)
-
-- [ ] Update announcements for next week (if applicable)
-- [ ] Check roster: any no-shows? (Record absence in audit log later)
-- [ ] Prep resources for Thursday lesson
-- [ ] Publish week 2 content (if we're in week 1)
-
-### Each Month (Finance)
+### Each Month
 
 - [ ] Check payments received (Paystack dashboard)
-- [ ] Approve new applications (if payment confirmed)
-- [ ] Send refund rejections (if any)
-- [ ] Report to founder: revenue, enrolled students, completion rate
+- [ ] Approve new applications
+- [ ] Report: revenue, enrolled students, completion rate
 
 ---
 
-## VIII. TROUBLESHOOTING
+## IX. TROUBLESHOOTING
 
-### "Students see 'Coming soon' for current week"
+### "Students see 'coming soon' for the current week"
 
-**Cause:** `current_week` is behind the actual week.
+**Cause:** `current_week` on the cohort is behind, or the week isn't published.
+**Fix:** Cohort settings → bump `current_week` and/or publish that week.
 
-**Fix:** Go to weekly content editor, increment `current_week`.
+### "The live indicator on a batch card doesn't match what I clicked"
 
-### "Registration countdown isn't showing"
+**Cause:** you may be looking at a different batch than you think — each batch's live status is fully independent now.
+**Fix:** open the specific batch's Class tab and check/toggle it there directly.
 
-**Cause:** `registration_opens_at` or `registration_closes_at` is NULL.
+### "A student's homework file won't open when I click it"
 
-**Fix:** Set them in Cohort Settings.
+**Cause:** could be a genuine storage issue. If you see "Object not found," this can mean either a wrong file path **or** a permissions problem — they look identical from the error alone.
+**Fix:** if this happens broadly (not just one student), it's likely a code-level bug, not a one-off — flag it rather than assuming the student uploaded something broken.
 
-### "Meet button is gray (not green)"
+### "I can't delete a shared resource from inside a batch page"
 
-**Cause:** `is_live = false` OR no Meet link set.
-
-**Fix:** 
-1. Add Meet link in weekly content editor
-2. Click "Go Live" button
-
-### "Student submitted homework but I don't see it in the roster"
-
-**Cause:** You haven't bumped `current_week` yet (future weeks hidden).
-
-**Fix:** Increment `current_week` to the week with homework.
+**This is by design, not a bug.** Go to the cohort-level Resources section on `/admin/summer` (collapsed by default — click to expand) and delete it from there.
 
 ### "I approved an application but no KIT ID was generated"
 
-**Cause:** Payment status wasn't 'paid' yet.
-
-**Fix:** Check Paystack dashboard. If webhook didn't fire, contact founder to manually mark paid.
-
-### "'Refund due' shows but I don't want to refund"
-
-**Interpretation:** The system is warning you about refund exposure, not forcing anything. You decide the policy. If you reject an application, the amount shown is what you owe IF your policy requires it.
+**Cause:** payment status wasn't 'paid' yet.
+**Fix:** check the Paystack dashboard; if the webhook didn't fire, escalate — see doc 01's open item on webhook verification.
 
 ---
 
-## IX. DATA YOU CANNOT CHANGE (And Why)
+## X. DATA YOU CANNOT CHANGE (And Why)
 
-- **KIT IDs:** Once generated, they're permanent (embedded in all of a student's records). Changing course/year/cohort numbers breaks the system.
-- **Student enrolled date:** Audit trail; changing it hides when they actually joined.
-- **Payment history:** Immutable ledger (audit log).
-- **Application submissions:** Immutable (audit log).
-
-**If a mistake happens:**
-- Wrong batch selected on approval? Contact founder to unenrol + re-approve.
-- Wrong payment amount? Contact founder to manually adjust (rare).
-- Wrong application data? Reject + ask parent to reapply.
+- **KIT IDs** — permanent once generated.
+- **Payment history, application submissions** — immutable audit trail.
+- **A returned homework submission's original feedback** — overwritten (not preserved) if the student resubmits and you return again. This is deliberate, not a data-loss bug.
 
 ---
 
-## X. OPERATIONAL PHILOSOPHY
+## XI. OPERATIONAL PHILOSOPHY
 
-**Core principle:** You are the single source of truth. The system doesn't enforce deadlines or make decisions for you.
+**You are the single source of truth.** The system doesn't guess or auto-advance on your behalf:
+- The live toggle is your decision, per batch, not time-based.
+- `current_week` is your decision, cohort-wide, not auto-advancing.
+- Approvals require payment confirmation, but the batch assignment is your call.
+- Refund policy is your decision — the system surfaces exposure, never decides for you.
 
-- **Live toggle** is your decision, not time-based
-- **Current week** is your decision, not auto-advancing
-- **Go/No-Go** for approvals is your decision (though payment status must be paid)
-- **Refund policy** is your decision (system surfaces exposure, doesn't decide)
-
-This means **you must be present** during the camp. If you forget to bump `current_week`, students don't see new content. If you forget to go live, they can't join class.
-
-**Workaround (future):** Automated reminders (Slack, email) 30 min before each class. Not yet built.
+This means you have to actually be present, per batch, during the camp. If you forget to go live for a batch, that batch's students can't join. If you forget the grading queue, it just grows.
 
 ---
 
-**Questions?** Email Alfred (alfredenyinna03@gmail.com) or check the Technical Reference manual.
+**Questions?** Email Alfred (alfredenyinna03@gmail.com), or check doc 02 for anything technical.
 
-**Last verified:** 29 July 2026 (day before launch)
+**Last verified:** 29 July 2026 (session 7, batch shell live)
