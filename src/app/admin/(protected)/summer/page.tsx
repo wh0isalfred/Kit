@@ -109,7 +109,7 @@ export default async function SummerAdminPage() {
   /* Group homework resources by week for easy lookup in BatchSessionManager */
 const homeworkByWeek = new Map<
   number,
-  Array<{ id: string; title: string; submission_type: string | null }>
+  Array<{ id: string; title: string; submission_type: "link" | "file" | null }>
 >();
 activeResources
   .filter((r) => r.submission_type !== null)
