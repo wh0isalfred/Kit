@@ -5968,3 +5968,31 @@ html {
 @media (max-width: 768px) {
   .hw-picker { grid-template-columns: 1fr; }
 }
+
+.admin-batch-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.admin-batch-week {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.admin-batch-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #c8324a;
+}
+.admin-batch-grading {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+.admin-batch-grading strong {
+  color: #c8324a;
+}

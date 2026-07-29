@@ -9,15 +9,20 @@ export type BatchForManagement = {
   capacity: number;
   status: string;
   seats_used: number;
+  current_week: number;
+  is_live: boolean;
+  grading_count: number;
 };
 
 export default function BatchManagement({
   courseSlug,
   year,
+  currentWeek,
   batches: initialBatches,
 }: {
   courseSlug: string;
   year: number;
+  currentWeek: number;
   batches: BatchForManagement[];
 }) {
   const [batches, setBatches] = useState(initialBatches);
@@ -50,6 +55,7 @@ export default function BatchManagement({
             key={batch.id}
             courseSlug={courseSlug}
             year={year}
+            currentWeek={currentWeek}
             batch={batch}
             batches={batches}
             onDone={() => {
@@ -79,6 +85,7 @@ export default function BatchManagement({
         <BatchForm
           courseSlug={courseSlug}
           year={year}
+          currentWeek={currentWeek}
           batch={null}
           batches={batches}
           onDone={() => {
@@ -136,6 +143,21 @@ function BatchCard({
         <div className="admin-batch-fill" style={{ width: `${(batch.seats_used / batch.capacity) * 100}%` }} />
       </div>
 
+      <div className="admin-batch-status-row">
+        <span className="admin-batch-week">Week {batch.current_week}</span>
+        {batch.is_live && (
+          <span className="admin-batch-live">
+            <span className="admin-live-dot" /> Live now
+          </span>
+        )}
+      </div>
+
+      {batch.grading_count > 0 && (
+        <p className="admin-batch-grading">
+          <strong>{batch.grading_count}</strong> to grade
+        </p>
+      )}
+
       {confirming ? (
         <div className="admin-batch-confirm">
           <p>Delete {batch.cohort_label}? This cannot be undone.</p>
@@ -174,6 +196,7 @@ function BatchCard({
 function BatchForm({
   courseSlug,
   year,
+  currentWeek,
   batch,
   batches,
   onDone,
@@ -182,6 +205,7 @@ function BatchForm({
 }: {
   courseSlug: string;
   year: number;
+  currentWeek: number;
   batch: BatchForManagement | null;
   batches: BatchForManagement[];
   onDone: () => void;
@@ -206,7 +230,6 @@ function BatchForm({
     setBusy(true);
     setErr(null);
 
-    /* For new batches, auto-assign cohort_number as next sequential number */
     const cohortNumber = batch ? batch.capacity : batches.length + 1;
 
     const res = batch
@@ -226,6 +249,9 @@ function BatchForm({
           capacity,
           status: "active",
           seats_used: 0,
+          current_week: currentWeek,
+          is_live: false,
+          grading_count: 0,
         });
       }
       onDone();

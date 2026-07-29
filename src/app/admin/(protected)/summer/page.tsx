@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import SummerAdmin from "./SummerAdmin";
 import BatchManagement from "./BatchManagement";
 import SummerResources from "./SummerResources";
+import { getGradingQueue } from "./batch-actions";
 import type { Cohort, Week } from "./SummerAdmin";
 import type { Resource } from "./SummerResources";
 
@@ -51,14 +52,38 @@ export default async function SummerAdminPage() {
 
   const rosterCount = (summerStudents ?? []).length;
 
-  /* Compute real seat counts for batches. All summer batches are keyed
-     by course_slug = "summer", regardless of cohort year. */
+  // Live status per batch for THIS week only — current_week is
+  // cohort-wide (doc 06 §VIII trap), so every card shows the same
+  // week number until per-batch weeks exist.
+  const { data: currentWeekSessions } = await supabase
+    .from("summer_batch_sessions")
+    .select("batch_id, is_live")
+    .eq("week", activeCohort.current_week);
+
+  // ONE call for the whole cohort, grouped here — not one
+  // get_grading_queue call per batch (doc 06 §III's explicit
+  // warning), and not a second counts-only RPC that could drift out
+  // of sync with the queue itself.
+  const gradingRes = await getGradingQueue(null);
+  const gradingByBatch = new Map<string, number>();
+  if (gradingRes.ok) {
+    gradingRes.queue.forEach((item) => {
+      gradingByBatch.set(item.batch_id, (gradingByBatch.get(item.batch_id) ?? 0) + 1);
+    });
+  }
+
+  /* Compute real seat counts for batches, plus this week's live
+     status and grading count. All summer batches are keyed by
+     course_slug = "summer", regardless of cohort year. */
   const batchesWithSeats = (batchRows ?? []).map((b) => ({
     id: b.id,
     cohort_label: b.cohort_label,
     capacity: b.capacity,
     status: b.status,
     seats_used: (summerStudents ?? []).filter((s) => s.batch_id === b.id).length,
+    current_week: activeCohort.current_week,
+    is_live: (currentWeekSessions ?? []).some((s) => s.batch_id === b.id && s.is_live),
+    grading_count: gradingByBatch.get(b.id) ?? 0,
   }));
 
   const activeResources = (resources ?? [])
@@ -111,11 +136,15 @@ export default async function SummerAdminPage() {
       />
 
       {/* ── Batch management ────────────────────────────────── */}
-      <BatchManagement courseSlug="summer" year={activeCohort.year} batches={batchesWithSeats} />
+      <BatchManagement
+        courseSlug="summer"
+        year={activeCohort.year}
+        currentWeek={activeCohort.current_week}
+        batches={batchesWithSeats}
+      />
 
-      {/* Live class controls + homework review moved into
-          /admin/summer/batch/[batchId] (Class tab: step 4, done.
-          Homework tab: steps 5–6, in progress). */}
+      {/* Live class controls + homework review live in
+          /admin/summer/batch/[batchId] (Class tab, Homework tab). */}
 
       {/* ── Weekly content & resources ──────────────────────── */}
       <SummerResources
