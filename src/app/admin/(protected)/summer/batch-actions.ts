@@ -279,3 +279,47 @@ export async function getSubmissionFileUrl(
 
   return { ok: true, url: data.signedUrl };
 }
+
+export type HomeworkAssignment = {
+  id: string;
+  week: number;
+  day_number: number | null;
+  title: string;
+  submission_type: "link" | "file" | null;
+};
+
+// Same convention as getHomeworkRoster/getGradingQueue — createClient(),
+// not assertAdmin(). summer_resources' RLS already grants SELECT to
+// is_admin() only (0016), so the DB is the real gate here too.
+export async function getBatchHomeworkAssignments(
+  batchId: string
+): Promise<{ ok: true; assignments: HomeworkAssignment[] } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const { data: batch, error: batchError } = await supabase
+    .from("batches")
+    .select("year")
+    .eq("id", batchId)
+    .single();
+
+  if (batchError || !batch) {
+    return { ok: false, error: batchError?.message ?? "Batch not found." };
+  }
+
+  // No batch_id filter here — see conversation notes. Add
+  // `.or(\`batch_id.is.null,batch_id.eq.${batchId}\`)` once 0025 is confirmed.
+const { data, error } = await supabase
+  .from("summer_resources")
+  .select("id, week, day_number, title, submission_type")
+  .eq("cohort_year", batch.year)
+  .eq("kind", "homework")
+  .not("submission_type", "is", null)
+  .or(`batch_id.is.null,batch_id.eq.${batchId}`)   // ADR 005 — shared + this batch's supplements only
+  .order("week", { ascending: true });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, assignments: (data ?? []) as HomeworkAssignment[] };
+}

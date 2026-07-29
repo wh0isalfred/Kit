@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { returnHomework, getSubmissionFileUrl, type GradingQueueItem } from "../../../batch-actions";
+import ByAssignmentView from "./ByAssignmentView";
+import type { HomeworkAssignment } from "../../../batch-actions";
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
 
@@ -18,13 +20,16 @@ function isStale(iso: string): boolean {
   return Date.now() - new Date(iso).getTime() > 3 * 24 * 60 * 60 * 1000;
 }
 
+// HomeworkQueue's props type gains one field
 export default function HomeworkQueue({
   initialQueue,
   initialError,
+  assignments,
 }: {
   batchId: string;
   initialQueue: GradingQueueItem[];
   initialError: string | null;
+  assignments: HomeworkAssignment[];
 }) {
   const [view, setView] = useState<"queue" | "by-assignment">("queue");
   const [queue, setQueue] = useState(initialQueue);
@@ -51,10 +56,7 @@ export default function HomeworkQueue({
       {view === "queue" ? (
         <QueueView queue={queue} setQueue={setQueue} />
       ) : (
-        <div className="admin-empty">
-          <p>By-assignment roster lands in the next build step.</p>
-          <em>This is where you&apos;ll see who hasn&apos;t submitted yet.</em>
-        </div>
+        <ByAssignmentView batchId={batchId} assignments={assignments} />
       )}
     </div>
   );
