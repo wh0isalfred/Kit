@@ -1,8 +1,25 @@
 # Deployment & Domain Migration Guide
 
-**For:** Deploying KIT to production, migrating to a custom domain  
-**Status:** Live 29 July 2026 on kit-ph.vercel.app  
-**Next:** Domain acquisition + migration (kit.ng or similar)
+**For:** Deploying KIT to production, and what was done for the domain migration  
+**Status:** ✅ LIVE at https://kitacademy.net (domain bought from Spaceship, migrated 29 July 2026)  
+**Next:** Verify Paystack webhook on the new domain before 10 Aug
+
+---
+
+## 0. MIGRATION STATUS — DONE
+
+| Step | Status |
+|---|---|
+| Domain purchased (kitacademy.net, Spaceship) | ✅ |
+| A records → Vercel, CNAME `www` → cname.vercel-dns.com | ✅ |
+| Vercel domain Active + SSL auto-provisioned | ✅ |
+| Resend domain verified (SPF + DKIM on Spaceship DNS) | ✅ |
+| `EMAIL_FROM` = `KIT <noreply@kitacademy.net>` | ✅ |
+| `NEXT_PUBLIC_SITE_URL` = `https://kitacademy.net` + redeployed | ✅ |
+| **Paystack webhook URL updated to kitacademy.net** | ⬜ **VERIFY** |
+| Sweep for hardcoded `vercel.app` references | ⬜ **VERIFY** |
+
+The sections below are retained as reference for the next migration. Where they say `kitglobal.com` or `kit.ng`, read `kitacademy.net`.
 
 ---
 
@@ -26,23 +43,23 @@ NEXT_PUBLIC_SUPABASE_URL           [your-project].supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY eyJ...  (anon key)
 SUPABASE_SERVICE_ROLE_KEY          eyJ...  (service role, KEEP SECRET)
 PAYSTACK_SECRET_KEY                sk_live_...  (PRODUCTION KEY)
-NEXT_PUBLIC_SITE_URL               https://kit-ph.vercel.app  (will change to real domain)
-RESEND_API_KEY                     re_...  (not yet wired, but should exist)
+NEXT_PUBLIC_SITE_URL               https://kitacademy.net
+RESEND_API_KEY                     re_...  (WIRED — required, sends fail silently without it)
 ```
 
 ### Payments (Paystack)
 
 - [ ] Live keys configured (sk_live_*, not sk_test_*)
-- [ ] Webhook URL registered: `https://kit-ph.vercel.app/api/paystack/webhook`
-- [ ] Callback URL set: `https://kit-ph.vercel.app/apply/callback`
+- [ ] Webhook URL registered: `https://kitacademy.net/api/paystack/webhook`
+- [ ] Callback URL set: `https://kitacademy.net/apply/callback`
 - [ ] Test a real transaction on staging URL with test card
 
 ### Email (Resend)
 
 - [ ] API key added to Vercel env vars
-- [ ] Domain verified in Resend dashboard (current domain: kit-ph.vercel.app)
-- [ ] From email set: `noreply@kit-ph.vercel.app` (will change to custom domain)
-- [ ] Test email template (when ready to wire; not yet wired)
+- [x] Domain verified in Resend dashboard (kitacademy.net)
+- [x] From email set: `KIT <noreply@kitacademy.net>`
+- [ ] Send one real test enrolment and confirm the Summer ID email lands (check spam too)
 
 ### Database (Supabase)
 

@@ -210,7 +210,10 @@ $$;
 | `approve_application` | `(app_id uuid, batch_id uuid)` → RECORD | student_id, kit_id, etc. | Requires payment_status='paid' |
 | `reject_application` | `(app_id uuid, reason TEXT)` → RECORD | refund_due (true/false), amount_kobo | Refund policy live; amount surfaces exposure |
 | `set_summer_live` | `(cohort_year INT, is_live BOOL)` → void | (audited) | Admin only, no guard rails (single source of truth) |
-| `set_batch_live` | `(batch_id uuid, week INT, is_live BOOL)` → void | (audited) | Per-batch-week live toggle (12-week) |
+| `set_batch_live` | `(p_batch_id uuid, p_week integer, p_live boolean)` → void | (audited) | Per-batch-week live toggle. Upserts into `summer_batch_sessions`. |
+| `return_homework` | `(p_submission_id uuid, p_feedback text)` → void | — | **2 args, submission-keyed.** `is_admin()` gated. |
+| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` | roster + status, non-submitters as 'assigned' | `is_admin()` gated |
+| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` | all `turned_in` submissions, oldest first | 0026. NULL = whole cohort — call once, group client-side for per-batch counts. |
 
 ### Student Read Paths (Summer)
 
@@ -218,9 +221,40 @@ All `get_summer_*` functions return cohort-scoped data only:
 
 | Function | Inputs | Returns | Rate? |
 |----------|--------|---------|-------|
-| `get_summer_portal` | cohort_year INT, summer_student_id uuid | meet_link, is_live, current_week | No (called from component) |
-| `get_summer_resources` | cohort_year INT, summer_student_id uuid | array of resources (published_week <= current_week) | No |
-| `get_homework_roster` | resource_id uuid, batch_id uuid | students + status (turned_in, returned, etc.) | No |
+| `get_summer_portal` | `(p_cohort_year int, p_summer_student_id uuid)` | class_title, meet_link, is_live, next_class_at (batch-scoped via the student's batch) | No |
+| `get_summer_resources` | `(p_cohort_year int, p_summer_student_id uuid)` | resources where `week <= current_week`, published, and `batch_id IS NULL OR = student's batch` | No |
+| `get_my_submission` | `(p_summer_student_id uuid, p_resource_id uuid)` | status, url, storage_path, submitted_at, feedback, returned_at | No |
+| `get_my_submissions` | `(p_summer_student_id uuid)` | ALL of one student's statuses in one call — use this on the homework LIST page instead of N queries | No |
+| `turn_in_homework` | `(p_summer_student_id, p_resource_id, p_url, p_storage_path)` | id, status, submitted_at | No |
+| `unsubmit_homework` | `(p_summer_student_id uuid, p_resource_id uuid)` → void | deletes the row; blocked once status = 'returned' | No |
+
+### ⚠️ VERIFIED SIGNATURES — these were WRONG in earlier revisions
+
+Confirmed against migrations 0022/0023/0024 on 29 July 2026. Do not trust memory here:
+
+| Function | ACTUAL signature | Previously documented as |
+|---|---|---|
+| `return_homework` | **`(p_submission_id uuid, p_feedback text)`** — 2 args, keyed on the SUBMISSION row | ~~`(p_resource_id, p_summer_student_id, p_feedback)`~~ — wrong, does not exist |
+| `get_my_submission` | **`(p_summer_student_id uuid, p_resource_id uuid)`** — 2 args | ~~`(p_resource_id)`~~ — wrong |
+| `get_homework_roster` | `(p_resource_id uuid, p_batch_id uuid DEFAULT NULL)` — 2 args, no week param | (correct) |
+| `set_batch_live` | `(p_batch_id uuid, p_week integer, p_live boolean)` — 3 args | (correct) |
+| `get_grading_queue` | `(p_batch_id uuid DEFAULT NULL)` — added in 0026 | (new) |
+
+**Consequence of the `return_homework` shape:** you can only return work that has a submission row. There is no "return" on a student who never submitted — which is correct, but it means the Missing list's only action is a nudge, never a return.
+
+### Homework state machine
+
+There are three states but only two persist as rows — same model as Google Classroom:
+
+```
+assigned   →  NO ROW in summer_submissions
+turned_in  →  row exists, status = 'turned_in'
+returned   →  row exists, status = 'returned', feedback + returned_at set
+```
+
+`get_homework_roster` LEFT JOINs and does `coalesce(sub.status, 'assigned')`, so non-submitters come back as `assigned` and sort to the top (`ORDER BY (sub.id IS NOT NULL), name`). **The "who hasn't done it" list is therefore free** — a client-side filter on data you already fetched, not a new query.
+
+Re-submitting after a return **clears** the prior feedback and `returned_at`. That is deliberate: it is new work, the old review no longer applies.
 
 **Critical:** These are SECURITY DEFINER. They do the summer_student_id check inside the function. Don't trust the caller to pass the right ID.
 
@@ -269,7 +303,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY (keep secret)
 PAYSTACK_SECRET_KEY (keep secret, use sk_live on prod)
 NEXT_PUBLIC_SITE_URL (used for Paystack callback URL construction)
-RESEND_API_KEY (not yet wired, but env var exists)
+RESEND_API_KEY (WIRED - sends fail silently if missing)
 ```
 
 ### Baked at Build Time

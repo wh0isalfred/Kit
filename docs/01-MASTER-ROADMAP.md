@@ -1,9 +1,9 @@
 # KIT Port Harcourt — Master Roadmap
 
-**Last Updated:** 29 July 2026  
-**Status:** Summer 2026 (launch product) — fully built. 12-week program — in planning/early build.  
+**Last Updated:** 29 July 2026 (session 6)  
+**Status:** DEPLOYED AND LIVE at https://kitacademy.net. Summer 2026 fully built. 12-week program — schema ready, UI not started.  
 **Owner:** Alfred (alfredenyinna03@gmail.com) — solo founder, builds via shared Claude account.  
-**Live Date:** 10 August 2026 (Summer Build Camp opens)
+**Live Date:** 10 August 2026 (Summer Build Camp opens) — 12 days out
 
 ---
 
@@ -29,7 +29,7 @@ A Nigerian tech-education platform (Port Harcourt-based) serving ages 10–15. T
 
 ### Phase 0: Foundation
 - ✅ Architecture (single Next.js + Supabase, no separate backend)
-- ✅ Database schema (19 migrations, all live)
+- ✅ Database schema (24 migrations live; 0025–0026 written, not yet run)
 - ✅ Core security model (ADR 001: monorepo; ADR 002: Summer ID cookie model)
 - ✅ Brand identity (navy/blue/green palette, Plus Jakarta Sans typography)
 
@@ -74,7 +74,7 @@ A Nigerian tech-education platform (Port Harcourt-based) serving ages 10–15. T
   - Students submit files to `/smportal/homework/[id]`
   - Teachers review via `/admin/summer` (batch + week → roster modal)
   - Feedback form inline (no modal exit needed)
-  - Returns mark assignment as "Returned" + email (when Resend is wired)
+  - Returns mark assignment as "Returned"
 
 - ✅ Batch management at `/admin/summer`:
   - Create/edit/delete batches with auto-numbered `cohort_number`
@@ -105,6 +105,13 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 - 0017: Fix pgcrypto search path (critical: functions must pin `search_path = public, extensions`)
 - 0018: Link applications to enrolments (`summer_student_id` column)
 - 0019: Cohort-level live toggle + `set_summer_live()`
+- 0020: Summer batches, `summer_batch_sessions`, `summer_submissions`, `summer_attendance`
+- 0021: `check_in_attendance()`, `submit_homework()` (superseded by 0023)
+- 0022: Batch-aware RPCs — `enrol_summer_student` requires batch, `get_summer_portal` and `get_summer_resources` gain `p_summer_student_id`, `set_batch_live()`
+- 0023: Homework lifecycle — `turn_in_homework`, `unsubmit_homework`, `return_homework`, `get_homework_roster`
+- 0024: Student read path — `get_my_submission`, `get_my_submissions`
+- **0025: PENDING** — `summer_resources.batch_id` (nullable) + `get_summer_resources` leak fix
+- **0026: PENDING** — `get_grading_queue(p_batch_id)`
 
 ---
 
@@ -124,6 +131,31 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 - Test on mobile + desktop
 
 **Unblocks:** Portal looks production-ready before summer launch. Estimated effort: 2–3 hours.
+
+### Phase 3.6: Batch Shell + Grading Queue 🟠 DESIGNED, NOT BUILT
+**Why:** Admin currently cannot see at a glance who has done homework, who hasn't, and what they submitted. Everything is crammed into one `/admin/summer` page.
+
+**Decided architecture:**
+
+```
+/admin/summer                     cohort settings + batch cards
+/admin/summer/batch/[id]          batch home, tabbed:
+    ├─ overview     roster count, current week, live status
+    ├─ class        meet link, next class, GO LIVE
+    ├─ resources    shared + batch-specific, tagged
+    └─ homework     grading queue + by-assignment roster
+```
+
+Batch card on `/admin/summer` shows: `Batch 1 · 18/20 seats · Week 2 · 🔴 Live now · 7 to grade`.
+
+**Homework tab, three views:**
+1. **Needs grading (default)** — everything `turned_in` and not yet `returned`, across all weeks, oldest first. FIFO queue, drains from the top. Backed by `get_grading_queue(p_batch_id)` (0026).
+2. **By assignment** — pick an assignment, full roster with filter chips `All / Turned in / Returned / Missing`. Backed by `get_homework_roster(p_resource_id, p_batch_id)`, which already LEFT JOINs so non-submitters return as `assigned` — the Missing list is a free client-side filter.
+3. **Progress matrix** (deferred) — students × assignments grid of coloured dots. Catches the student who quietly stopped submitting.
+
+**Deferred to post-launch:** matrix, nudge emails to parents of missing students, keyboard nav (j/k/Enter) in the queue.
+
+**Depends on:** 0025 + 0026 being live. Everything else is UI on existing RPCs.
 
 ### Phase 4: 12-Week Student Platform 🔴 NOT STARTED
 **Blocker:** No batches exist. Approval workflow can't run.
@@ -149,15 +181,27 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 
 ---
 
-## IV. KNOWN GAPS (NOT BLOCKING LAUNCH) 🟡
+## IV. KNOWN GAPS & OPEN BUGS 🟡
 
-1. **Resend email NOT wired** — Summer IDs generated but not emailed. Founder copies by hand. Top priority post-launch.
-2. **Paystack webhook unproven on deployed URL** — works locally via manual mark-paid. Must test on live Vercel.
-3. **Rolled live Paystack key** — flagged but unconfirmed if rolled. If not, roll it ASAP.
-4. **7 admin nav items 404** — `/admin/students`, `/admin/courses`, `/admin/batches`, `/admin/teachers`, `/admin/payments`, `/admin/classes`, `/admin/audit`. Either stub or hide before launch.
-5. **No rate limit on `submit_application`** — public write endpoint. Low risk but should add `rateLimit()`.
-6. **Domain** — kit.ng referenced but not acquired. Using kit-ph.vercel.app.
-7. **No live deployment test** — webhook, email, Paystack all need end-to-end test on production URL.
+### 🔴 Known broken — fix before launch
+
+1. **`/smportal/homework/[id]/page.tsx` calls RPCs wrongly.** A version written in session 6 calls `get_my_submission({ p_resource_id })` with one argument — the real signature is `get_my_submission(p_summer_student_id, p_resource_id)`. It also references a `file_url` field that does not exist on `summer_resources` (the real columns are `url` and `storage_path`). Compiles fine, fails at runtime the moment a student opens an assignment. **Verify this file before launch.**
+2. **`HomeworkReview.tsx` may call `return_homework` with the wrong arity.** Docs previously recorded a 3-arg version. The real signature is `return_homework(p_submission_id uuid, p_feedback text)` — two args, keyed on the submission row. If the modal passes 3, grading throws `function does not exist`.
+3. **Duplicate `.btn-primary` in globals.css.** A second definition (~line 5579) with green `#25b290` overrides the canonical navy one at line 28. Delete the duplicate; do NOT global-replace green, some of it is intentional.
+
+### 🟡 Open, not blocking
+
+4. **`current_week` is cohort-wide, not per-batch.** `get_summer_resources` gates on `summer_cohorts.current_week`. If batches run on different days, bumping the cohort week unlocks content early for the later batch. Harmless if batches share a schedule; needs a `current_week` column on `summer_batch_sessions` if they stagger.
+5. **7 admin nav items 404** — `/admin/students`, `/admin/courses`, `/admin/batches`, `/admin/teachers`, `/admin/payments`, `/admin/classes`, `/admin/audit`. Stub or hide.
+6. **No rate limit on `submit_application`** — public write endpoint.
+7. **Paystack webhook unproven on kitacademy.net** — webhook URL must be updated from the vercel.app address and tested end to end.
+8. **Old `submit_homework` (0021) still exists** — superseded by `turn_in_homework`. Drop in a cleanup migration once confirmed unused.
+
+### ✅ Closed since last revision
+
+- ~~Resend not wired~~ — **wired.** `sendSummerIdEmail()` and `provisionStudentAccount()` in the admin actions file send on enrol/approve.
+- ~~No domain~~ — **kitacademy.net acquired** (Spaceship) and live on Vercel with SSL.
+- ~~No live deployment~~ — **deployed.**
 
 ---
 
@@ -167,8 +211,8 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 - **Frontend/Backend:** Next.js 16 (App Router, TypeScript strict)
 - **Database/Auth/Storage:** Supabase (Postgres 16 + RLS + Auth)
 - **Payments:** Paystack (init server-side, callback + webhook)
-- **Email:** Resend (NOT YET WIRED)
-- **Deploy:** Vercel (github.com/wh0isalfred/Kit, branch `main`)
+- **Email:** Resend — **WIRED**, sending from `noreply@kitacademy.net`
+- **Deploy:** Vercel (github.com/wh0isalfred/Kit, branch `main`) → https://kitacademy.net
 - **Dev env:** Windows/PowerShell, VS Code, Turbopack
 
 ### CSS & Design
@@ -196,13 +240,15 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 
 ## VI. IMMEDIATE NEXT STEPS (Priority Order)
 
-1. **🔴 Complete Phase 3.5 (Portal redesign)** — rewrite PortalContent.tsx to match new CSS. Unblocks production-ready launch.
-2. **🔴 Wire Resend email** — send Summer ID on enrolment. Founder is currently copying by hand.
-3. **🔴 Test Paystack webhook on live URL** — verify webhook fires correctly on deployed Vercel.
+1. **🔴 Fix the two broken call sites** — `get_my_submission` arity in the homework detail page, `return_homework` arity in HomeworkReview. Both fail at runtime, not build time.
+2. **🔴 Run migrations 0025 + 0026**, then the smoke test. 0025 contains a leak fix that must ship with the column.
+3. **🔴 Test Paystack webhook on kitacademy.net** — update the webhook URL in the Paystack dashboard first.
 4. **🔴 Roll Paystack key** if not already done. Leaked key `sk_live_b883...` was in chat.
-5. **🟠 Hide/stub the 7 broken nav items** — prevent 404 pages before launch.
-6. **🟠 Add `rateLimit()` to `submit_application`** — public write endpoint.
-7. **After launch: Start Phase 4 (12-week program)** — build Batches admin screen first (unblocks all approvals).
+5. **🟠 Build Phase 3.6 (batch shell + grading queue)** — see below.
+6. **🟠 Delete the duplicate `.btn-primary`** in globals.css.
+7. **🟠 Hide/stub the 7 broken nav items.**
+8. **🟠 Complete Phase 3.5 (Portal redesign)** — rewrite PortalContent.tsx to match new CSS.
+9. **After launch: Phase 4 (12-week program).**
 
 ---
 
@@ -277,6 +323,17 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 - Rationale: Human-readable, no collisions, audit trail is built-in.
 - Outcome: Admin and parents can read IDs and understand which cohort a student belongs to.
 
+**ADR 005: Batch resources are a nullable overlay, not a duplicate set** (29 Jul 2026)
+- Decision: `summer_resources.batch_id` is NULLABLE. `NULL` = shared curriculum every batch sees; set = supplement only that batch sees. Query is `WHERE batch_id IS NULL OR batch_id = <student's batch>`.
+- Alternative rejected: full per-batch duplication. Three copies of the same worksheet drift — you fix a typo in one, the other two stay broken, and nobody notices until a parent emails.
+- Consequence: the leak. The moment the column exists without the predicate in `get_summer_resources`, every batch-scoped resource is visible cohort-wide. Silent, not a crash. Column and filter ship in the same migration (0025) for exactly this reason.
+- Outcome: core lesson lives in one row; a teacher can still drop an extra worksheet for their batch alone.
+
+**ADR 006: The grading queue is FIFO and separate from the roster** (29 Jul 2026)
+- Decision: `get_grading_queue()` answers "what is waiting on me across everything", ordered oldest-first. `get_homework_roster()` answers "for THIS assignment, where is everyone". Two questions, two functions.
+- Rationale: an admin opening the panel in the morning wants a queue to drain, not a lookup tool to navigate.
+- Note: `assigned` students never appear in the queue — there is nothing to grade, and `return_homework` requires a submission id. They belong in the Missing filter on the roster view.
+
 ---
 
 ## X. ARCHITECTURE DIAGRAM
@@ -299,7 +356,7 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 │  └─ /admin/12-week/* (batches, courses, students, payments)
 │
 └─ DATABASE (Postgres 16, Supabase)
-   ├─ Tables (19 live migrations)
+   ├─ Tables (24 live migrations, 0025–0026 pending)
    ├─ RLS (on every sensitive table)
    ├─ SECURITY DEFINER functions (public writes via submit_application, verify_summer_id)
    └─ Storage (file buckets with path-based RLS)
@@ -326,5 +383,5 @@ All live on Supabase. **Schema is the source of truth** — if doc and schema di
 
 ---
 
-**Last verified:** 29 July 2026  
+**Last verified:** 29 July 2026 (session 6 — deployment + batch architecture)  
 **Next review:** 15 August 2026 (post-launch retrospective)

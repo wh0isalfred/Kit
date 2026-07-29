@@ -1,8 +1,15 @@
 # KIT Project Documentation — Complete Reference
 
-**Last updated:** 29 July 2026 (Day before launch)  
+**Last updated:** 29 July 2026 (session 6)  
 **Project:** KIT Port Harcourt — Kids' tech education platform  
-**Status:** Summer 2026 (launch), 12-week program (planning)
+**Live at:** https://kitacademy.net  
+**Status:** Deployed. Summer 2026 launches 10 Aug. 12-week program in planning.
+
+> ### ⚠️ READ THIS FIRST — two runtime bugs are live
+> 1. `/smportal/homework/[id]/page.tsx` may call `get_my_submission` with ONE argument. The real signature takes TWO: `(p_summer_student_id, p_resource_id)`. It may also reference a `file_url` column that doesn't exist (real columns: `url`, `storage_path`). Compiles clean, fails when a student opens an assignment.
+> 2. `HomeworkReview.tsx` may call `return_homework` with THREE arguments. The real signature is TWO: `(p_submission_id, p_feedback)`.
+>
+> Earlier revisions of doc 02 recorded the wrong signature for `return_homework`. It has been corrected. **Verify function signatures against the migration files, not against these docs.**
 
 ---
 
@@ -113,6 +120,23 @@
 
 ---
 
+#### 6. **06-BATCH-SHELL-SPEC.md** (THE NEXT BUILD)
+**Purpose:** Full build spec for the per-batch admin area and homework grading system
+**Covers:**
+- Route structure (`/admin/summer/batch/[id]/...` with real routes per tab)
+- Batch cards with live grading counts
+- The homework queue: FIFO, inline feedback, optimistic removal, empty states
+- By-assignment roster with Missing filter
+- Resources tab with Shared / Batch-only tagging
+- The 3-state / 2-row submission model and what it forbids
+- Traps, build order, and what was explicitly deferred (with reasons)
+
+**Who should read:** Anyone building Phase 3.6. Read this BEFORE writing code.
+
+**Time:** 15 minutes
+
+---
+
 ## Quick Navigation by Role
 
 ### 👨‍💼 **Founder / Manager (Alfred)**
@@ -169,7 +193,8 @@
 ### The Project
 - **Two products:** Summer (3 weeks, no Auth) + 12-week (Saturdays, real Auth)
 - **Launch:** 10 August 2026
-- **Status:** Summer fully built ✅; 12-week schema ready, UI pending
+- **Status:** Deployed at kitacademy.net. Summer fully built ✅; 12-week schema ready, UI pending
+- **Email:** Resend WIRED — sends Summer ID on enrol, KIT ID + password link on approve
 - **Owner:** Alfred (solo founder)
 
 ### Money Handling
@@ -179,7 +204,7 @@
 - Paystack confirms in kobo
 
 ### Database
-- **19 migrations, all live**
+- **24 migrations live; 0025–0026 written and pending**
 - `profiles.user_id` is the PK (not `id`)
 - RLS on every sensitive table
 - SECURITY DEFINER functions pin `search_path`
@@ -208,7 +233,11 @@
 4. **Bump current_week Mondays:** Students see nothing new until you increment it.
 5. **Redeploy after env changes:** Env vars are baked at build time.
 6. **SECURITY DEFINER + search_path:** Functions must pin it or privilege escalation risk.
-7. **Webhook URL in Paystack:** If not set, payments never mark as paid.
+7. **Webhook URL in Paystack:** If not set, payments never mark as paid. Must point at kitacademy.net now.
+8. **`createClient()` returns a Promise** — always `await` it. Server import is `@/lib/supabase/server`.
+9. **Verify RPC signatures in the migration files**, never from memory or from these docs. Two were recorded wrong.
+10. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster`.
+11. **Adding a scoping column to `summer_resources`?** Patch `get_summer_resources` in the SAME migration, or you silently leak across batches.
 
 ---
 
@@ -221,6 +250,7 @@
 | 03-ADMIN-OPERATIONS | 10 KB | 20 min | Operational workflows |
 | 04-DEPLOYMENT-AND-DOMAIN | 11 KB | 15 min | Launch + domain migration |
 | 05-DEVELOPER-QUICK-START | 10 KB | 15 min | Onboarding + common tasks |
+| 06-BATCH-SHELL-SPEC | 14 KB | 15 min | Build spec for the next feature |
 
 **Total:** ~53 KB (fully searchable, plain markdown)
 
@@ -231,6 +261,8 @@
 | Version | Date | What Changed |
 |---------|------|--------------|
 | 1.0 | 29 July 2026 | Initial consolidated documentation (consolidated from 14 older files) |
+| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC — the full build spec for the batch shell and homework grading system. |
+| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Resend confirmed wired. Corrected `return_homework` and `get_my_submission` signatures (both were wrong). Added migrations 0020–0024 to the timeline, plus pending 0025–0026. Added Phase 3.6 (batch shell + grading queue) and ADRs 005–006. Flagged cohort-wide `current_week` and the duplicate `.btn-primary`. |
 
 ---
 

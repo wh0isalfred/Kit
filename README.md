@@ -1,194 +1,366 @@
-# KIT — Port Harcourt
+# KIT Project Documentation — Complete Reference
 
-> Every career needs tech literacy.
+**Last updated:** 29 July 2026 (session 6)  
+**Project:** KIT Port Harcourt — Kids' tech education platform  
+**Live at:** https://kitacademy.net  
+**Status:** Deployed. Summer 2026 launches 10 Aug. 12-week program in planning.
 
-KIT is a tech education platform for ages 12–15, running a 12-week Future Skills Lab and a 3-week Summer Program in Port Harcourt, Nigeria.
-
-## What's in this repo
-
-A single Next.js application serving four surfaces:
-
-- **Marketing site** — public pages, programs, apply flow
-- **Summer Portal** — ID-only shared classroom for the 3-week summer cohort
-- **Student / Teacher / Admin platform** — the 12-week program's batch-based dashboards
-
-See [`docs/Architecture.md`](docs/Architecture.md) for the full breakdown and [`docs/adr/`](docs/adr/) for why things are built the way they are.
-
-## Stack
-
-Next.js (App Router) · TypeScript · Supabase (Postgres, Auth, Storage, RLS) · Paystack · Vercel
-
-## Getting started
-
-```bash
-pnpm install
-cp .env.example .env.local   # fill in Supabase + Paystack keys
-pnpm dev
-```
-
-## Docs
-
-| File | What it covers |
-|---|---|
-| [Architecture.md](docs/Architecture.md) | System design, routes, why no separate backend |
-| [Database.md](docs/Database.md) | Schema |
-| [Roadmap.md](docs/Roadmap.md) | Phased build plan |
-| [adr/](docs/adr/) | Architecture Decision Records |
-
-More docs (`Curriculum.md`, `API.md`, `UI.md`, `Brand.md`) get added when there's real content to put in them — not before.
-# KIT Database
-
-Complete Postgres schema for KIT Port Harcourt, built for Supabase.
-
-Twelve migrations, a seed file, and two test suites. Everything here has been applied and exercised against a real Postgres 16 — 24 functional checks and 9 RLS isolation checks, all passing from an empty database.
-
-Reference documentation: [Doc 1 — Product & Decisions](../docs/KIT-01-Product-and-Decisions.md) · [Doc 2 — Architecture & Data](../docs/KIT-02-Architecture-and-Data.md) · [Doc 3 — Build Handbook](../docs/KIT-03-Build-Handbook.md)
+> ### ⚠️ READ THIS FIRST — two runtime bugs are live
+> 1. `/smportal/homework/[id]/page.tsx` may call `get_my_submission` with ONE argument. The real signature takes TWO: `(p_summer_student_id, p_resource_id)`. It may also reference a `file_url` column that doesn't exist (real columns: `url`, `storage_path`). Compiles clean, fails when a student opens an assignment.
+> 2. `HomeworkReview.tsx` may call `return_homework` with THREE arguments. The real signature is TWO: `(p_submission_id, p_feedback)`.
+>
+> Earlier revisions of doc 02 recorded the wrong signature for `return_homework`. It has been corrected. **Verify function signatures against the migration files, not against these docs.**
 
 ---
 
-## ⚠ Read this before running anything
+## Documentation Files (Read in This Order)
 
-Three decisions are unresolved and are baked into the seed file. They are marked `⚠ BLOCKED` in `seed.sql`.
+### 📍 **START HERE**
 
-**1 · KIT ID course codes — blocks approving applications**
-ADR 004 defines codes for `WD` and `AI` only. `PY` (Python) and `GD` (Game Development) in the seed are placeholders I chose. A course code is baked into every KIT ID a student will ever hold, printed on their certificate, and used to look them up for three months. Changing one after the first student enrols means reissuing IDs.
+#### 1. **01-MASTER-ROADMAP.md** (READ FIRST)
+**Purpose:** Project overview, timeline, and strategic roadmap  
+**Covers:**
+- What KIT is (summer vs 12-week)
+- Completed work (Phases 0–3) ✅
+- Active builds (Phase 3.5–5) 🟠
+- Known gaps (not blocking launch)
+- Tech stack and conventions
+- Immediate next steps (priority order)
+- Full roadmap to 2027
 
-**2 · Which courses actually launch**
-The seed marks five courses live, including AI — which the built application form does not currently offer, despite the blueprint treating it as a core pillar. If the real launch is Web Dev + AI only, flip Python and Game Dev to `coming_soon`. That is one `UPDATE`; the marketing site follows with no redeploy.
+**Who should read:** Everyone. This is the authoritative project status.
 
-**3 · The age band — currently rejects 16-year-olds**
-`age_max` is `15` on term courses, not the `16` the site advertises, because the curriculum tracks are 10–12 and 13–15 and a 16-year-old has nowhere to be placed. As seeded, a 16-year-old's application is **rejected at insert** with a clear message. That is the honest state rather than a silent acceptance into a track that does not exist — but it is a live rejection on a revenue path, so resolve it. **Check the ages of the existing ~50 Google Forms sign-ups first.**
-
----
-
-## Running it
-
-### Against a Supabase project (recommended)
-
-```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-psql "$DATABASE_URL" -f supabase/seed.sql
-```
-
-### Or paste into the SQL editor
-
-Run each file in `supabase/migrations/` in filename order, then `supabase/seed.sql`. Order matters — later migrations reference earlier tables.
-
-### Verifying locally
-
-The test suites need a plain Postgres 16 plus a shim that stands in for the Supabase-provided pieces (`auth.users`, `auth.uid()`, `storage.*`, the `anon`/`authenticated` roles):
-
-```bash
-createdb kit_test
-psql -d kit_test -f test/00_supabase_shim.sql
-for f in supabase/migrations/*.sql; do psql -v ON_ERROR_STOP=1 -d kit_test -f "$f"; done
-psql -d kit_test -f supabase/seed.sql
-psql -d kit_test -f test/01_functional_test.sql
-psql -d kit_test -f test/02_rls_test.sql
-```
-
-Do **not** apply `00_supabase_shim.sql` to a real Supabase project. It exists only so the migrations can be checked before they touch anything live.
+**Time:** 15 minutes
 
 ---
 
-## What's in each migration
+#### 2. **02-TECHNICAL-REFERENCE.md** (FOR DEVELOPERS)
+**Purpose:** Deep technical manual for builders and debuggers  
+**Covers:**
+- Architecture at a glance (Next.js + Supabase)
+- Two access models (summer cookie vs 12-week Auth)
+- Database schema essentials (money handling, profiles, summer tables)
+- Security rules (RLS, SECURITY DEFINER)
+- Function signatures (verify in pg_proc)
+- Storage & file buckets (signed URLs)
+- Environment variables
+- Common patterns & gotchas
+- Deployment pipeline
+- Monitoring & debugging
+- Performance notes
 
-| File | Contents |
-|---|---|
-| `0001_extensions_and_helpers` | `pgcrypto`, `citext`, `set_updated_at()`, `age_years()`, naira/kobo converters |
-| `0002_courses` | `courses` — source of truth for the marketing site and the KIT ID prefix |
-| `0003_people_and_batches` | `profiles`, `teachers`, `batches`, `students`, batch capacity enforcement |
-| `0004_applications_and_payments` | Corrected `applications` table, `payments` ledger, age and amount validation |
-| `0005_learning` | `resources`, `class_sessions`, `attendance`, `assignments`, `submissions`, `announcements` |
-| `0006_points_and_certificates` | Points rules, ledger, cached-total triggers, reconciliation, `certificates` |
-| `0007_summer` | Summer roster, content, cohorts, **and the ADR 002 rate limiter** |
-| `0008_id_generators` | KIT ID, Summer ID, certificate serial |
-| `0009_approve_chain_and_audit` | `audit_log`, `approve_application()`, `reject_application()`, `record_payment()`, `enrol_summer_student()` |
-| `0010_rls` | RLS helpers and every policy |
-| `0011_views` | Teacher-safe student view, leaderboard, admin views, summer portal read |
-| `0012_storage` | Five buckets and their path-based access policies |
+**Who should read:** Developers, DevOps, database admins
 
----
+**Time:** 20 minutes (skim first, refer back as needed)
 
-## Gaps from Doc 2 §4.4, now closed
-
-The documentation named six things the old schema lacked. Five are built here:
-
-| Gap | Now |
-|---|---|
-| Attendance | `class_sessions` + `attendance`, with punctuality computed on join |
-| Payment instalments | `payments` ledger. **Not** Paystack subscriptions — Doc 1 §9.4 stands |
-| Certificates | `certificates`, with a random public verification serial |
-| Audit log | `audit_log` + `write_audit()`, read-only even for admin |
-| Rate limiting | `summer_access_attempts` + `check_summer_rate_limit()` |
-| Organisations / locations | **Still absent, deliberately.** Needed only for school partnerships or a second city (Doc 1 §12.3); building it speculatively would be the mistake ADR 001 warns about |
+**Critical sections to memorize:**
+- All money is kobo (never naira in DB)
+- profiles.user_id is the PK (not id)
+- Cookies must be inside async functions (not module scope)
+- SECURITY DEFINER functions pin search_path
 
 ---
 
-## Decisions made while building
+#### 3. **03-ADMIN-OPERATIONS-MANUAL.md** (FOR ALFRED/OPERATORS)
+**Purpose:** Day-to-day workflows and how to manage cohorts  
+**Covers:**
+- Summer cohort settings (dates, current week, live toggle)
+- Weekly content publishing (resources, Meet link, publish workflow)
+- Batch management (create, edit, delete)
+- Student enrolment & KIT ID generation
+- Applications & approvals (seat counting, payment checks)
+- Homework grading (Google Classroom style)
+- Courses & pricing
+- Pre-launch checklist
+- Weekly operations checklist
+- Troubleshooting (students see "coming soon", Meet button gray, etc.)
 
-Things the documentation did not settle, decided here and worth knowing about.
+**Who should read:** Alfred (founder), any ops person managing the platform
 
-**`teachers.batch_id` is gone.** The old schema had `teachers.batch_id → batches.id` *and* `batches.teacher_id → teachers.id` — a circular foreign key and two places to disagree about who teaches what. `batches.teacher_id` is now the only truth. This also drops the v1 assumption that a teacher holds exactly one batch, which stops being true the moment KIT runs two cohorts at once.
+**Time:** 20 minutes
 
-**`app_batch_ids()` returns a set, not a scalar.** Follows from the above. A scalar helper would silently scope a two-batch teacher to whichever batch came back first.
-
-**Teachers have no `select` policy on `students` at all.** Doc 1 §6.2 restricts them to name, email, batch and KIT score. RLS gates rows, not columns, so they read through the `students_for_teacher` view instead. Test 02 asserts both that the direct table is closed to them and that the view exposes no parent contact, DOB or school.
-
-**The approve chain is atomic in the database; the email is not.** `approve_application()` does student creation, batch assignment, KIT ID generation, instalment scheduling and the audit write in one transaction. Sending the login email deliberately sits outside it — making that atomic would mean a failed send rolls back a perfectly good student record. Instead `students.login_email_sent_at` stays null and the send is retryable without re-running admissions.
-
-**Amounts are recomputed in the database.** The `applications` insert trigger recalculates what should be charged from the `courses` table and rejects a mismatch. A tampered request asking to pay ₦100 for a ₦75,000 programme fails at the database, not merely in the Server Action. Test 01 check 3.
-
-**The summer ID generator refuses a space over half full.** ADR 005's 3-digit suffix is a 1,000-value space. Rather than silently degrading as the cohort grows, `generate_summer_id()` raises past 50% occupancy and tells you to widen. The column regex already accepts 3 or 4 digits, so widening is one default argument and no migration.
-
-**`gen_random_bytes`, not `random()`.** `random()` is seeded and predictable. A predictable "random" summer ID defeats the whole of ADR 005.
-
-**Every `security definer` function pins `search_path`.** Without it, a caller can shadow `profiles` with their own table and escalate privileges. This is a real vulnerability, not a style preference.
-
----
-
-## Bugs the tests caught
-
-Worth recording, because both would have reached production and neither is obvious by reading:
-
-1. **`enrol_summer_student()` dereferenced an unassigned record.** Enrolling a summer student *without* an application — the CSV roster import path, which is how most summer students will actually arrive — read `a.parent_email` from a record that was never populated. Every roster import would have failed.
-
-2. **An already-unlocked resource could not be inserted.** The unlock-consistency constraint required `unlocked_at` to be set whenever `locked = false`, but the trigger that sets it only fired on `UPDATE`. Creating a resource that is immediately available — the normal case for slides posted after class — failed on insert.
+**Most important:** Remember to bump `current_week` every Monday morning!
 
 ---
 
-## Wiring this to the app
+#### 4. **04-DEPLOYMENT-AND-DOMAIN.md** (FOR DEPLOYMENT)
+**Purpose:** Production deployment, domain migration, rollback procedures  
+**Covers:**
+- Pre-launch deployment checklist
+- Launch day timeline
+- Domain migration (when kit.ng is bought)
+- SSL/TLS setup (auto-handled)
+- Performance monitoring post-launch
+- Rollback procedure (if something breaks)
+- Emergency contacts & escalation
+- Cost optimization tips
 
-The two calls that carry the most risk.
+**Who should read:** DevOps, Alfred (deployment day), anyone managing domains
 
-**Paystack webhook.** Verify `x-paystack-signature` first, then:
-
-```sql
-update applications
-   set payment_status = 'paid', paid_at = now(), payment_ref = $1
- where id = $2 and payment_status <> 'paid';
-```
-
-Idempotent by the `payment_status <> 'paid'` guard — Paystack retries, and a retried webhook must not double-record. Never flip this from the redirect (Doc 2 §6.2).
-
-**Summer gate.** One call does rate limiting, lookup, and attempt recording:
-
-```sql
-select * from verify_summer_id($1, $2::inet, $3);
-```
-
-Returns `ok`, `reason` (`ok` / `not_found` / `rate_limited`), and `retry_after`. It deliberately does not indicate whether the prefix or the number was wrong — no hints for guessing.
+**Time:** 15 minutes
 
 ---
 
-## Still to build outside the database
+#### 5. **05-DEVELOPER-QUICK-START.md** (FOR NEW DEVS)
+**Purpose:** Get a new developer up and running in 15 minutes  
+**Covers:**
+- Local setup (clone, install, env vars)
+- Folder structure (where every file goes)
+- Common tasks (add page, add component, fetch data, Server Action)
+- Database workflow (migrations, queries)
+- Styling guide (globals.css, brand tokens)
+- Debugging tips
+- Git workflow (PowerShell compatible)
+- Testing locally (smoke test, manual flows)
+- Common errors & fixes
 
-- **Auth user creation on approval.** `approve_application()` creates the student row; the Server Action must create the `auth.users` entry and link `students.user_id`.
-- **Scheduled jobs** (Doc 2 §8.4 — no job runner exists yet). Vercel Cron is the cheapest next step: nightly `reconcile_kit_points()`, weekly `purge_summer_attempts()`, and payment reminders off `admin_outstanding_payments`.
-- **A refund policy.** `reject_application()` returns the refund exposure. It does not decide what to do about it, because Doc 1 §11.3 has no answer yet.
+**Who should read:** New developers (human or AI), onboarding checklist
 
+**Time:** 15 minutes (reference as needed)
 
-## License
+---
 
-Proprietary — Adegbola Industries.
+#### 6. **06-BATCH-SHELL-SPEC.md** (THE NEXT BUILD)
+**Purpose:** Full build spec for the per-batch admin area and homework grading system
+**Covers:**
+- Route structure (`/admin/summer/batch/[id]/...` with real routes per tab)
+- Batch cards with live grading counts
+- The homework queue: FIFO, inline feedback, optimistic removal, empty states
+- By-assignment roster with Missing filter
+- Resources tab with Shared / Batch-only tagging
+- The 3-state / 2-row submission model and what it forbids
+- Traps, build order, and what was explicitly deferred (with reasons)
+
+**Who should read:** Anyone building Phase 3.6. Read this BEFORE writing code.
+
+**Time:** 15 minutes
+
+---
+
+## Quick Navigation by Role
+
+### 👨‍💼 **Founder / Manager (Alfred)**
+
+**Read:**
+1. 01-MASTER-ROADMAP (full project status)
+2. 03-ADMIN-OPERATIONS-MANUAL (day-to-day workflows)
+3. 04-DEPLOYMENT-AND-DOMAIN (launch checklist)
+
+**Bookmark:** 03-ADMIN-OPERATIONS-MANUAL for recurring workflows (bumping current week, publishing content, grading homework)
+
+---
+
+### 👨‍💻 **Backend Developer (Building Features)**
+
+**Read:**
+1. 01-MASTER-ROADMAP (quick overview)
+2. 02-TECHNICAL-REFERENCE (critical details)
+3. 05-DEVELOPER-QUICK-START (local setup, common tasks)
+
+**Bookmark:** 02-TECHNICAL-REFERENCE for security rules, function signatures, debugging
+
+---
+
+### 🤖 **AI Assistant (Claude / GPT)**
+
+**Read:**
+1. 01-MASTER-ROADMAP (understand project scope)
+2. 02-TECHNICAL-REFERENCE (security rules, patterns, gotchas)
+3. 05-DEVELOPER-QUICK-START (local workflow if building code)
+4. 03-ADMIN-OPERATIONS-MANUAL (understand workflows you might implement)
+
+**Critical to follow:**
+- All money is **kobo** in database, never naira
+- `profiles.user_id` is the PK
+- Cookies only inside async functions
+- RLS policies are NOT optional
+
+---
+
+### 🚀 **DevOps / Deployment Engineer**
+
+**Read:**
+1. 01-MASTER-ROADMAP (what's deployed)
+2. 02-TECHNICAL-REFERENCE (sections: env vars, deployment pipeline, monitoring)
+3. 04-DEPLOYMENT-AND-DOMAIN (full deployment guide)
+
+**Bookmark:** 04-DEPLOYMENT-AND-DOMAIN (domain migration, rollback procedures)
+
+---
+
+## Key Facts (Memorize These)
+
+### The Project
+- **Two products:** Summer (3 weeks, no Auth) + 12-week (Saturdays, real Auth)
+- **Launch:** 10 August 2026
+- **Status:** Deployed at kitacademy.net. Summer fully built ✅; 12-week schema ready, UI pending
+- **Email:** Resend WIRED — sends Summer ID on enrol, KIT ID + password link on approve
+- **Owner:** Alfred (solo founder)
+
+### Money Handling
+- **Stored in kobo (integer), never naira**
+- Kobo = naira × 100
+- Display does `/100`, storage never does
+- Paystack confirms in kobo
+
+### Database
+- **24 migrations live; 0025–0026 written and pending**
+- `profiles.user_id` is the PK (not `id`)
+- RLS on every sensitive table
+- SECURITY DEFINER functions pin `search_path`
+
+### Deployment
+- **Next.js 16 on Vercel**
+- **Supabase (Postgres) on Supabase**
+- Env baked at build time (redeploy after env changes)
+- Paystack webhook required for payments to work
+
+### Summer vs 12-Week
+| Aspect | Summer | 12-Week |
+|--------|--------|---------|
+| Auth | Signed cookie (no account) | Supabase Auth |
+| RLS | Via SECURITY DEFINER functions | Via RLS policies |
+| Batches | One roster per cohort | Max 15 per batch (many batches per course) |
+| KIT ID | SM26734 (summer-year-seq) | WD2601-0042 (course-year-cohort-seq) |
+
+---
+
+## Critical Gotchas (Don't Forget)
+
+1. **Cookies outside request scope:** Module-level cookie reads fail. Move inside async.
+2. **profiles.user_id is the PK:** Not `id`. Queries using `id` silently return nothing.
+3. **All money is kobo:** Display logic does `/100`. Storage never does.
+4. **Bump current_week Mondays:** Students see nothing new until you increment it.
+5. **Redeploy after env changes:** Env vars are baked at build time.
+6. **SECURITY DEFINER + search_path:** Functions must pin it or privilege escalation risk.
+7. **Webhook URL in Paystack:** If not set, payments never mark as paid. Must point at kitacademy.net now.
+8. **`createClient()` returns a Promise** — always `await` it. Server import is `@/lib/supabase/server`.
+9. **Verify RPC signatures in the migration files**, never from memory or from these docs. Two were recorded wrong.
+10. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster`.
+11. **Adding a scoping column to `summer_resources`?** Patch `get_summer_resources` in the SAME migration, or you silently leak across batches.
+
+---
+
+## File Sizes & Scope
+
+| File | Size | Read Time | Purpose |
+|------|------|-----------|---------|
+| 01-MASTER-ROADMAP | 8 KB | 15 min | Project overview + roadmap |
+| 02-TECHNICAL-REFERENCE | 14 KB | 20 min | Deep technical guide |
+| 03-ADMIN-OPERATIONS | 10 KB | 20 min | Operational workflows |
+| 04-DEPLOYMENT-AND-DOMAIN | 11 KB | 15 min | Launch + domain migration |
+| 05-DEVELOPER-QUICK-START | 10 KB | 15 min | Onboarding + common tasks |
+| 06-BATCH-SHELL-SPEC | 14 KB | 15 min | Build spec for the next feature |
+
+**Total:** ~53 KB (fully searchable, plain markdown)
+
+---
+
+## Version History
+
+| Version | Date | What Changed |
+|---------|------|--------------|
+| 1.0 | 29 July 2026 | Initial consolidated documentation (consolidated from 14 older files) |
+| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC — the full build spec for the batch shell and homework grading system. |
+| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Resend confirmed wired. Corrected `return_homework` and `get_my_submission` signatures (both were wrong). Added migrations 0020–0024 to the timeline, plus pending 0025–0026. Added Phase 3.6 (batch shell + grading queue) and ADRs 005–006. Flagged cohort-wide `current_week` and the duplicate `.btn-primary`. |
+
+---
+
+## How to Use This Documentation
+
+### When Starting a Feature
+1. Read 01-MASTER-ROADMAP (find the phase)
+2. Read relevant sections of 02-TECHNICAL-REFERENCE
+3. Check 05-DEVELOPER-QUICK-START for common patterns
+4. Ask: "Does this match existing patterns?"
+
+### When Debugging
+1. Check 02-TECHNICAL-REFERENCE (Common errors & fixes section)
+2. Run smoke test if database is involved
+3. Check Vercel/Supabase logs
+4. Refer to gotchas list above
+
+### When Launching
+1. Print 01-MASTER-ROADMAP
+2. Follow 04-DEPLOYMENT-AND-DOMAIN checklist
+3. Have emergency contacts ready
+4. Monitor for 24 hours
+
+### When Handing Off to Someone Else
+1. Have them read this README
+2. Have them read 01-MASTER-ROADMAP
+3. Have them read the doc relevant to their role (see navigation above)
+4. Have them run local setup from 05-DEVELOPER-QUICK-START
+5. Pair program on first task
+
+---
+
+## Feedback & Updates
+
+**This documentation is the source of truth.** If you find:
+- **A gap:** Add it
+- **An error:** Fix it immediately (this is production code documentation)
+- **An outdated section:** Update the date and version number
+
+**After each major release (summer launch, phase 4 start, etc.):**
+- Update 01-MASTER-ROADMAP
+- Update version history
+- Date each file
+
+---
+
+## Related Resources
+
+**Not in this doc but useful:**
+- Supabase docs: https://supabase.com/docs
+- Next.js docs: https://nextjs.org/docs
+- Paystack docs: https://paystack.com/developers
+- Vercel docs: https://vercel.com/docs
+
+**Real files (not in this doc):**
+- Database migrations: `migrations/` folder
+- Smoke test: `db-tests/smoke_test.sql`
+- Components: `components/` folder
+- Server actions: `app/*/actions.ts` files
+
+---
+
+## Contact & Support
+
+**Technical questions:** Refer to documentation first, then ask Alfred (alfredenyinna03@gmail.com)  
+**Deployment issues:** Check 04-DEPLOYMENT-AND-DOMAIN, then contact DevOps  
+**Operational questions:** See 03-ADMIN-OPERATIONS-MANUAL, then contact Alfred
+
+---
+
+**Last verified:** 29 July 2026 (day before launch)  
+**Next review:** 15 August 2026 (post-launch retrospective)
+
+---
+
+## Summary: What You've Just Inherited
+
+**You now have:**
+- 📍 The complete project roadmap (past + future)
+- 🔒 Security rules you MUST follow
+- 🛠️ Technical patterns (money handling, auth, RLS)
+- 📋 Operational procedures (admin workflows)
+- 🚀 Deployment guides (local → production → domain)
+- 👶 Developer onboarding (get up in 15 min)
+
+**You're ready to:**
+- Build features (know the patterns)
+- Debug issues (know where to look)
+- Deploy to production (follow the checklist)
+- Hand off to someone else (this doc covers it)
+
+**You MUST remember:**
+1. All money is kobo
+2. Bump current_week Mondays
+3. profiles.user_id is the PK
+4. Redeploy after env changes
+5. Run smoke test after migrations
+
+**Good luck!** 🚀
+
+—Alfred & Claude

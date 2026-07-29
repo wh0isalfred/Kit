@@ -2,7 +2,8 @@
 
 **For:** Alfred (founder/admin) and future admins  
 **What:** Day-to-day workflows at `/admin` and how the system works  
-**Last updated:** 29 July 2026
+**Live at:** https://kitacademy.net/admin  
+**Last updated:** 29 July 2026 (session 6)
 
 ---
 
@@ -92,7 +93,9 @@
 - Click "Go Live" when YOU are in the Zoom room and class is actually starting
 - Click "End Class" when class ends (or don't click it; expires after 1 hour)
 
-**Multi-batch note:** If you add more batches (later), each batch has its own live toggle. You control each one independently.
+**Multi-batch note:** Each batch has its own live toggle — `set_batch_live(batch_id, week, live)` writes to `summer_batch_sessions`, and two batches are never live at the same moment. You control each independently.
+
+**⚠️ `current_week` is COHORT-wide, not per-batch.** Resource unlocking gates on `summer_cohorts.current_week` for every batch at once. If Batch 1 runs Monday and Batch 2 runs Thursday, bumping the week on Monday night unlocks Week 2 material for Batch 2 three days before their class. Fine if your batches share a schedule. If they stagger, this needs a `current_week` column on `summer_batch_sessions`.
 
 ---
 
@@ -169,9 +172,10 @@ A batch is a cohort of students in a 12-week program. Each batch:
 
 **What happens next:**
 - Student gets a Summer ID (e.g., `SM26734`)
-- You give them this ID to enter at `/summer`
-- They use it to gate into `/smportal`
-- No email is sent (Resend not yet wired — you copy the ID by hand)
+- **An email is sent automatically** to the parent address on the application, from `noreply@kitacademy.net`, containing the Summer ID
+- They use it to gate into `/smportal` at https://kitacademy.net/summer
+- The enrol result returns `emailSent: true/false` — if false, the send failed and you must pass the ID on by hand. Check the Resend dashboard.
+- **Roster-import path has no email.** `enrol_summer_student` also supports bare import (name + cohort year, no application row). That path has no `parent_email` to read, so no email is sent. Copy the ID manually for those.
 
 ### C. Enroling a Student (12-Week)
 
@@ -219,7 +223,7 @@ A batch is a cohort of students in a 12-week program. Each batch:
 - `applications.status` → 'approved'
 - Student UUID created + linked to batch
 - KIT ID generated (based on course + batch cohort number)
-- (Future) Welcome email sent with KIT ID + login link (Resend not yet wired)
+- Welcome email sent with KIT ID + a Supabase password-set link (**wired** — `provisionStudentAccount()`)
 
 ### C. Rejecting an Application
 
@@ -277,7 +281,8 @@ A batch is a cohort of students in a 12-week program. Each batch:
 
 ### C. You Grade It (Teacher Workflow)
 
-**Where:** `/admin/summer` → pick batch + week → "Homework" section
+**Where (today):** `/admin/summer` → pick batch + week → "Homework" section  
+**Where (Phase 3.6, designed not built):** `/admin/summer/batch/[id]/homework` — a dedicated per-batch grading page with a needs-grading queue as the default view.
 
 **Steps:**
 1. Click an assignment → roster modal opens
@@ -294,13 +299,19 @@ A batch is a cohort of students in a 12-week program. Each batch:
 - Feedback stored in database
 - Status changes to "Returned"
 - Student sees returned assignment + your feedback in portal
-- (Future) Email sent to parent (Resend not yet wired)
+- No email on return (only on enrol/approve). Nudge-on-missing is planned, not built.
 
 ### D. Editing Feedback
 
 **Current limitation:** Once you return an assignment, you can't edit feedback from the modal.
 
-**Workaround:** Contact founder to manually update via database, or ask student to resubmit + you return again.
+**Workaround:** Ask the student to resubmit, then return again. Note that resubmitting **wipes** your previous feedback and the returned timestamp by design — it's new work, so the old review no longer applies.
+
+### E. Who Hasn't Submitted
+
+The roster already gives you this. `get_homework_roster` LEFT JOINs students to submissions, so anyone who never turned in appears with status `assigned`, sorted to the TOP of the list (that's the actionable list). No separate query needed.
+
+Once Phase 3.6 lands this becomes a `Missing (3)` filter chip with a nudge action that emails those parents.
 
 ---
 
