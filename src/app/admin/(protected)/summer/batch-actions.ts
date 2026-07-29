@@ -179,6 +179,14 @@ export async function getHomeworkRoster(
   return { ok: true, roster };
 }
 
+export type BatchSessionInput = {
+  batch_id: string;
+  week: number;
+  instructor: string | null;
+  meet_link: string | null;
+  next_class_at: string | null;
+};
+
 export async function saveBatchSession(input: BatchSessionInput): Promise<Result> {
   const supabase = await assertAdmin();
 
@@ -261,16 +269,20 @@ export async function getGradingQueue(
   return { ok: true, queue: (data ?? []) as GradingQueueItem[] };
 }
 
-
+// Unlike get_grading_queue, there's no SECURITY DEFINER function
+// standing between this and the storage bucket — createSignedUrl()
+// isn't gated by an is_admin() check inside Postgres, only by
+// whatever RLS exists on storage.objects. So assertAdmin() here is
+// the only application-level gate; it's load-bearing, not decorative.
 export async function getSubmissionFileUrl(
   storagePath: string
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = await assertAdmin();
 
   const { data, error } = await supabase.storage
-    .from("summer")   // was "submissions" — that bucket doesn't exist.
-                       // uploadSubmissionFile (summer-session.ts) writes
-                       // everything to "summer" under a submissions/ prefix.
+    .from("summer") // uploadSubmissionFile (summer-session.ts) writes
+                     // everything to "summer" under a submissions/ prefix —
+                     // there is no separate "submissions" bucket.
     .createSignedUrl(storagePath, 600);
 
   if (error || !data) {
@@ -306,16 +318,17 @@ export async function getBatchHomeworkAssignments(
     return { ok: false, error: batchError?.message ?? "Batch not found." };
   }
 
-  // No batch_id filter here — see conversation notes. Add
-  // `.or(\`batch_id.is.null,batch_id.eq.${batchId}\`)` once 0025 is confirmed.
-const { data, error } = await supabase
-  .from("summer_resources")
-  .select("id, week, day_number, title, submission_type")
-  .eq("cohort_year", batch.year)
-  .eq("kind", "homework")
-  .not("submission_type", "is", null)
-  .or(`batch_id.is.null,batch_id.eq.${batchId}`)   // ADR 005 — shared + this batch's supplements only
-  .order("week", { ascending: true });
+  // batch_id.is.null covers shared/cohort-wide homework; batch_id.eq
+  // covers this batch's own supplements — ADR 005, confirmed live on
+  // summer_resources.
+  const { data, error } = await supabase
+    .from("summer_resources")
+    .select("id, week, day_number, title, submission_type")
+    .eq("cohort_year", batch.year)
+    .eq("kind", "homework")
+    .not("submission_type", "is", null)
+    .or(`batch_id.is.null,batch_id.eq.${batchId}`)
+    .order("week", { ascending: true });
 
   if (error) {
     return { ok: false, error: error.message };
