@@ -91,8 +91,6 @@ export async function updateBatch(
 export async function deleteBatch(batchId: string): Promise<Result> {
   const supabase = await assertAdmin();
 
-  /* Check if the batch has any students. If so, refuse — don't
-     orphan them by deleting their batch. */
   const { count } = await supabase
     .from("summer_students")
     .select("id", { count: "exact", head: true })
@@ -115,9 +113,6 @@ export async function deleteBatch(batchId: string): Promise<Result> {
   return { ok: true };
 }
 
-// Mapped explicitly from get_homework_roster's real column names,
-// rather than passed through as `any` — a shape mismatch now fails
-// at this line instead of rendering "undefined" in the UI.
 export type HomeworkRosterItem = {
   summer_student_id: string;
   submission_id: string | null;
@@ -250,9 +245,6 @@ export type GradingQueueItem = {
   submitted_at: string;
 };
 
-// Same pattern as getHomeworkRoster — createClient(), not assertAdmin().
-// The RPC's own is_admin() check is the real gate; this mirrors the
-// existing convention rather than inventing a second one.
 export async function getGradingQueue(
   batchId: string | null
 ): Promise<{ ok: true; queue: GradingQueueItem[] } | { ok: false; error: string }> {
@@ -269,20 +261,13 @@ export async function getGradingQueue(
   return { ok: true, queue: (data ?? []) as GradingQueueItem[] };
 }
 
-// Unlike get_grading_queue, there's no SECURITY DEFINER function
-// standing between this and the storage bucket — createSignedUrl()
-// isn't gated by an is_admin() check inside Postgres, only by
-// whatever RLS exists on storage.objects. So assertAdmin() here is
-// the only application-level gate; it's load-bearing, not decorative.
 export async function getSubmissionFileUrl(
   storagePath: string
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = await assertAdmin();
 
   const { data, error } = await supabase.storage
-    .from("summer") // uploadSubmissionFile (summer-session.ts) writes
-                     // everything to "summer" under a submissions/ prefix —
-                     // there is no separate "submissions" bucket.
+    .from("summer")
     .createSignedUrl(storagePath, 600);
 
   if (error || !data) {
@@ -300,9 +285,6 @@ export type HomeworkAssignment = {
   submission_type: "link" | "file" | null;
 };
 
-// Same convention as getHomeworkRoster/getGradingQueue — createClient(),
-// not assertAdmin(). summer_resources' RLS already grants SELECT to
-// is_admin() only (0016), so the DB is the real gate here too.
 export async function getBatchHomeworkAssignments(
   batchId: string
 ): Promise<{ ok: true; assignments: HomeworkAssignment[] } | { ok: false; error: string }> {
@@ -318,9 +300,6 @@ export async function getBatchHomeworkAssignments(
     return { ok: false, error: batchError?.message ?? "Batch not found." };
   }
 
-  // batch_id.is.null covers shared/cohort-wide homework; batch_id.eq
-  // covers this batch's own supplements — ADR 005, confirmed live on
-  // summer_resources.
   const { data, error } = await supabase
     .from("summer_resources")
     .select("id, week, day_number, title, submission_type")
@@ -335,4 +314,91 @@ export async function getBatchHomeworkAssignments(
   }
 
   return { ok: true, assignments: (data ?? []) as HomeworkAssignment[] };
+}
+
+export type BatchOverview = {
+  batch_label: string;
+  capacity: number;
+  seats_used: number;
+  status: string;
+  current_week: number;
+  is_live: boolean;
+  next_class_at: string | null;
+  assignments_published: number;
+  assignments_total: number;
+  submissions_returned: number;
+  submissions_turned_in: number;
+};
+
+// Read-only landing pad (doc 06 §IV, built last per its own
+// instruction). Bundles everything the Overview tab needs into one
+// call rather than the page firing five separate queries itself.
+export async function getBatchOverview(
+  batchId: string
+): Promise<{ ok: true; overview: BatchOverview } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const [{ data: batch, error: batchError }, { data: cohorts }] = await Promise.all([
+    supabase.from("batches").select("cohort_label, capacity, status, year").eq("id", batchId).single(),
+    supabase.from("summer_cohorts").select("year, active, current_week").order("year", { ascending: false }),
+  ]);
+
+  if (batchError || !batch) {
+    return { ok: false, error: batchError?.message ?? "Batch not found." };
+  }
+
+  const activeCohort = cohorts?.find((c) => c.active) ?? cohorts?.[0] ?? null;
+  const currentWeek = activeCohort?.current_week ?? 1;
+
+  const [{ data: students }, { data: session }, { data: resources }] = await Promise.all([
+    supabase.from("summer_students").select("id").eq("batch_id", batchId),
+    supabase
+      .from("summer_batch_sessions")
+      .select("is_live, next_class_at")
+      .eq("batch_id", batchId)
+      .eq("week", currentWeek)
+      .maybeSingle(),
+    supabase
+      .from("summer_resources")
+      .select("id, published")
+      .eq("cohort_year", batch.year)
+      .eq("kind", "homework")
+      .not("submission_type", "is", null)
+      .or(`batch_id.is.null,batch_id.eq.${batchId}`),
+  ]);
+
+  const studentIds = (students ?? []).map((s) => s.id);
+  const assignmentIds = (resources ?? []).map((r) => r.id);
+  const assignmentsPublished = (resources ?? []).filter((r) => r.published).length;
+
+  let submissionsReturned = 0;
+  let submissionsTurnedIn = 0;
+
+  if (assignmentIds.length > 0 && studentIds.length > 0) {
+    const { data: submissions } = await supabase
+      .from("summer_submissions")
+      .select("status")
+      .in("resource_id", assignmentIds)
+      .in("summer_student_id", studentIds);
+
+    submissionsReturned = (submissions ?? []).filter((s) => s.status === "returned").length;
+    submissionsTurnedIn = (submissions ?? []).filter((s) => s.status === "turned_in").length;
+  }
+
+  return {
+    ok: true,
+    overview: {
+      batch_label: batch.cohort_label,
+      capacity: batch.capacity,
+      seats_used: studentIds.length,
+      status: batch.status,
+      current_week: currentWeek,
+      is_live: session?.is_live ?? false,
+      next_class_at: session?.next_class_at ?? null,
+      assignments_published: assignmentsPublished,
+      assignments_total: assignmentIds.length,
+      submissions_returned: submissionsReturned,
+      submissions_turned_in: submissionsTurnedIn,
+    },
+  };
 }
