@@ -442,6 +442,20 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   font-style: italic;
 }
 
+.summer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2bd48d;  /* Green */
+  color: #06231a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 15px;
+  border-radius: 30px;
+}
+
 /* ════════════════════════════════════════════════════════════════
    TABLET (769px - 999px) — Slightly reduced padding, clearer image
    ════════════════════════════════════════════════════════════════ */
