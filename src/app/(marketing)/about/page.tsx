@@ -1,10 +1,14 @@
 import Link from "next/link";
 import Footer from "@/components/site/Footer";
+import Reveal from "@/components/site/Reveal";
+import ScrollProgress from "@/components/site/ScrollProgress";
 
 export default function AboutPage() {
   return (
     <>
       <div className="page">
+        <ScrollProgress />
+        <Reveal as="div">
         {/* Hero Section */}
         <section className="about-hero">
           <div className="wrap about-hero-wrap">
@@ -168,7 +172,7 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
-
+      </Reveal>
         <Footer />
       </div>
     </>
