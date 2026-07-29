@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import SummerAdmin from "./SummerAdmin";
 import BatchManagement from "./BatchManagement";
-import SummerResources from "./SummerResources";
+import CollapsibleResources from "./CollapsibleResources";
 import { getGradingQueue } from "./batch-actions";
 import type { Cohort, Week } from "./SummerAdmin";
 import type { Resource } from "./SummerResources";
@@ -52,18 +52,11 @@ export default async function SummerAdminPage() {
 
   const rosterCount = (summerStudents ?? []).length;
 
-  // Live status per batch for THIS week only — current_week is
-  // cohort-wide (doc 06 §VIII trap), so every card shows the same
-  // week number until per-batch weeks exist.
   const { data: currentWeekSessions } = await supabase
     .from("summer_batch_sessions")
     .select("batch_id, is_live")
     .eq("week", activeCohort.current_week);
 
-  // ONE call for the whole cohort, grouped here — not one
-  // get_grading_queue call per batch (doc 06 §III's explicit
-  // warning), and not a second counts-only RPC that could drift out
-  // of sync with the queue itself.
   const gradingRes = await getGradingQueue(null);
   const gradingByBatch = new Map<string, number>();
   if (gradingRes.ok) {
@@ -72,9 +65,6 @@ export default async function SummerAdminPage() {
     });
   }
 
-  /* Compute real seat counts for batches, plus this week's live
-     status and grading count. All summer batches are keyed by
-     course_slug = "summer", regardless of cohort year. */
   const batchesWithSeats = (batchRows ?? []).map((b) => ({
     id: b.id,
     cohort_label: b.cohort_label,
@@ -128,14 +118,8 @@ export default async function SummerAdminPage() {
         <p>Managing {activeCohort.label}</p>
       </header>
 
-      {/* ── Cohort settings ─────────────────────────────────── */}
-      <SummerAdmin
-        cohorts={cohorts as Cohort[]}
-        weeks={activeWeeks}
-        rosterCount={rosterCount}
-      />
-
-      {/* ── Batch management ────────────────────────────────── */}
+      {/* ── Batches — the primary hub now that each batch owns its own
+          Class/Homework/Resources tabs ─────────────────────────── */}
       <BatchManagement
         courseSlug="summer"
         year={activeCohort.year}
@@ -143,11 +127,16 @@ export default async function SummerAdminPage() {
         batches={batchesWithSeats}
       />
 
-      {/* Live class controls + homework review live in
-          /admin/summer/batch/[batchId] (Class tab, Homework tab). */}
+      {/* ── Cohort settings ─────────────────────────────────── */}
+      <SummerAdmin
+        cohorts={cohorts as Cohort[]}
+        weeks={activeWeeks}
+        rosterCount={rosterCount}
+      />
 
-      {/* ── Weekly content & resources ──────────────────────── */}
-      <SummerResources
+      {/* ── Shared curriculum — collapsed by default, since batch-
+          specific supplements now live on each batch's Resources tab */}
+      <CollapsibleResources
         cohortYear={activeCohort.year}
         currentWeek={activeCohort.current_week}
         weeksWithContent={weeksWithContent}

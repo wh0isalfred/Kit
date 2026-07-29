@@ -6060,3 +6060,37 @@ html {
   color: var(--muted);
   font-size: 13.5px;
 }
+
+.admin-collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+}
+.admin-collapse-toggle-closed strong {
+  font-size: 17px;
+  font-weight: 800;
+}
+.admin-collapse-chevron {
+  font-size: 12px;
+  color: var(--muted);
+}
+.admin-collapse-bar {
+  margin-bottom: 12px;
+}
+.admin-collapse-bar .admin-collapse-toggle {
+  width: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.admin-collapse-bar .admin-collapse-toggle:hover {
+  color: var(--ink);
+}

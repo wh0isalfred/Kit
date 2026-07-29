@@ -24,9 +24,6 @@ export type Week = {
   updated_at: string | null;
 };
 
-/* <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" with no
-   zone. Postgres hands back a full ISO timestamptz. These two
-   convert between the shapes without pulling in a date library. */
 const toLocalInput = (iso: string | null) =>
   iso ? new Date(iso).toISOString().slice(0, 16) : "";
 const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
@@ -74,9 +71,9 @@ export default function SummerAdmin({
           real content.
         </p>
         <p className="admin-hint">
-          Meet link, instructor, and the live toggle live in the
-          &ldquo;Live class &amp; batch sessions&rdquo; section below — those
-          are per batch now, not per cohort.
+          Meet link, instructor, and the live toggle now live inside each
+          batch&apos;s own Class tab — open a batch from the Batches section
+          above to manage those.
         </p>
         {[1, 2, 3].map((n) => (
           <WeekForm
