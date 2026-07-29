@@ -5760,3 +5760,53 @@ html {
     justify-content: center;
   }
 }
+
+.batch-shell-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+.batch-shell-back svg { width: 16px; height: 16px; }
+.batch-shell-back:hover { color: var(--ink); }
+
+.batch-shell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.batch-shell-head h1 { margin: 0 0 4px; }
+.batch-shell-meta { color: var(--muted); font-size: 14px; margin: 0; }
+
+.batch-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.batch-tab {
+  padding: 10px 16px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+}
+.batch-tab-active {
+  color: var(--ink);
+  border-bottom-color: var(--green);
+}
+.batch-tab-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--ink);
+  font-size: 12px;
+}

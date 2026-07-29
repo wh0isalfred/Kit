@@ -156,6 +156,9 @@ function BatchCard({
         </div>
       ) : (
         <div className="admin-batch-actions">
+          <a href={`/admin/summer/batch/${batch.id}`} className="admin-btn admin-btn-ghost admin-btn-sm">
+            Open batch →
+          </a>
           <button className="admin-btn admin-btn-navy admin-btn-sm" onClick={onEdit}>
             Edit
           </button>
