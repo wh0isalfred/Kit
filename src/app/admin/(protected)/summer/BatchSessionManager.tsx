@@ -147,7 +147,7 @@ function BatchSessionForm({
 }) {
   const [instructor, setInstructor] = useState(session?.instructor ?? "");
   const [meetLink, setMeetLink] = useState(session?.meet_link ?? "");
-  const [nextClass, setNextClass] = useState(toLocalInput(session?.next_class_at));
+  const [nextClass, setNextClass] = useState(toLocalInput(session?.next_class_at ?? null));
   const [live, setLive] = useState(session?.is_live ?? false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
