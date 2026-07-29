@@ -2,10 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import SummerAdmin from "./SummerAdmin";
 import BatchManagement from "./BatchManagement";
 import SummerResources from "./SummerResources";
-import BatchSessionManager from "./BatchSessionManager";
 import type { Cohort, Week } from "./SummerAdmin";
 import type { Resource } from "./SummerResources";
-import type { BatchSession, HomeworkResource } from "./BatchSessionManager";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +33,6 @@ export default async function SummerAdminPage() {
   const { data: summerStudents } = await supabase
     .from("summer_students")
     .select("batch_id");
-
-  const { data: batchSessions } = await supabase
-    .from("summer_batch_sessions")
-    .select("*");
 
   if (!cohorts || cohorts.length === 0) {
     return (
@@ -102,28 +96,6 @@ export default async function SummerAdminPage() {
     new Set(activeResources.map((r) => r.week))
   );
 
-  const activeSessions = (batchSessions ?? []).filter(
-    (s) => batchesWithSeats.some((b) => b.id === s.batch_id)
-  ) as BatchSession[];
-
-  /* Group homework resources by week for easy lookup in BatchSessionManager */
-const homeworkByWeek = new Map<
-  number,
-  Array<{ id: string; title: string; submission_type: "link" | "file" | null }>
->();
-activeResources
-  .filter((r) => r.submission_type !== null)
-  .forEach((r) => {
-    if (!homeworkByWeek.has(r.week)) {
-      homeworkByWeek.set(r.week, []);
-    }
-    homeworkByWeek.get(r.week)!.push({
-      id: r.id,
-      title: r.title,
-      submission_type: r.submission_type as "link" | "file" | null,  // ← Add the cast here
-    });
-  });
-
   return (
     <>
       <header className="admin-head">
@@ -138,19 +110,12 @@ activeResources
         rosterCount={rosterCount}
       />
 
-      {/* ── Batch management (NEW) ──────────────────────────── */}
+      {/* ── Batch management ────────────────────────────────── */}
       <BatchManagement courseSlug="summer" year={activeCohort.year} batches={batchesWithSeats} />
 
-      {/* ── Live class & batch sessions ──────────────────────── */}
-      <BatchSessionManager
-        batches={batchesWithSeats.map((b) => ({
-          id: b.id,
-          cohort_label: b.cohort_label,
-          status: b.status,
-        }))}
-        sessions={activeSessions}
-        homeworkByWeek={homeworkByWeek}
-      />
+      {/* Live class controls + homework review moved into
+          /admin/summer/batch/[batchId] (Class tab: step 4, done.
+          Homework tab: steps 5–6, in progress). */}
 
       {/* ── Weekly content & resources ──────────────────────── */}
       <SummerResources
