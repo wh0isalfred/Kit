@@ -11,10 +11,10 @@ export default function AboutPage() {
             <div className="about-hero-content">
               <span className="about-eyebrow">About KIT</span>
               <h1 className="about-hero-heading">
-                We don't just teach<br />
+                We don&apos;t just teach<br />
                 technology.<br />
                 We prepare children<br />
-                for <span className="text-highlight">what's next.</span>
+                for <span className="text-highlight">what&apos;s next.</span>
               </h1>
               <div className="heading-underline"></div>
 
@@ -27,7 +27,7 @@ export default function AboutPage() {
                     </svg>
                   </span>
                   <span>
-                    <strong>Every profession is changing because of technology.</strong> The children who understand how to use it will have opportunities that others won't.
+                    <strong>Every profession is changing because of technology.</strong> The children who understand how to use it will have opportunities that others won&apos;t.
                   </span>
                 </div>
 
@@ -40,7 +40,7 @@ export default function AboutPage() {
                     </svg>
                   </span>
                   <span>
-                    <strong>Our goal isn't to turn every child into a programmer.</strong> It's to help them think critically, create confidently, and solve real problems using the tools that are shaping every industry.
+                    <strong>Our goal isn&apos;t to turn every child into a programmer.</strong> It&apos;s to help them think critically, create confidently, and solve real problems using the tools that are shaping every industry.
                   </span>
                 </div>
 
@@ -52,7 +52,7 @@ export default function AboutPage() {
                     </svg>
                   </span>
                   <span>
-                    <strong>That's why every KIT class is hands-on.</strong> Students don't just watch lessons—they build websites, design graphics, explore AI, and complete projects they can proudly show off.
+                    <strong>That&apos;s why every KIT class is hands-on.</strong> Students don&apos;t just watch lessons—they build websites, design graphics, explore AI, and complete projects they can proudly show off.
                   </span>
                 </div>
 
@@ -96,7 +96,7 @@ export default function AboutPage() {
                   <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
                 </svg>
                 <p className="quote-text">
-                  &quot;Today's children won't compete with AI. They'll compete with people who know how to use it.&quot;
+                  &quot;Today&apos;s children won&apos;t compete with AI. They&apos;ll compete with people who know how to use it.&quot;
                 </p>
                 <p className="quote-attr">— KIT</p>
               </div>
