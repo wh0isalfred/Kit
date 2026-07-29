@@ -314,10 +314,11 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   .sw-thumb{height:180px}
 }
 
-/* ══════════════════════════════════════════════════════════════
-   SUMMER SECTION — Updated Design (Screenshot)
-   ══════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   SUMMER SECTION — Responsive CSS fixes
+   ════════════════════════════════════════════════════════════════ */
 
+/* Desktop (1000px+) — Original design */
 .summer {
   padding: 72px 0;
 }
@@ -348,20 +349,6 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   max-width: 600px;
 }
 
-.summer-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #2bd48d;
-  color: #06231a;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 7px 15px;
-  border-radius: 30px;
-}
-
 .summer-content h2 {
   font-size: 42px;
   color: #fff;
@@ -369,16 +356,6 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   margin: 18px 0 0;
   line-height: 1.04;
   text-transform: uppercase;
-}
-
-.green-text {
-  color: #2bd48d;
-}
-
-.summer-tag {
-  font-size: 14.5px;
-  color: #8fa6c8;
-  margin: 8px 0 0;
 }
 
 .summer-description {
@@ -430,12 +407,6 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   margin-top: 3px;
 }
 
-.count-closed {
-  color: #cfe0f5;
-  font-size: 15px;
-  margin: 20px 0 0;
-}
-
 .summer-cta {
   display: flex;
   align-items: center;
@@ -471,72 +442,207 @@ nav{position:sticky;top:0;z-index:40;background:rgba(252,253,255,.82);backdrop-f
   font-style: italic;
 }
 
-.summer-details-row {
-  display: flex;
-  gap: 20px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: #cfe0f5;
-}
+/* ════════════════════════════════════════════════════════════════
+   TABLET (769px - 999px) — Slightly reduced padding, clearer image
+   ════════════════════════════════════════════════════════════════ */
 
-.detail-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-@keyframes summerPulse {
-  0%, 100% {
-    box-shadow: 0 30px 70px -30px rgba(10, 20, 50, 0.55), 0 0 0 0 rgba(43, 212, 141, 0);
-  }
-  50% {
-    box-shadow: 0 30px 70px -30px rgba(10, 20, 50, 0.55), 0 0 56px 2px rgba(43, 212, 141, 0.26);
-  }
-}
-
-@media (max-width: 768px) {
-  .summer {
-    padding: 52px 0;
+@media (max-width: 999px) and (min-width: 769px) {
+  .summer-banner {
+    min-height: 340px;
+    background-size: contain;
   }
 
   .summer-banner::before {
-    background: linear-gradient(180deg, rgba(10, 23, 48, 0.92), rgba(10, 23, 48, 0.8));
+    /* Diagonal gradient to show more image while keeping text readable */
+    background: linear-gradient(120deg, #0a1730 0%, rgba(10, 23, 48, 0.8) 35%, rgba(10, 23, 48, 0.3) 55%, transparent 75%);
   }
 
   .summer-content {
-    padding: 34px 26px;
+    padding: 40px 44px;
+    max-width: 550px;
+  }
+
+  .summer-content h2 {
+    font-size: 36px;
+  }
+
+  .summer-description {
+    font-size: 13.5px;
+  }
+
+  .count {
+    gap: 10px;
+  }
+
+  .count .u {
+    width: 65px;
+    padding: 11px 5px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE TABLET (640px - 768px) — Stack, image visible
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .summer {
+    padding: 48px 0;
+  }
+
+  .summer-banner {
+    min-height: 420px;
+    background-position: center right;
+    background-size: 60%;
+  }
+
+  .summer-banner::before {
+    /* Lighter vertical gradient to show background image better */
+    background: linear-gradient(100deg, #0a1730 0%, rgba(10, 23, 48, 0.75) 30%, rgba(10, 23, 48, 0.3) 50%, transparent 70%);
+  }
+
+  .summer-content {
+    padding: 32px 28px;
     max-width: 100%;
   }
 
   .summer-content h2 {
-    font-size: 29px;
+    font-size: 28px;
+    line-height: 1.1;
+    margin-top: 14px;
   }
 
   .summer-description {
     font-size: 13px;
+    line-height: 1.5;
+    margin-top: 10px;
   }
 
   .summer-benefits {
-    gap: 12px;
+    gap: 10px;
     font-size: 12px;
+    margin-top: 12px;
+    flex-direction: column;
   }
 
-  .summer-details-row {
-    gap: 12px;
-  }
-
-  .detail-badge {
-    font-size: 12px;
+  .summer-benefits span {
+    display: block;
   }
 
   .count {
     gap: 8px;
+    margin-top: 16px;
   }
 
   .count .u {
-    width: 60px;
+    width: 58px;
     padding: 10px 4px;
+  }
+
+  .count .cn {
+    font-size: 22px;
+  }
+
+  .btn-glow {
+    padding: 12px 24px;
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  .summer-seats {
+    font-size: 12px;
+    display: block;
+    margin-top: 12px;
+    width: 100%;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SMALL MOBILE (320px - 639px) — Full width, stacked
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 639px) {
+  .summer {
+    padding: 40px 0;
+  }
+
+  .summer-banner {
+    min-height: 380px;
+    border-radius: 16px;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .summer-banner::before {
+    /* Stronger gradient for small screens where image is cut off */
+    background: linear-gradient(110deg, #0a1730 0%, rgba(10, 23, 48, 0.85) 25%, rgba(10, 23, 48, 0.4) 45%, transparent 65%);
+  }
+
+  .summer-content {
+    padding: 24px 20px;
+  }
+
+  .summer-content h2 {
+    font-size: 22px;
+    line-height: 1.15;
+    margin-top: 12px;
+  }
+
+  .summer-description {
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  .summer-benefits {
+    gap: 8px;
+    font-size: 11px;
+    margin-top: 10px;
+  }
+
+  .count {
+    gap: 6px;
+    margin-top: 14px;
+    justify-content: flex-start;
+  }
+
+  .count .u {
+    width: 54px;
+    padding: 9px 3px;
+  }
+
+  .count .cn {
+    font-size: 20px;
+  }
+
+  .count .cl {
+    font-size: 9px;
+  }
+
+  .btn-glow {
+    padding: 11px 20px;
+    font-size: 13px;
+    gap: 5px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .summer-seats {
+    font-size: 11px;
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════════════════════════════ */
+
+@keyframes summerPulse {
+  0%, 100% {
+    box-shadow: 0 30px 70px -30px rgba(10, 20, 50, 0.55);
+  }
+  50% {
+    box-shadow: 0 40px 90px -25px rgba(10, 20, 50, 0.75);
   }
 }
 
