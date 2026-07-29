@@ -16,7 +16,7 @@ type Tile = {
 const tiles: Tile[] = [
   { key: "hands", accent: "teal", icon: "hands", label: "Hands-on learning" },
   { key: "projects", accent: "purple", icon: "projects", label: "Real projects" },
-  { key: "mentors", accent: "amber", icon: "mentors", label: "Expert mentors" },
+  { key: "mentors", accent: "amber", icon: "mentors", label: "Beginner Friendly" },
 ];
 
 function TileIcon({ name }: { name: Tile["icon"] }) {
