@@ -45,7 +45,13 @@ export default async function HomeworkDetailPage({
     console.error("HomeworkDetailPage get_summer_resources:", resourcesError.message);
   }
 
-  const item = resources?.find((r) => r.id === id && r.kind === "homework") ?? null;
+  interface Resource {
+  id: string;
+  kind: string;
+  [key: string]: any;
+}
+
+const item = resources?.find((r: Resource) => r.id === id && r.kind === "homework") ?? null;
 
   if (!item) {
     notFound();
