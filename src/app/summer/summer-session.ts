@@ -144,16 +144,21 @@ export async function getSummerFileUrl(
   const session = await getSummerSession();
   if (!session) return { ok: false, error: "Not signed in." };
 
-  // Confine to this cohort's folder — a valid session for 2026 can't
-  // fish files out of another year.
   if (!storagePath.startsWith(`${session.year}/`)) {
     return { ok: false, error: "Not available." };
   }
 
   const supabase = await createClient();
+
+  // Strip the "{timestamp}-" prefix the upload code adds (see
+  // uploadResourceFile) so the browser saves the file under its
+  // original name — "README.md", not "1753812345678-README.md".
+  const rawName = storagePath.split("/").pop() ?? "download";
+  const downloadName = rawName.replace(/^\d+-/, "");
+
   const { data, error } = await supabase.storage
     .from("summer")
-    .createSignedUrl(storagePath, 60 * 10); // 10 minutes
+    .createSignedUrl(storagePath, 60 * 10, { download: downloadName }); // forces Content-Disposition: attachment
 
   if (error || !data) return { ok: false, error: "Couldn't open that file." };
   return { ok: true, url: data.signedUrl };
