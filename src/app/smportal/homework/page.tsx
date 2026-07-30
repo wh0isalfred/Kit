@@ -5,12 +5,14 @@ import Footer from "@/components/site/Footer";
 
 export const dynamic = "force-dynamic";
 
+type HomeworkStatus = "assigned" | "turned_in" | "returned";
+
 type HomeworkListItem = {
   id: string;
   week: number;
   day_number: number | null;
   title: string;
-  status: "assigned" | "turned_in" | "returned";
+  status: HomeworkStatus;
 };
 
 interface Resource {
@@ -20,6 +22,14 @@ interface Resource {
   day_number: number | null;
   title: string;
   submission_type: "link" | "file" | null;
+}
+
+// Validates rather than casts — the return type is guaranteed correct
+// by construction, not by TypeScript inferring it correctly through a
+// chain of .filter().map(). This is deliberately not an `as` assertion.
+function toStatus(raw: string | undefined): HomeworkStatus {
+  if (raw === "turned_in" || raw === "returned") return raw;
+  return "assigned";
 }
 
 export default async function HomeworkListPage() {
@@ -47,19 +57,16 @@ export default async function HomeworkListPage() {
     statusByResource.set(s.resource_id, s);
   });
 
-  // Typed once, here — rather than annotating each callback's parameter
-  // separately, which is what let the chain silently widen to `any[]`
-  // by the time it reached .sort() and failed the build under strict mode.
   const typedResources = (resources ?? []) as Resource[];
 
   const items: HomeworkListItem[] = typedResources
     .filter((r) => r.kind === "homework" && r.submission_type !== null)
-    .map((r) => ({
+    .map((r): HomeworkListItem => ({
       id: r.id,
       week: r.week,
       day_number: r.day_number,
       title: r.title,
-      status: (statusByResource.get(r.id)?.status as "turned_in" | "returned" | undefined) ?? "assigned",
+      status: toStatus(statusByResource.get(r.id)?.status),
     }))
     .sort((a, b) => (a.week !== b.week ? a.week - b.week : (a.day_number ?? 99) - (b.day_number ?? 99)));
 
