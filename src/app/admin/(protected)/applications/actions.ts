@@ -123,9 +123,9 @@ export async function approveApplication(
 /* ── ENROL / APPROVE (summer) ─────────────────────────────── */
 /* Summer needs no batch — enrol_summer_student() generates the
    Summer ID, which IS the student's credential. Approving a summer
-   application now automatically sends the welcome email (below) —
-   that's the ONLY automatic email on this path. The Summer ID itself
-   is being sent manually by Alfred for now, not by this code. */
+   application automatically sends the welcome email (below) — that's
+   the ONLY automatic email on this path. The Summer ID itself is
+   being sent manually for now, not by this code. */
 
 export type EnrolResult =
   | { ok: true; summerId: string; name: string; emailSent: boolean }
@@ -158,20 +158,38 @@ export async function enrolSummerStudent(
   return { ok: true, summerId: summer_id, name, emailSent };
 }
 
-/* Reads parent_email + parent_name off the linked `applications` row
-   and sends the welcome email. This ONLY covers enrolment from a paid
-   application — enrol_summer_student() also supports a bare-roster-
-   import path (called with p_name/p_cohort_year instead of
-   p_application_id per the handoff doc), which has no applications
-   row to read contact info from. If that path is exposed as a
-   separate admin action elsewhere, it needs its own email wiring. */
+/* Mr. / Mrs. / Mr./Mrs. by parent_relationship. Values are constrained
+   by a CHECK constraint on applications — 'Father' | 'Mother' |
+   'Guardian' | 'Other' | NULL — confirmed directly against the
+   constraint definition, not guessed. Guardian, Other, and an
+   unexpected/null value all fall through to "Mr./Mrs." since gender
+   isn't knowable for those. */
+function parentPrefix(relationship: string | null): string {
+  switch (relationship) {
+    case "Father":
+      return "Mr.";
+    case "Mother":
+      return "Mrs.";
+    default:
+      return "Mr./Mrs.";
+  }
+}
+
+/* Reads parent_email, parent_name, and parent_relationship off the
+   linked `applications` row and sends the welcome email. This ONLY
+   covers enrolment from a paid application — enrol_summer_student()
+   also supports a bare-roster-import path (called with
+   p_name/p_cohort_year instead of p_application_id per the handoff
+   doc), which has no applications row to read contact info from. If
+   that path is exposed as a separate admin action elsewhere, it
+   needs its own email wiring. */
 async function sendWelcomeEmail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   args: { applicationId: string; name: string }
 ): Promise<boolean> {
   const { data: app, error: readError } = await supabase
     .from("applications")
-    .select("parent_email, parent_name")
+    .select("parent_email, parent_name, parent_relationship")
     .eq("id", args.applicationId)
     .single();
 
@@ -184,19 +202,21 @@ async function sendWelcomeEmail(
     return false;
   }
 
-  // Falls back to "Dear Parent," rather than "Dear ," if parent_name
-  // is blank on a given row — a safety net, not the expected path.
-  const parentGreeting = app.parent_name?.trim() || "Parent";
+  // No name on file → plain "Parent," with no title, rather than a
+  // dangling "Mr./Mrs. ," with nothing after it.
+  const parentGreeting = app.parent_name?.trim()
+    ? `${parentPrefix(app.parent_relationship)} ${app.parent_name.trim()}`
+    : "Parent";
 
   const { error: sendError } = await resend.emails.send({
     from: EMAIL_FROM,
     to: app.parent_email,
     subject: "Welcome to KIT!",
     html: `
-  <p>Dear ${parentGreeting},</p>
-  <p><b>Welcome to KIT</b>, and thank you for enrolling <b>${args.name}</b>.</p>
+  <p>Dear <strong>${parentGreeting}</strong>,</p>
+  <p>Welcome to KIT, and thank you for enrolling <strong>${args.name}</strong>.</p>
   <p>At KIT, we focus on helping children think, create, and solve problems with technology, not just consume it.</p>
-  <p>We're excited to see what <b>${args.name}</b> builds.</p>
+  <p>We're excited to see what <strong>${args.name}</strong> builds.</p>
   <p>To get started, please make sure your child has:</p>
   <ul>
     <li>A laptop or desktop (Windows or macOS)</li>
@@ -207,7 +227,7 @@ async function sendWelcomeEmail(
   <p>Please have the device charged or plugged in before each class.</p>
   <p>You'll receive another email shortly with everything you need&mdash;Student ID, portal access, and how classes and assignments work. Once that arrives, you're all set.</p>
   <p>If you have any questions, please feel free to reply here or reach out to the KIT team on WhatsApp.</p>
-  <p>We're glad to have you with us.</p>
+  <p><strong>We're glad to have you with us.</strong></p>
   <p>&mdash; The KIT Team</p>
 `,
   });
