@@ -228,12 +228,7 @@ export default function PortalContent({
                 {/* Stub link — the week-overview page doesn't exist yet,
                     same "build the link now, page later" approach as
                     View all resources below. */}
-                <a href="/smportal/week" className="smp-hero-btn">
-                  View week overview
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </a>
+                
               </div>
             </div>
 
