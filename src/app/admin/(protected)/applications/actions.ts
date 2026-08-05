@@ -194,9 +194,9 @@ async function sendWelcomeEmail(
     subject: "Welcome to KIT!",
     html: `
   <p>Dear ${parentGreeting},</p>
-  <p>Welcome to KIT, and thank you for enrolling ${args.name}.</p>
+  <p><b>Welcome to KIT</b>, and thank you for enrolling <b>${args.name}</b>.</p>
   <p>At KIT, we focus on helping children think, create, and solve problems with technology, not just consume it.</p>
-  <p>We're excited to see what ${args.name} builds.</p>
+  <p>We're excited to see what <b>${args.name}</b> builds.</p>
   <p>To get started, please make sure your child has:</p>
   <ul>
     <li>A laptop or desktop (Windows or macOS)</li>
