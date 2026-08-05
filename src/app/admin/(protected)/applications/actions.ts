@@ -214,10 +214,10 @@ async function sendWelcomeEmail(
     subject: "Welcome to KIT!",
     html: `
   <p>Dear <strong>${parentGreeting}</strong>,</p>
-  <p>Welcome to KIT, and thank you for enrolling <strong>${args.name}</strong>.</p>
+  <p><strong>Welcome to KIT</strong>, and thank you for enrolling <strong>${args.name}</strong>.</p>
   <p>At KIT, we focus on helping children think, create, and solve problems with technology, not just consume it.</p>
-  <p>We're excited to see what <strong>${args.name}</strong> builds.</p>
-  <p>To get started, please make sure your child has:</p>
+  <p>We're excited to see what ${args.name} builds.</p>
+  <p>To get started, <strong>please make sure your child has:</strong></p>
   <ul>
     <li>A laptop or desktop (Windows or macOS)</li>
     <li>A stable internet connection</li>
