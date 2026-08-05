@@ -82,6 +82,10 @@ export async function markApplicationPaid(
 }
 
 /* ── APPROVE (12-week) ────────────────────────────────────── */
+/* Untouched. The welcome email is summer-only, confirmed — this flow
+   sends its own "your KIT account is ready" email via
+   provisionStudentAccount() below, which already covers the same
+   ground for the 12-week program. */
 
 export type ApproveResult =
   | { ok: true; kitId: string; batchLabel: string; emailSent: boolean }
@@ -116,9 +120,12 @@ export async function approveApplication(
   return { ok: true, kitId: kit_id, batchLabel: batch_label, emailSent };
 }
 
-/* ── ENROL (summer) ───────────────────────────────────────── */
+/* ── ENROL / APPROVE (summer) ─────────────────────────────── */
 /* Summer needs no batch — enrol_summer_student() generates the
-   Summer ID, which IS the student's credential. */
+   Summer ID, which IS the student's credential. Approving a summer
+   application now automatically sends the welcome email (below) —
+   that's the ONLY automatic email on this path. The Summer ID itself
+   is being sent manually by Alfred for now, not by this code. */
 
 export type EnrolResult =
   | { ok: true; summerId: string; name: string; emailSent: boolean }
@@ -140,9 +147,9 @@ export async function enrolSummerStudent(
   }
 
   const { summer_id, name } = data[0];
-  const emailSent = await sendSummerIdEmail(supabase, {
+
+  const emailSent = await sendWelcomeEmail(supabase, {
     applicationId,
-    summerId: summer_id,
     name,
   });
 
@@ -151,46 +158,62 @@ export async function enrolSummerStudent(
   return { ok: true, summerId: summer_id, name, emailSent };
 }
 
-/* Reads parent_email off the linked `applications` row and sends the
-   Summer ID. This ONLY covers enrolment from a paid application —
-   enrol_summer_student() also supports a bare-roster-import path
-   (called with p_name/p_cohort_year instead of p_application_id per
-   the handoff doc), which has no applications row to read an email
-   from. If that path is exposed as a separate admin action elsewhere,
-   it needs its own email wiring wherever ITS contact info lives. */
-async function sendSummerIdEmail(
+/* Reads parent_email + parent_name off the linked `applications` row
+   and sends the welcome email. This ONLY covers enrolment from a paid
+   application — enrol_summer_student() also supports a bare-roster-
+   import path (called with p_name/p_cohort_year instead of
+   p_application_id per the handoff doc), which has no applications
+   row to read contact info from. If that path is exposed as a
+   separate admin action elsewhere, it needs its own email wiring. */
+async function sendWelcomeEmail(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  args: { applicationId: string; summerId: string; name: string }
+  args: { applicationId: string; name: string }
 ): Promise<boolean> {
   const { data: app, error: readError } = await supabase
     .from("applications")
-    .select("parent_email")
+    .select("parent_email, parent_name")
     .eq("id", args.applicationId)
     .single();
 
   if (readError || !app?.parent_email) {
     console.error(
-      "summer ID email: no parent_email for application",
+      "welcome email: no parent_email for application",
       args.applicationId,
       readError?.message
     );
     return false;
   }
 
+  // Falls back to "Dear Parent," rather than "Dear ," if parent_name
+  // is blank on a given row — a safety net, not the expected path.
+  const parentGreeting = app.parent_name?.trim() || "Parent";
+
   const { error: sendError } = await resend.emails.send({
     from: EMAIL_FROM,
     to: app.parent_email,
-    subject: `${args.name}'s Summer ID is ready`,
+    subject: "Welcome to KIT!",
     html: `
-  <p>Hi,</p>
-  <p>${args.name}'s Summer ID is <strong>${args.summerId}</strong>.</p>
-  <p>Use it to sign in at https://kitacademy.net/summer</p>
-  <p><a href="https://kitacademy.net/summer" style="background: #1999E4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Go to Summer Portal</a></p>
+  <p>Dear ${parentGreeting},</p>
+  <p>Welcome to KIT, and thank you for enrolling ${args.name}.</p>
+  <p>At KIT, we focus on helping children think, create, and solve problems with technology, not just consume it.</p>
+  <p>We're excited to see what ${args.name} builds.</p>
+  <p>To get started, please make sure your child has:</p>
+  <ul>
+    <li>A laptop or desktop (Windows or macOS)</li>
+    <li>A stable internet connection</li>
+    <li>Google Chrome</li>
+    <li>A notebook and pen</li>
+  </ul>
+  <p>Please have the device charged or plugged in before each class.</p>
+  <p>You'll receive another email shortly with everything you need&mdash;Student ID, portal access, and how classes and assignments work. Once that arrives, you're all set.</p>
+  <p>If you have any questions, please feel free to reply here or reach out to the KIT team on WhatsApp.</p>
+  <p>We're glad to have you with us.</p>
+  <p>&mdash; The KIT Team</p>
 `,
   });
 
   if (sendError) {
-    console.error("summer ID email: Resend send failed:", sendError.message);
+    console.error("welcome email: Resend send failed:", sendError.message);
     return false;
   }
 
