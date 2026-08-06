@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitApplication, type PlanKey } from "@/app/(marketing)/apply/actions";
 import type { CourseRow } from "@/lib/courses";
+import { COUNTRY_CODES } from "@/lib/countries";
 import Reveal from "@/components/site/Reveal";
 
 /* ────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ type Fields = {
   parentName: string;
   relationship: string;
   email: string;
+  countryDial: string;
   phone: string;
   program: string; // course slug
   plan: PlanKey | "";
@@ -72,6 +74,7 @@ const empty: Fields = {
   parentName: "",
   relationship: "",
   email: "",
+  countryDial: "+234", // Nigeria — still the primary market, default rather than force
   phone: "",
   program: "",
   plan: "",
@@ -131,9 +134,14 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))
       e.email = "That email doesn't look right";
 
+    // Generic international check, not a Nigeria-specific digit count —
+    // country codes and national number lengths both vary too much to
+    // validate precisely without a much heavier library than this form
+    // needs. 4–14 digits after the dial code covers real numbers
+    // worldwide while still catching empty/garbage input.
     const digits = f.phone.replace(/\D/g, "");
     if (!digits) e.phone = "Enter a phone number";
-    else if (digits.length !== 10) e.phone = "Enter 10 digits after +234";
+    else if (digits.length < 4 || digits.length > 14) e.phone = "Enter a valid phone number";
 
     if (!f.program) e.program = "Choose a program";
     if (isTerm && !f.plan) e.plan = "Choose a payment plan";
@@ -164,7 +172,7 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
         parentName: f.parentName,
         relationship: f.relationship,
         email: f.email,
-        phone: `+234${f.phone.replace(/\D/g, "")}`,
+        phone: `${f.countryDial}${f.phone.replace(/\D/g, "")}`,
         courseSlug: f.program,
         plan: isTerm ? (f.plan as PlanKey) : null,
         referral: f.referral,
@@ -306,7 +314,18 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
         <label className="af-field">
           <span>Phone Number</span>
           <div className="af-phone">
-            <span className="af-phone-pre">🇳🇬 +234</span>
+            <select
+              className="af-phone-select"
+              value={f.countryDial}
+              onChange={(ev) => set("countryDial", ev.target.value)}
+              aria-label="Country code"
+            >
+              {COUNTRY_CODES.map((c) => (
+                <option key={c.code} value={c.dial}>
+                  {c.flag} {c.name} ({c.dial})
+                </option>
+              ))}
+            </select>
             <input
               type="tel"
               inputMode="numeric"

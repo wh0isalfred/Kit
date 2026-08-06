@@ -6094,3 +6094,15 @@ html {
 .admin-collapse-bar .admin-collapse-toggle:hover {
   color: var(--ink);
 }
+
+.af-phone {
+  display: flex;
+  gap: 8px;
+}
+.af-phone-select {
+  flex: 0 0 auto;
+  max-width: 40%;
+}
+.af-phone input {
+  flex: 1;
+}
