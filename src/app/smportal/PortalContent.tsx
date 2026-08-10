@@ -208,7 +208,7 @@ export default function PortalContent({
           {/* Hero */}
           <section className="smp-hero">
             <div className="smp-hero-copy">
-              <span className="smp-hero-tag">Summer Tech Camp {cohortYear}</span>
+              <span className="smp-hero-tag">Summer Program 2026 {cohortYear}</span>
               <h2>
                 Learn. Build.<br />
                 <span className="smp-hero-accent">Create. Shine.</span>
