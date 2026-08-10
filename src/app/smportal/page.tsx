@@ -14,9 +14,13 @@ export const dynamic = "force-dynamic";
  * whole access model (ADR 002): there is no Supabase Auth here, the
  * cookie is the credential.
  *
- * Data comes from two SECURITY DEFINER functions that already know
- * which cohort is active and which week is current, so this page
- * doesn't decide any of that — it just renders what it's handed.
+ * Data comes from SECURITY DEFINER functions that already know which
+ * cohort is active and which week is current, so this page doesn't
+ * decide any of that — it just renders what it's handed. The student
+ * self-lookup below (get_my_summer_student) used to be a raw table
+ * read; summer_students' only RLS policy is admin-only, so that read
+ * silently returned nothing for every student, always. Fixed 10 Aug
+ * 2026 — see migration 0027.
  */
 export default async function PortalPage() {
   const session = await getSummerSession();
@@ -28,12 +32,16 @@ export default async function PortalPage() {
   // so cookies() is valid. The top-level version broke the build.
   const cohort = await getActiveSummerCohort();
 
-  const { data: student } = await supabase
-    .from("summer_students")
-    .select("name, cohort_year, batch_id")
-    .eq("id", session.sid)
-    .maybeSingle();
+  const { data: studentRows, error: studentError } = await supabase.rpc(
+    "get_my_summer_student",
+    { p_summer_student_id: session.sid }
+  );
 
+  if (studentError) {
+    console.error("PortalPage get_my_summer_student:", studentError.message);
+  }
+
+  const student = studentRows?.[0] ?? null;
   if (!student) redirect("/summer");
 
   const { data: portal } = await supabase.rpc("get_summer_portal", {
@@ -70,10 +78,6 @@ export default async function PortalPage() {
         batchId={student.batch_id ?? null}
         currentWeek={week}
         weekGroups={weekGroups}
-        // is_live now comes from the batch-scoped session (via
-        // get_summer_portal's new column), not the old cohort-wide
-        // flag — a batch with no session row yet defaults to false,
-        // same "say nothing" posture as everywhere else.
         isLive={week?.is_live ?? false}
       />
       <Footer />
