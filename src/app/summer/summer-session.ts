@@ -159,11 +159,14 @@ export async function getSummerFileUrl(
   const rawName = storagePath.split("/").pop() ?? "download";
   const downloadName = rawName.replace(/^\d+-/, "");
 
-  const { data, error } = await supabase.storage
+const { data, error } = await supabase.storage
     .from("summer")
     .createSignedUrl(storagePath, 60 * 10, { download: downloadName }); // forces Content-Disposition: attachment
 
-  if (error || !data) return { ok: false, error: "Couldn't open that file." };
+  if (error || !data) {
+    console.error("getSummerFileUrl:", storagePath, error?.message);
+    return { ok: false, error: "Couldn't open that file." };
+  }
   return { ok: true, url: data.signedUrl };
 }
 
