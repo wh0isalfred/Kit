@@ -160,8 +160,9 @@ export default function HomeworkDetail({
                 disabled={busy}
                 onClick={onUnsubmit}
               >
-                Redo this (removes feedback)
+                {busy ? "Removing…" : "Redo this (removes feedback)"}
               </button>
+              {error && <p className="hw-error">{error}</p>}
             </>
           ) : isTurnedIn ? (
             <>
@@ -169,6 +170,7 @@ export default function HomeworkDetail({
               <button className="hw-unsubmit" disabled={busy} onClick={onUnsubmit}>
                 {busy ? "…" : "Unsubmit"}
               </button>
+              {error && <p className="hw-error">{error}</p>}
             </>
           ) : (
             // Assigned — the submission form
