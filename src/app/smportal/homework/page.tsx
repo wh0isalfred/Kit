@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSummerSession } from "../../summer/summer-session";
-import Footer from "@/components/site/Footer";
+// import Footer from "@/components/site/Footer";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +106,7 @@ export default async function HomeworkListPage() {
         )}
       </section>
 
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }
