@@ -155,14 +155,6 @@ export default function HomeworkDetail({
                   <p>{submission.feedback}</p>
                 </div>
               )}
-              <button
-                className="hw-resubmit"
-                disabled={busy}
-                onClick={onUnsubmit}
-              >
-                {busy ? "Removing…" : "Redo this (removes feedback)"}
-              </button>
-              {error && <p className="hw-error">{error}</p>}
             </>
           ) : isTurnedIn ? (
             <>
