@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: "KIT — Helping young people thrive in an AI-driven world",
     description:
       "An online tech school for ages 10–15. Live classes in web development, AI, Python and more — join from anywhere in the world.",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "KIT — online tech school for ages 10–15" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "KIT — helping young people thrive in an AI-driven world" }],
   },
 
   twitter: {
