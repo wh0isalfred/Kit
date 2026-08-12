@@ -132,13 +132,19 @@ export async function submitApplication(
     }
   );
 
-  if (insertError || !applicationId) {
-    /* Likely causes: the age-eligibility trigger rejecting this
-       course/age combination, the amount-tamper trigger, or the RPC's
-       own live-course check. Postgres messages aren't reliably
-       parseable for exact cause, so this stays generic rather than
-       guessing wrong at the parent. */
+if (insertError || !applicationId) {
     console.error("submitApplication insert:", insertError?.message);
+
+    // The rate limiter raises a distinctive message so this one case
+    // can be told apart from a validation failure and explained properly.
+    if (insertError?.message?.includes("rate_limited")) {
+      return {
+        ok: false,
+        error:
+          "We've received several applications from this connection recently. Please wait a little while and try again, or contact us and we'll help you finish.",
+      };
+    }
+
     return {
       ok: false,
       error:
