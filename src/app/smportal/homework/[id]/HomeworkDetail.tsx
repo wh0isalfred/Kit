@@ -231,7 +231,7 @@ export default function HomeworkDetail({
                           <span className="hw-dropzone-link">Click here to choose a file</span>, or Drag and drop your file here
                         </span>
                       </label>
-                      <p className="hw-dropzone-hint">Any file type, up to 25MB</p>
+                      <p className="hw-dropzone-hint">Any file type, up to 4MB</p>
                     </>
                   )}
                 </div>
