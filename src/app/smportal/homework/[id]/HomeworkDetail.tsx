@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   getSummerFileUrl,
@@ -15,8 +15,6 @@ export type HomeworkItem = {
   title: string;
   description: string | null;
   submission_type: "link" | "file" | null;
-  // The assignment's OWN attachment (instructions/starter), distinct
-  // from the student's submission.
   url: string | null;
   storage_path: string | null;
 };
@@ -42,6 +40,7 @@ export default function HomeworkDetail({
   const [linkValue, setLinkValue] = useState(submission?.url ?? "");
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [pendingName, setPendingName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -72,6 +71,13 @@ export default function HomeworkDetail({
     }
   }
 
+  function onDrop(e: React.DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) onUpload(f);
+  }
+
   async function onTurnIn() {
     setBusy(true);
     setError(null);
@@ -99,6 +105,12 @@ export default function HomeworkDetail({
     else setError(res.error);
   }
 
+  const turnInDisabled =
+    busy ||
+    uploading ||
+    (item.submission_type === "link" && !linkValue.trim()) ||
+    (item.submission_type === "file" && !pendingPath);
+
   return (
     <div className="hw">
       <a href="/smportal/homework" className="smp-home" aria-label="Back to homework">
@@ -109,7 +121,6 @@ export default function HomeworkDetail({
       </a>
 
       <div className="hw-grid">
-        {/* Instructions */}
         <div className="hw-main">
           <span className="hw-week">Week {item.week}</span>
           <h1>{item.title}</h1>
@@ -132,7 +143,6 @@ export default function HomeworkDetail({
           )}
         </div>
 
-        {/* Your work panel */}
         <aside className="hw-work">
           <div className="hw-work-head">
             <h2>Your work</h2>
@@ -144,9 +154,6 @@ export default function HomeworkDetail({
           {item.submission_type === null ? (
             <p className="hw-none">This task doesn&apos;t need anything turned in.</p>
           ) : isReturned ? (
-            // Returned: read-only, shows feedback. Resubmitting is
-            // possible but that discards the feedback, so it's a
-            // deliberate second action, not the default.
             <>
               <SubmittedView submission={submission!} openAttachment={openAttachment} />
               {submission?.feedback && (
@@ -165,56 +172,86 @@ export default function HomeworkDetail({
               {error && <p className="hw-error">{error}</p>}
             </>
           ) : (
-            // Assigned — the submission form
             <>
               {item.submission_type === "link" && (
-                <input
-                  className="hw-link-input"
-                  type="url"
-                  placeholder="Paste your link (e.g. your live site)"
-                  value={linkValue}
-                  onChange={(e) => setLinkValue(e.target.value)}
-                  disabled={busy}
-                />
+                <label className="hw-field-label" htmlFor="hw-link-input">
+                  Your link
+                  <div className="hw-link-wrap">
+                    <LinkIcon />
+                    <input
+                      id="hw-link-input"
+                      className="hw-link-input"
+                      type="url"
+                      placeholder="https://your-live-site.com"
+                      value={linkValue}
+                      onChange={(e) => setLinkValue(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </label>
               )}
 
               {item.submission_type === "file" && (
                 <div>
                   {pendingName ? (
                     <div className="hw-file-chip">
-                      <span>📎 {pendingName}</span>
-                      <button onClick={() => { setPendingPath(null); setPendingName(null); }}>Remove</button>
+                      <FileIcon />
+                      <span className="hw-file-chip-name">{pendingName}</span>
+                      <button
+                        className="hw-file-remove"
+                        aria-label="Remove file"
+                        onClick={() => { setPendingPath(null); setPendingName(null); }}
+                      >
+                        <CloseIcon />
+                      </button>
+                    </div>
+                  ) : uploading ? (
+                    <div className="hw-dropzone hw-dropzone-uploading">
+                      <span className="hw-spinner" aria-hidden="true" />
+                      <span>Uploading…</span>
                     </div>
                   ) : (
-                    <input
-                      type="file"
-                      disabled={uploading}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) onUpload(f);
-                      }}
-                    />
+                    <label
+                      className={`hw-dropzone${dragOver ? " hw-dropzone-over" : ""}`}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={onDrop}
+                    >
+                      <input
+                        type="file"
+                        className="hw-dropzone-input"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) onUpload(f);
+                        }}
+                      />
+                      <span className="hw-dropzone-icon"><UploadIcon /></span>
+                      <span className="hw-dropzone-drag-hint">Drag and drop your file here</span>
+                      <span className="hw-dropzone-btn">Choose file</span>
+                      <span className="hw-dropzone-hint">Any file type, up to 25MB</span>
+                    </label>
                   )}
-                  {uploading && <p className="hw-hint">Uploading…</p>}
                 </div>
               )}
 
               <button
                 className="hw-turnin"
-                disabled={
-                  busy ||
-                  uploading ||
-                  (item.submission_type === "link" && !linkValue.trim()) ||
-                  (item.submission_type === "file" && !pendingPath)
-                }
+                disabled={turnInDisabled}
                 onClick={onTurnIn}
               >
                 {busy ? "Turning in…" : "Turn in"}
               </button>
+              {turnInDisabled && !busy && !uploading && (
+                <p className="hw-turnin-hint">
+                  {item.submission_type === "file"
+                    ? "Upload a file to turn in your work"
+                    : "Paste a link to turn in your work"}
+                </p>
+              )}
+
+              {error && <p className="hw-error">{error}</p>}
             </>
           )}
-
-          {error && <p className="hw-error">{error}</p>}
         </aside>
       </div>
     </div>
@@ -256,6 +293,41 @@ function AttachIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21.44 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3.5 3.5 0 014.95 4.95l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 16V4M12 4L7 9M12 4l5 5" />
+      <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
     </svg>
   );
 }
