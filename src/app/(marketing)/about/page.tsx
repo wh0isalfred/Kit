@@ -3,6 +3,13 @@ import Footer from "@/components/site/Footer";
 import Reveal from "@/components/site/Reveal";
 import ScrollProgress from "@/components/site/ScrollProgress";
 
+export const metadata = {
+  title: "About",
+  description:
+    "KIT is an online tech school for ages 10–15, founded in Port Harcourt and now teaching students across Nigeria, the UK, and beyond. We don't just teach technology — we prepare children to build with it.",
+  alternates: { canonical: "/about" },
+};
+
 export default function AboutPage() {
   return (
     <>

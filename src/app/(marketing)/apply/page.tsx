@@ -7,6 +7,13 @@ import ApplyCTA from "@/components/apply/ApplyCTA";
 import { getLiveCourses } from "@/lib/courses";
 
 
+export const metadata = {
+  title: "Apply",
+  description:
+    "Enrol your child at KIT. Summer Build Camp and the 12-week Future Skills Lab for ages 10–15, taught live online — join from anywhere in the world.",
+  alternates: { canonical: "/apply" },
+};
+
 export default async function ApplyPage() {
 
 const courses = await getLiveCourses();

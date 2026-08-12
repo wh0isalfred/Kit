@@ -9,10 +9,37 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+
 export const metadata: Metadata = {
-  title: "KIT — Helping young people thrive in an AI-driven world",
+  metadataBase: new URL("https://www.kitacademy.net"),
+
+  title: {
+    default: "KIT — Helping young people thrive in an AI-driven world",
+    template: "%s · KIT",
+  },
   description:
-  "KIT is a tech school in Port Harcourt where young people (ages 10–15) learn to build with technology — web development, AI, Python, and more.",
+    "KIT is an online tech school where young people aged 10–15 learn to build with technology — web development, AI, Python, and more. Live classes, taught from Port Harcourt to students worldwide.",
+
+  alternates: { canonical: "/" },
+
+  openGraph: {
+    type: "website",
+    siteName: "KIT",
+    locale: "en",
+    url: "https://www.kitacademy.net",
+    title: "KIT — Helping young people thrive in an AI-driven world",
+    description:
+      "An online tech school for ages 10–15. Live classes in web development, AI, Python and more — join from anywhere in the world.",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "KIT — online tech school for ages 10–15" }],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "KIT — Helping young people thrive in an AI-driven world",
+    description:
+      "An online tech school for ages 10–15. Live classes in web development, AI, Python and more — join from anywhere.",
+    images: ["/og.png"],
+  },
   icons: {
     icon: [
       { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
