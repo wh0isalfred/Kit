@@ -228,7 +228,7 @@ export default function HomeworkDetail({
                         />
                         <span className="hw-dropzone-icon"><UploadIcon /></span>
                         <span className="hw-dropzone-text">
-                          Drag and drop your file, or <span className="hw-dropzone-link">choose one</span>
+                          <span className="hw-dropzone-link">Click here to choose a file</span>, or Drag and drop your file here
                         </span>
                       </label>
                       <p className="hw-dropzone-hint">Any file type, up to 25MB</p>
