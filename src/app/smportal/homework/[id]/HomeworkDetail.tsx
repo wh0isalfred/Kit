@@ -211,25 +211,28 @@ export default function HomeworkDetail({
                       <span>Uploading…</span>
                     </div>
                   ) : (
-                    <label
-                      className={`hw-dropzone${dragOver ? " hw-dropzone-over" : ""}`}
-                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={onDrop}
-                    >
-                      <input
-                        type="file"
-                        className="hw-dropzone-input"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) onUpload(f);
-                        }}
-                      />
-                      <span className="hw-dropzone-icon"><UploadIcon /></span>
-                      <span className="hw-dropzone-drag-hint">Drag and drop your file here</span>
-                      <span className="hw-dropzone-btn">Choose file</span>
-                      <span className="hw-dropzone-hint">Any file type, up to 25MB</span>
-                    </label>
+                    <>
+                      <label
+                        className={`hw-dropzone${dragOver ? " hw-dropzone-over" : ""}`}
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={onDrop}
+                      >
+                        <input
+                          type="file"
+                          className="hw-dropzone-input"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) onUpload(f);
+                          }}
+                        />
+                        <span className="hw-dropzone-icon"><UploadIcon /></span>
+                        <span className="hw-dropzone-text">
+                          Drag and drop your file, or <span className="hw-dropzone-link">choose one</span>
+                        </span>
+                      </label>
+                      <p className="hw-dropzone-hint">Any file type, up to 25MB</p>
+                    </>
                   )}
                 </div>
               )}
@@ -244,7 +247,7 @@ export default function HomeworkDetail({
               {turnInDisabled && !busy && !uploading && (
                 <p className="hw-turnin-hint">
                   {item.submission_type === "file"
-                    ? "Upload a file to turn in your work"
+                    ? "Choose a file above to turn in your work"
                     : "Paste a link to turn in your work"}
                 </p>
               )}
