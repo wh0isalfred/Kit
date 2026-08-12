@@ -147,7 +147,18 @@ export async function getSummerFileUrl(
   const session = await getSummerSession();
   if (!session) return { ok: false, error: "Not signed in." };
 
-  if (!storagePath.startsWith(`${session.year}/`)) {
+  // Two legitimate path shapes exist in the `summer` bucket:
+  //   {year}/week{n}/...                     — admin-uploaded resources
+  //   submissions/{sid}/{resourceId}/...     — a student's own homework
+  //
+  // The original check only allowed the first, so reopening your own
+  // submitted file failed every time. Submissions are scoped to the
+  // caller's OWN sid, which is stricter than the resource rule — a
+  // student can never reach another student's work.
+  const isCohortResource = storagePath.startsWith(`${session.year}/`);
+  const isOwnSubmission = storagePath.startsWith(`submissions/${session.sid}/`);
+
+  if (!isCohortResource && !isOwnSubmission) {
     return { ok: false, error: "Not available." };
   }
 
@@ -159,9 +170,9 @@ export async function getSummerFileUrl(
   const rawName = storagePath.split("/").pop() ?? "download";
   const downloadName = rawName.replace(/^\d+-/, "");
 
-const { data, error } = await supabase.storage
+  const { data, error } = await supabase.storage
     .from("summer")
-    .createSignedUrl(storagePath, 60 * 10, { download: downloadName }); // forces Content-Disposition: attachment
+    .createSignedUrl(storagePath, 60 * 10, { download: downloadName });
 
   if (error || !data) {
     console.error("getSummerFileUrl:", storagePath, error?.message);
@@ -169,7 +180,6 @@ const { data, error } = await supabase.storage
   }
   return { ok: true, url: data.signedUrl };
 }
-
 
 /**
  * Records attendance for the CALLER'S OWN session — never accepts a
