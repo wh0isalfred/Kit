@@ -63,7 +63,7 @@ export default async function SummerSection() {
             <div className="summer-benefits">
               <span>✔ Live Online Classes</span>
               <span>✔ Real Projects</span>
-              <span>✔ ₦30,000 Team Challenge</span>
+              {/* <span>✔ ₦30,000 Team Challenge</span> */}
             </div>
 
             <SummerCountdown
