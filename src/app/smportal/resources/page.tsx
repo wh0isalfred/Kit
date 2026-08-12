@@ -23,17 +23,36 @@ export default async function ResourcesPage() {
   const supabase = await createClient();
   const cohort = await getActiveSummerCohort();
 
-  const { data: student } = await supabase
-    .from("summer_students")
-    .select("name, cohort_year")
-    .eq("id", session.sid)
-    .maybeSingle();
+  // Was a raw .from("summer_students") query — summer_students is
+  // admin-only at the RLS layer, so that returned null for every
+  // student and bounced them straight back to /summer. Same bug that
+  // took the whole portal down; same fix (migration 0027).
+  const { data: studentRows, error: studentError } = await supabase.rpc(
+    "get_my_summer_student",
+    { p_summer_student_id: session.sid }
+  );
 
+  if (studentError) {
+    console.error("ResourcesPage get_my_summer_student:", studentError.message);
+  }
+
+  const student = studentRows?.[0] ?? null;
   if (!student) redirect("/summer");
 
-  const { data: resources } = await supabase.rpc("get_summer_resources", {
-    p_cohort_year: session.year,
-  });
+  // p_summer_student_id is REQUIRED — get_summer_resources became
+  // batch-aware in 0022, and without the student id the batch filter
+  // matches nothing and returns an empty list every time.
+  const { data: resources, error: resourcesError } = await supabase.rpc(
+    "get_summer_resources",
+    {
+      p_cohort_year: session.year,
+      p_summer_student_id: session.sid,
+    }
+  );
+
+  if (resourcesError) {
+    console.error("ResourcesPage get_summer_resources:", resourcesError.message);
+  }
 
   const list = (resources ?? []) as PortalResource[];
   const withSizes = await attachFileSizes(supabase, list);
@@ -60,11 +79,9 @@ export default async function ResourcesPage() {
  * Best-effort file sizes read from Supabase Storage metadata — there's
  * no size column in summer_resources, but Storage tracks it natively.
  *
- * ASSUMES bucket "summer" and paths shaped "{year}/week{n}/{file}" per
- * the handoff doc's bucket list. NOT verified against the actual
- * upload code — if either assumption is wrong, this silently returns
- * no sizes rather than breaking the page. Worth confirming for real
- * before relying on it.
+ * Bucket "summer" and paths shaped "{year}/week{n}/{file}" — both now
+ * confirmed correct against the real upload code. Still non-blocking:
+ * if a list call fails, the page renders fine without sizes.
  */
 async function attachFileSizes(
   supabase: Awaited<ReturnType<typeof createClient>>,
