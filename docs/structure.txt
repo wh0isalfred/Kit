@@ -1,6 +1,6 @@
 KIT — File Structure (Annotated)
-Generated from a fresh tree export dated 29 July 2026, supplemented below.
-See note at the bottom before trusting the batch/[batchId] section.
+Base tree generated 29 July 2026, supplemented and updated 12 August 2026 (session 8).
+See notes at the bottom before trusting the batch/[batchId] or homework/[id] sections.
 
 .\src\proxy.ts
 .\src\app\global.css
@@ -48,7 +48,13 @@ See note at the bottom before trusting the batch/[batchId] section.
 .\src\app\admin\(protected)\summer\batch\[batchId]\homework\HomeworkQueue.tsx
 .\src\app\admin\(protected)\summer\batch\[batchId]\homework\ByAssignmentView.tsx
 
-  --- END SUPPLEMENTED SECTION ---
+  --- ALSO NOT PRESENT IN THE RAW EXPORT — ADDED SESSION 8, SAME LIKELY CAUSE ---
+  --- (another [bracket] folder — see note at the bottom) ---
+
+.\src\app\smportal\homework\[id]\page.tsx
+.\src\app\smportal\homework\[id]\HomeworkDetail.tsx
+
+  --- END SUPPLEMENTED SECTIONS ---
 
 .\src\app\admin\login\AdminLoginForm.tsx
 .\src\app\admin\login\page.tsx
@@ -84,6 +90,12 @@ See note at the bottom before trusting the batch/[batchId] section.
 .\src\components\site\Reveal.tsx
 .\src\components\site\ScrollProgress.tsx
 .\src\components\site\useSectionLink.ts
+.\src\lib\countries.ts                    <-- NEW, session 8. 248 countries + dial
+                                               codes for the application form's phone
+                                               picker. Generated from a verified public
+                                               dataset — see doc 07 Bug 6 for a real
+                                               data bug caught in that generation
+                                               process before it shipped.
 .\src\lib\courses.ts
 .\src\lib\database.types.ts
 .\src\lib\paystack.ts
@@ -119,6 +131,19 @@ See note at the bottom before trusting the batch/[batchId] section.
 .\supabase\migrations\0024_summer_my_submissions.sql
 .\supabase\migrations\0025_batch_scoped_resources.sql
 .\supabase\migrations\0026_grading_queue.sql
+.\supabase\migrations\0027_smportal_self_lookup.sql        <-- NEW, session 8, CONFIRMED RUN.
+                                                                  Fixes the portal-access
+                                                                  outage. See doc 07 Bug 2.
+.\supabase\migrations\0028_unsubmit_allows_returned.sql     <-- NEW, session 8, WRITTEN BUT
+                                                                  DELIBERATELY NEVER RUN. See
+                                                                  doc 01 §II and doc 07 Bug 1 —
+                                                                  do not assume this is applied.
+.\supabase\migrations\0029_summer_resources_public_read.sql <-- NEW, session 8, written and
+                                                                  handed off, DEPLOYMENT NOT
+                                                                  CONFIRMED. Verify before
+                                                                  assuming resource downloads
+                                                                  work for students. See doc 07
+                                                                  Bug 3.
 .\supabase\migrations\20260721000001_extensions_and_helpers.sql
 .\supabase\migrations\20260721000002_courses.sql
 .\supabase\migrations\20260721000003_people_and_batches.sql
@@ -133,26 +158,36 @@ See note at the bottom before trusting the batch/[batchId] section.
 .\supabase\migrations\20260721000012_storage.sql
 
 ===============================================================================
-NOTE ON THE SUPPLEMENTED SECTION ABOVE
+FILES DELIBERATELY NOT LISTED ABOVE — NOT PART OF THE REPOSITORY
+
+KIT-Assignment-1.pdf and the KIT Day-1 lesson slide template (.pptx) were built
+this session as course-material deliverables, not application code. They live
+wherever Alfred saved them after download (and, distributed to students, in
+Supabase Storage as resource attachments) — they were never intended to be
+committed to the repo, so they don't belong in this tree. If either ever DOES
+get committed (e.g. a canonical copy kept in the repo for version control),
+add it above; until then, treat their absence here as correct, not a gap.
+
+===============================================================================
+NOTE ON THE SUPPLEMENTED SECTIONS ABOVE
 
 The raw tree export this file was generated from (29 July 2026) did not include
-the batch/[batchId] subtree at all — no folder, no files, nothing — despite
-every file in that section having been built, committed, and confirmed working
-via multiple successful Vercel builds earlier the same day. The cause wasn't
-diagnosed. Possibilities include: the export tool having trouble with the
-literal "[batchId]" folder name (square brackets can be interpreted as
-wildcards by some Windows/PowerShell tooling when used in a path argument,
-though that shouldn't affect plain recursive enumeration), the export being
-scoped to committed files at a point before that folder was pushed, or
-something else entirely.
+the batch/[batchId] subtree at all. A second, identical gap was found this
+session (12 August 2026): smportal/homework/[id] was also missing from a fresh
+export, for what's almost certainly the same underlying cause. Neither was
+formally diagnosed, but the pattern is now consistent enough to name directly:
+**this export method appears to systematically miss folders with a literal
+[bracket] name** — plausibly square brackets being interpreted as a wildcard
+pattern by some part of the Windows/PowerShell tooling chain used to generate
+the export, even though that shouldn't affect plain recursive file enumeration.
 
-The eleven files listed in the supplemented section were added to this file
-from build history, not from a fresh scan — every one of them was created,
-edited, and successfully deployed during the same session that produced this
-document. Treat them as reliable, but if you're about to do anything
-structural (renaming, moving, deleting), run a fresh tree yourself and confirm
-first. Don't propagate this note's confidence into a second generation of
-assumed-correct documentation — verify at the source.
+Every file in both supplemented sections was added from build/edit history, not
+from a fresh scan — each one was created, edited, and successfully deployed
+during a session that produced or updated this document. Treat them as
+reliable, but if you're about to do anything structural (renaming, moving,
+deleting) in either the batch/[batchId] or homework/[id] trees, run a fresh
+export yourself and confirm first. Don't propagate this note's confidence into
+a third generation of assumed-correct documentation — verify at the source.
 
 To regenerate a clean tree yourself:
 
@@ -163,9 +198,9 @@ To regenerate a clean tree yourself:
   Or, if the tree command is available:
     tree /F /A > structure.txt
 
-If you regenerate this and the batch/[batchId] folder still doesn't show up,
-that's no longer a documentation gap — that's a real, serious problem worth
-stopping and investigating immediately, since it would mean either the files
-aren't actually where the build history says they are, or the export method
-itself cannot see that folder for some reproducible reason worth tracking down.
+If you regenerate this and EITHER [bracket] folder still doesn't show up,
+that's no longer a documentation gap — that's worth actually tracking down,
+since by the third occurrence it stops looking like a fluke and starts looking
+like a real, reproducible limitation of whatever tool or method is producing
+these exports.
 ===============================================================================
