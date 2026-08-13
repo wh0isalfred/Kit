@@ -3,24 +3,24 @@
 import { useState } from "react";
 import { submitApplication, type PlanKey } from "@/app/(marketing)/apply/actions";
 import type { CourseRow } from "@/lib/courses";
-import { COUNTRY_CODES } from "@/lib/countries";
 import Reveal from "@/components/site/Reveal";
+import { COUNTRY_CODES } from "@/lib/countries";
+import { regionFor, currencyFor } from "@/lib/pricing";
 
 /* ────────────────────────────────────────────────────────────
-   Courses now come from the database (the `courses` table) via
-   the `courses` prop, fetched server-side and passed down by the
-   apply page:
+   Courses come from the database (the `courses` table) via the
+   `courses` prop, fetched server-side and passed down by the apply
+   page. Prices are read straight off each course row, pre-converted
+   by the public_courses view (price_naira / price_gbp) — so there's
+   no kobo or pence math in this file.
 
-     import { getLiveCourses } from "@/lib/courses";
-     // in the page component:
-     const courses = await getLiveCourses();
-     <ApplicationForm courses={courses} />
+   Region (and therefore currency) is derived from the COUNTRY the
+   parent selects, not from parsing their phone number. Dial codes are
+   ambiguous: +7 is both Russia and Kazakhstan, +39 is both Italy and
+   Vatican City. The dropdown value is unambiguous.
 
-   This component assumes `courses` is ALREADY filtered to
-   status === 'live' — getLiveCourses() does that. Prices are read
-   straight off each course row (price_naira / price_monthly_naira,
-   pre-converted by the public_courses view — see src/lib/courses.ts),
-   so there's no separate pricing table and no kobo math in this file.
+   Prices update reactively — change country or course in either order
+   and the displayed amount follows immediately.
    ──────────────────────────────────────────────────────────── */
 
 const genderOptions = ["Male", "Female", "Prefer not to say"];
@@ -35,8 +35,6 @@ const referralOptions = [
 ];
 
 /* ── helpers ─────────────────────────────────────────────── */
-
-const naira = (n: number) => `₦${n.toLocaleString("en-NG")}`;
 
 function ageFrom(dob: string): number | null {
   if (!dob) return null;
@@ -57,7 +55,7 @@ type Fields = {
   parentName: string;
   relationship: string;
   email: string;
-  countryDial: string;
+  countryCode: string; // ISO 3166-1 alpha-2, e.g. "NG", "GB"
   phone: string;
   program: string; // course slug
   plan: PlanKey | "";
@@ -74,7 +72,7 @@ const empty: Fields = {
   parentName: "",
   relationship: "",
   email: "",
-  countryDial: "+234", // Nigeria — still the primary market, default rather than force
+  countryCode: "NG", // Nigeria — still the primary market, a default not a forced value
   phone: "",
   program: "",
   plan: "",
@@ -96,13 +94,36 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
   const isTerm = selected?.type === "term";
   const isSummer = selected?.type === "summer";
 
+  const region = regionFor(f.countryCode);
+  const currency = currencyFor(region);
+  const isEurope = region === "EU";
+
+  const dialFor = (code: string) =>
+    COUNTRY_CODES.find((c) => c.code === code)?.dial ?? "+234";
+
+  const priceOnce = isEurope
+    ? selected?.price_gbp ?? null
+    : selected?.price_naira ?? null;
+  const priceMonthly = isEurope
+    ? selected?.price_monthly_gbp ?? null
+    : selected?.price_monthly_naira ?? null;
+
   const dueNow = isSummer
-    ? (selected?.price_naira ?? null)
+    ? priceOnce
     : isTerm && f.plan
       ? f.plan === "monthly"
-        ? (selected?.price_monthly_naira ?? null)
-        : (selected?.price_naira ?? null)
+        ? priceMonthly
+        : priceOnce
       : null;
+
+  // Major-unit values straight from the view — no kobo/pence math here.
+  const money = (n: number) =>
+    currency === "GBP"
+      ? `£${n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `₦${n.toLocaleString("en-NG")}`;
+
+  // A course with no GBP price simply isn't sold in Europe.
+  const unavailableInRegion = !!selected && isEurope && priceOnce === null;
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setF((prev) => ({ ...prev, [key]: value }));
@@ -117,13 +138,9 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
     const age = ageFrom(f.dob);
     if (!f.dob) e.dob = "Enter a date of birth";
     else if (age === null) e.dob = "That date isn't valid";
-    // NOTE: 10–15 here matches the term programme's current
-    // advertised range. Whether Summer should allow up to 16 (it has
-    // no track split, so no structural reason not to) is still open
-    // — see the flag in chat about whether `courses.track` or
-    // separate age_min/age_max columns are the real enrollment gate.
-    // Either way, the DB trigger on `applications` is the actual
-    // source of truth; this is a client-side pre-filter only.
+    // NOTE: 10–15 matches the term programme's advertised range. The DB
+    // trigger on `applications` is the actual source of truth; this is a
+    // client-side pre-filter only.
     else if (age < 10 || age > 15) e.dob = "KIT is for ages 10–15";
 
     if (!f.gender) e.gender = "Select an option";
@@ -135,15 +152,16 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
       e.email = "That email doesn't look right";
 
     // Generic international check, not a Nigeria-specific digit count —
-    // country codes and national number lengths both vary too much to
-    // validate precisely without a much heavier library than this form
-    // needs. 4–14 digits after the dial code covers real numbers
-    // worldwide while still catching empty/garbage input.
+    // national number lengths vary too much to validate precisely
+    // without a much heavier library than this form needs.
     const digits = f.phone.replace(/\D/g, "");
     if (!digits) e.phone = "Enter a phone number";
-    else if (digits.length < 4 || digits.length > 14) e.phone = "Enter a valid phone number";
+    else if (digits.length < 4 || digits.length > 14)
+      e.phone = "Enter a valid phone number";
 
     if (!f.program) e.program = "Choose a program";
+    else if (unavailableInRegion) e.program = "Not available in your country yet";
+
     if (isTerm && !f.plan) e.plan = "Choose a payment plan";
     if (!f.referral) e.referral = "Select an option";
     if (!f.consent) e.consent = "Please confirm before submitting";
@@ -172,7 +190,8 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
         parentName: f.parentName,
         relationship: f.relationship,
         email: f.email,
-        phone: `${f.countryDial}${f.phone.replace(/\D/g, "")}`,
+        phone: `${dialFor(f.countryCode)}${f.phone.replace(/\D/g, "")}`,
+        countryCode: f.countryCode,
         courseSlug: f.program,
         plan: isTerm ? (f.plan as PlanKey) : null,
         referral: f.referral,
@@ -190,9 +209,9 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
         return;
       }
 
-      // Paystack isn't wired up yet — the application is saved, just
-      // no checkout redirect to send them to. Swap this for the
-      // redirect above once PAYSTACK_SECRET_KEY exists.
+      // No checkout URL: either the parent will be contacted directly
+      // (European applicants, until Stripe is wired) or Paystack init
+      // didn't return one. Either way the application IS saved.
       setSubmitted(true);
     } finally {
       setSubmitting(false);
@@ -316,12 +335,12 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
           <div className="af-phone">
             <select
               className="af-phone-select"
-              value={f.countryDial}
-              onChange={(ev) => set("countryDial", ev.target.value)}
-              aria-label="Country code"
+              value={f.countryCode}
+              onChange={(ev) => set("countryCode", ev.target.value)}
+              aria-label="Country"
             >
               {COUNTRY_CODES.map((c) => (
-                <option key={c.code} value={c.dial}>
+                <option key={c.code} value={c.code}>
                   {c.flag} {c.name} ({c.dial})
                 </option>
               ))}
@@ -334,6 +353,9 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
               onChange={(ev) => set("phone", ev.target.value)}
             />
           </div>
+          <em className="af-hint">
+            Your country sets the currency you&apos;ll be charged in.
+          </em>
           {errors.phone && <em className="field-error">{errors.phone}</em>}
         </label>
       </div>
@@ -374,20 +396,24 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
         </label>
       </div>
 
-      {isTerm && selected && (
+      {unavailableInRegion && (
+        <p className="af-submit-error">
+          {selected?.title} isn&apos;t open to applicants outside Nigeria yet.
+          Please contact us and we&apos;ll help.
+        </p>
+      )}
+
+      {isTerm && selected && !unavailableInRegion && (
         <div className="af-plans">
           <span className="af-plans-label">Payment Plan</span>
           <div className="af-plan-grid">
             {(["monthly", "upfront"] as PlanKey[])
-              .filter((key) => key !== "monthly" || selected.price_monthly_naira)
+              .filter((key) => key !== "monthly" || priceMonthly !== null)
               .map((key) => {
                 const isMonthly = key === "monthly";
-                const due = isMonthly
-                  ? selected.price_monthly_naira!
-                  : selected.price_naira;
-                const monthlyTotal = (selected.price_monthly_naira ?? 0) * 3;
-                const upfrontPrice = selected.price_naira;
-                const savings = monthlyTotal - upfrontPrice;
+                const due = isMonthly ? priceMonthly! : priceOnce!;
+                const monthlyTotal = (priceMonthly ?? 0) * 3;
+                const savings = monthlyTotal - (priceOnce ?? 0);
 
                 return (
                   <button
@@ -402,10 +428,10 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
                     </span>
                     <span className="af-plan-note">
                       {isMonthly
-                        ? `${naira(due)} × 3 months`
+                        ? `${money(due)} × 3 months`
                         : savings > 0
-                          ? `${naira(due)} — save ${naira(savings)}`
-                          : naira(due)}
+                          ? `${money(due)} — save ${money(savings)}`
+                          : money(due)}
                     </span>
                   </button>
                 );
@@ -430,13 +456,13 @@ export default function ApplicationForm({ courses }: { courses: CourseRow[] }) {
       {dueNow !== null && (
         <div className="af-total">
           <span>Due today</span>
-          <strong>{naira(dueNow)}</strong>
-          {isTerm && f.plan === "monthly" && selected?.price_monthly_naira && (
+          <strong>{money(dueNow)}</strong>
+          {isTerm && f.plan === "monthly" && priceMonthly !== null && (
             <em>
-              Months 2 and 3 invoiced separately —{" "}
-              {naira(selected.price_monthly_naira * 3)} total
+              Months 2 and 3 invoiced separately — {money(priceMonthly * 3)} total
             </em>
           )}
+          {isEurope && <em>Charged in GBP.</em>}
         </div>
       )}
 

@@ -3,6 +3,8 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { initializeTransaction } from "@/lib/paystack";
+import { regionFor, currencyFor } from "@/lib/pricing";
+import { createCheckoutSession } from "@/lib/stripe";
 
 export type PlanKey = "monthly" | "upfront";
 
@@ -20,6 +22,7 @@ export type ApplicationInput = {
   referral: string;
   notes: string;
   consent: boolean;
+  countryCode: string;
 };
 
 export type ApplicationResult =
@@ -73,7 +76,7 @@ export async function submitApplication(
   // or a client-sent "this course is open" assumption.
   const { data: course, error: courseError } = await supabase
     .from("courses")
-    .select("slug, code, title, type, status, price_kobo, price_monthly_kobo, instalments")
+    .select("slug, code, title, type, status, price_kobo, price_monthly_kobo, price_gbp_pence, price_monthly_gbp_pence, instalments")
     .eq("slug", input.courseSlug)
     .single();
 
@@ -81,22 +84,36 @@ export async function submitApplication(
     return { ok: false, error: "That program isn't open for applications right now." };
   }
 
-  const isSummer = course.type === "summer";
+const isSummer = course.type === "summer";
+
+  // Region re-derived server-side from the submitted country code.
+  // The client's displayed price is never trusted.
+  const region = regionFor(input.countryCode);
+  const currency = currencyFor(region);
+  const isEurope = region === "EU";
+
+  const onceMinor = isEurope ? course.price_gbp_pence : course.price_kobo;
+  const monthlyMinor = isEurope ? course.price_monthly_gbp_pence : course.price_monthly_kobo;
 
   const amountDueKobo = isSummer
-    ? course.price_kobo
+    ? onceMinor
     : input.plan === "monthly"
-      ? course.price_monthly_kobo
-      : course.price_kobo;
+      ? monthlyMinor
+      : onceMinor;
 
   const amountTotalKobo = isSummer
-    ? course.price_kobo
+    ? onceMinor
     : input.plan === "monthly"
-      ? (course.price_monthly_kobo ?? 0) * 3
-      : course.price_kobo;
+      ? (monthlyMinor ?? 0) * 3
+      : onceMinor;
 
   if (!amountDueKobo) {
-    return { ok: false, error: "That payment plan isn't available for this program." };
+    return {
+      ok: false,
+      error: isEurope
+        ? "This programme isn't currently open to applicants outside Nigeria. Please contact us and we'll help."
+        : "That payment plan isn't available for this program.",
+    };
   }
 
   /* Request metadata for the audit trail. Behind Vercel the real
@@ -129,6 +146,8 @@ export async function submitApplication(
       p_source: "website",
       p_ip_address: ipAddress,
       p_user_agent: userAgent,
+      p_currency: currency,
+      p_parent_country: input.countryCode,
     }
   );
 
@@ -158,43 +177,58 @@ if (insertError || !applicationId) {
      bad minute would be far worse than asking admin to chase payment
      manually. The parent should never have to fill this form twice. */
 
-  if (!process.env.PAYSTACK_SECRET_KEY) {
-    // No keys configured yet (local dev before setup).
-    return { ok: true, applicationId, checkoutUrl: null };
-  }
+/* From here on the application row EXISTS and is safe. Every
+     failure path below returns ok:true with checkoutUrl:null rather
+     than an error — losing a saved application because a payment
+     provider had a bad minute would be far worse than asking admin to
+     chase payment manually. The parent should never have to fill this
+     form twice. */
 
-  const init = await initializeTransaction({
-    email: input.email,
-    amountKobo: amountDueKobo,
-    applicationId,
-    studentName: input.studentName,
-    courseTitle: course.title,
-  });
+  // Provider is chosen by CURRENCY, not by country: Paystack cannot
+  // process GBP on a Nigerian account, and Stripe isn't set up for NGN
+  // here. Currency was already derived from the parent's country above.
+  const init =
+    currency === "GBP"
+      ? await createCheckoutSession({
+          email: input.email,
+          amountMinor: amountDueKobo, // pence for GBP
+          currency: "gbp",
+          applicationId,
+          studentName: input.studentName,
+          courseTitle: course.title,
+        })
+      : process.env.PAYSTACK_SECRET_KEY
+        ? await initializeTransaction({
+            email: input.email,
+            amountKobo: amountDueKobo,
+            applicationId,
+            studentName: input.studentName,
+            courseTitle: course.title,
+          })
+        : ({ ok: false, error: "PAYSTACK_SECRET_KEY is not set." } as const);
 
   if (!init.ok) {
-    console.error("submitApplication paystack init:", init.error);
+    console.error(`submitApplication ${currency} checkout init:`, init.error);
     return { ok: true, applicationId, checkoutUrl: null };
   }
 
   /* Store the reference before the parent is redirected. If the
-     webhook never arrives, this is what lets admin match a Paystack
-     dashboard entry back to this application by hand. Goes through an
-     RPC for the same RLS reason as the insert. */
+     webhook never arrives, this is what lets admin match a provider
+     dashboard entry back to this application by hand. For Stripe this
+     is the checkout session id; for Paystack, the transaction ref. */
   const { error: refError } = await supabase.rpc("set_application_payment_ref", {
     p_application_id: applicationId,
     p_payment_ref: init.reference,
   });
 
   if (refError) {
-    // Non-fatal — the webhook carries application_id in its metadata
-    // and doesn't depend on this column. Log and continue.
     console.error("submitApplication payment_ref:", refError.message);
   }
 
   return {
     ok: true,
     applicationId,
-    checkoutUrl: init.authorizationUrl,
+    checkoutUrl: "checkoutUrl" in init ? init.checkoutUrl : init.authorizationUrl,
   };
 }
 

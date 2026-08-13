@@ -17,6 +17,10 @@ export type CourseRow = {
   status: "live" | "coming_soon";
   price_naira: number;
   price_monthly_naira: number | null;
+  // Pre-converted from pence by the view, same display-boundary rule
+  // as price_naira. NULL = course not offered in Europe.
+  price_gbp: number | null;
+  price_monthly_gbp: number | null;
   sort_order: number;
 };
 
@@ -42,7 +46,7 @@ export async function getAllCourses(): Promise<CourseRow[]> {
   const { data, error } = await supabase
     .from("public_courses")
     .select(
-      "slug, code, title, type, track, description, status, price_naira, price_monthly_naira, sort_order"
+      "slug, code, title, type, track, description, status, price_naira, price_monthly_naira, price_gbp, price_monthly_gbp, sort_order"
     )
     .order("sort_order", { ascending: true });
 

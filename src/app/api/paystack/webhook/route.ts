@@ -102,29 +102,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
   }
 
-  /* ⚠ VERIFY THIS SIGNATURE against your actual migration 0009.
-     record_payment() is documented as idempotent and safe to call
-     from both the webhook and manual admin entry, but the exact
-     parameter names/order aren't in the handoff docs. Run:
-
-       select pg_get_function_arguments(p.oid)
-       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname='public' and p.proname='record_payment';
-
-     and adjust the keys below to match. If the names are wrong this
-     fails loudly (Postgres rejects unknown named args) rather than
-     silently doing nothing — but better to check first. */
-  const { error: rpcError } = await supabase.rpc("record_payment", {
-    p_application_id: applicationId,
-    p_amount_kobo: amountKobo,
-    p_reference: reference,
-    p_method: "paystack",
-  });
-
-  // Already recorded — a retried delivery. Nothing to do.
-  if (application.payment_status === "paid") {
-    return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
-  }
 
   /* NOT record_payment() — that takes p_payment_id and operates on an
      existing row in the `payments` ledger, which only exists AFTER
