@@ -1,15 +1,20 @@
 # KIT Project Documentation — Complete Reference
 
-**Last updated:** 29 July 2026 (session 6)  
-**Project:** KIT Port Harcourt — Kids' tech education platform  
-**Live at:** https://kitacademy.net  
-**Status:** Deployed. Summer 2026 launches 10 Aug. 12-week program in planning.
+**Last updated:** 13 August 2026 (session 9)
+**Project:** KIT Port Harcourt — Kids' tech education platform
+**Live at:** https://kitacademy.net
+**Status:** Deployed and running with **5 real summer students**. All student-facing features confirmed working end to end — portal access, resource downloads, homework upload and submission, grading. SEO fully implemented and indexed on Google and Bing. 12-week program still schema-ready, UI not started.
 
-> ### ⚠️ READ THIS FIRST — two runtime bugs are live
-> 1. `/smportal/homework/[id]/page.tsx` may call `get_my_submission` with ONE argument. The real signature takes TWO: `(p_summer_student_id, p_resource_id)`. It may also reference a `file_url` column that doesn't exist (real columns: `url`, `storage_path`). Compiles clean, fails when a student opens an assignment.
-> 2. `HomeworkReview.tsx` may call `return_homework` with THREE arguments. The real signature is TWO: `(p_submission_id, p_feedback)`.
+> ### What changed since the last revision
+> **Everything that was flagged as broken or unverified last time is now resolved.** Resource downloads confirmed working. Paystack turned out never to have been broken — the reported symptom was payment abandonment, which is expected behaviour the code handles deliberately (see doc 07).
 >
-> Earlier revisions of doc 02 recorded the wrong signature for `return_homework`. It has been corrected. **Verify function signatures against the migration files, not against these docs.**
+> Fixed this session: homework uploads (blocked twice — first by a 1MB Next.js limit, then by a missing storage write policy), the resources page showing nothing, the resources sort toggle doing nothing, dashboard revenue permanently reading ₦0, and a test account inflating revenue and roster counts.
+>
+> Built this session: `/admin/students` (combined roster with test-account badging), a stubbed `/admin/teachers`, a rate limit on public application submission, and complete SEO implementation.
+>
+> **The single most valuable thing in these docs is doc 07 Part 4** — eight patterns that each caused more than one bug. Three separate total outages traced to one unanswered question: *who can read and write this table?*
+>
+> **Still open by choice:** international/USD payments (blocked on Paystack, parked pending Stripe), direct-to-Supabase uploads (4MB ceiling), and 5 admin nav stubs.
 
 ---
 
@@ -18,173 +23,56 @@
 ### 📍 **START HERE**
 
 #### 1. **01-MASTER-ROADMAP.md** (READ FIRST)
-**Purpose:** Project overview, timeline, and strategic roadmap  
-**Covers:**
-- What KIT is (summer vs 12-week)
-- Completed work (Phases 0–3) ✅
-- Active builds (Phase 3.5–5) 🟠
-- Known gaps (not blocking launch)
-- Tech stack and conventions
-- Immediate next steps (priority order)
-- Full roadmap to 2027
-
-**Who should read:** Everyone. This is the authoritative project status.
-
-**Time:** 15 minutes
-
----
+Project overview, timeline, roadmap, decision log (ADRs), and the current honest status of every open item — including Paystack and SEO, both unresolved.
+**Time:** 15–20 minutes
 
 #### 2. **02-TECHNICAL-REFERENCE.md** (FOR DEVELOPERS)
-**Purpose:** Deep technical manual for builders and debuggers  
-**Covers:**
-- Architecture at a glance (Next.js + Supabase)
-- Two access models (summer cookie vs 12-week Auth)
-- Database schema essentials (money handling, profiles, summer tables)
-- Security rules (RLS, SECURITY DEFINER)
-- Function signatures (verify in pg_proc)
-- Storage & file buckets (signed URLs)
-- Environment variables
-- Common patterns & gotchas
-- Deployment pipeline
-- Monitoring & debugging
-- Performance notes
-
-**Who should read:** Developers, DevOps, database admins
-
-**Time:** 20 minutes (skim first, refer back as needed)
-
-**Critical sections to memorize:**
-- All money is kobo (never naira in DB)
-- profiles.user_id is the PK (not id)
-- Cookies must be inside async functions (not module scope)
-- SECURITY DEFINER functions pin search_path
-
----
+Deep technical manual — architecture, security rules, verified function signatures, storage policies (now including the two RLS fixes from doc 07), environment variables, debugging patterns.
+**Time:** 20 minutes, refer back as needed
 
 #### 3. **03-ADMIN-OPERATIONS-MANUAL.md** (FOR ALFRED/OPERATORS)
-**Purpose:** Day-to-day workflows and how to manage cohorts  
-**Covers:**
-- Summer cohort settings (dates, current week, live toggle)
-- Weekly content publishing (resources, Meet link, publish workflow)
-- Batch management (create, edit, delete)
-- Student enrolment & KIT ID generation
-- Applications & approvals (seat counting, payment checks)
-- Homework grading (Google Classroom style)
-- Courses & pricing
-- Pre-launch checklist
-- Weekly operations checklist
-- Troubleshooting (students see "coming soon", Meet button gray, etc.)
-
-**Who should read:** Alfred (founder), any ops person managing the platform
-
-**Time:** 20 minutes
-
-**Most important:** Remember to bump `current_week` every Monday morning!
-
----
+Day-to-day workflows — cohort management, the batch shell, homework grading, the welcome-email flow, admin account management.
+**Time:** 20–25 minutes
 
 #### 4. **04-DEPLOYMENT-AND-DOMAIN.md** (FOR DEPLOYMENT)
-**Purpose:** Production deployment, domain migration, rollback procedures  
-**Covers:**
-- Pre-launch deployment checklist
-- Launch day timeline
-- Domain migration (when kit.ng is bought)
-- SSL/TLS setup (auto-handled)
-- Performance monitoring post-launch
-- Rollback procedure (if something breaks)
-- Emergency contacts & escalation
-- Cost optimization tips
-
-**Who should read:** DevOps, Alfred (deployment day), anyone managing domains
-
+Production deployment, domain migration, rollback procedures.
 **Time:** 15 minutes
-
----
 
 #### 5. **05-DEVELOPER-QUICK-START.md** (FOR NEW DEVS)
-**Purpose:** Get a new developer up and running in 15 minutes  
-**Covers:**
-- Local setup (clone, install, env vars)
-- Folder structure (where every file goes)
-- Common tasks (add page, add component, fetch data, Server Action)
-- Database workflow (migrations, queries)
-- Styling guide (globals.css, brand tokens)
-- Debugging tips
-- Git workflow (PowerShell compatible)
-- Testing locally (smoke test, manual flows)
-- Common errors & fixes
+Local setup, real folder structure, common tasks, debugging tips — including the CSS-duplication trap from doc 07, now called out explicitly as a first-week gotcha.
+**Time:** 15–20 minutes
 
-**Who should read:** New developers (human or AI), onboarding checklist
+#### 6. **06-BATCH-SHELL-SPEC.md** (WHAT WAS BUILT — batch shell)
+Full spec and as-built notes for the per-batch admin area and homework grading system, plus its own shorter build-problems log specific to that feature.
+**Time:** 20 minutes
 
-**Time:** 15 minutes (reference as needed)
-
----
-
-#### 6. **06-BATCH-SHELL-SPEC.md** (THE NEXT BUILD)
-**Purpose:** Full build spec for the per-batch admin area and homework grading system
-**Covers:**
-- Route structure (`/admin/summer/batch/[id]/...` with real routes per tab)
-- Batch cards with live grading counts
-- The homework queue: FIFO, inline feedback, optimistic removal, empty states
-- By-assignment roster with Missing filter
-- Resources tab with Shared / Batch-only tagging
-- The 3-state / 2-row submission model and what it forbids
-- Traps, build order, and what was explicitly deferred (with reasons)
-
-**Who should read:** Anyone building Phase 3.6. Read this BEFORE writing code.
-
-**Time:** 15 minutes
+#### 7. **07-BUGS-AND-LESSONS-LEARNED.md** (READ THIS ONE)
+**The complete bug history of the whole project.** 14 documented bugs plus one investigation that turned out not to be a bug at all. For each: the symptom a real user saw, every false lead chased before the real cause was found, the confirmed root cause, the fix, and the specific lesson. Includes **three total-outage incidents, all three sharing a single root cause.** Ends with eight recurring patterns worth knowing before you touch this codebase.
+**Who should read:** Everyone, but especially anyone about to build something new on top of student-facing reads/writes or touch an already-styled component.
+**Time:** 25–30 minutes. Worth it.
 
 ---
 
 ## Quick Navigation by Role
 
-### 👨‍💼 **Founder / Manager (Alfred)**
+### 👨‍💼 Founder / Manager (Alfred)
+Read: 01 → 03 → 07 (know what already broke once). Bookmark 03 for recurring workflows.
 
-**Read:**
-1. 01-MASTER-ROADMAP (full project status)
-2. 03-ADMIN-OPERATIONS-MANUAL (day-to-day workflows)
-3. 04-DEPLOYMENT-AND-DOMAIN (launch checklist)
+### 👨‍💻 Backend / Frontend Developer
+Read: 01 → 02 → 05 → **07 before writing any new student-facing read or touching styled CSS** → 06 if working in the batch shell specifically.
 
-**Bookmark:** 03-ADMIN-OPERATIONS-MANUAL for recurring workflows (bumping current week, publishing content, grading homework)
+### 🤖 AI Assistant (Claude / GPT)
+Read: 01 → 02 → 05 → **07 in full before doing anything with RLS, storage buckets, or CSS on an already-styled component.**
 
----
+**Non-negotiable, from doc 07's own pattern list:**
+- Any new table or storage bucket a summer student needs to *read* needs its own explicit read policy — an admin-only `ALL` policy does not cover it, and this exact gap caused two separate full-outage bugs.
+- Before adding CSS to a stylesheet for any class family that's been touched more than once, search the whole file for existing occurrences first. CSS doesn't error on duplicates — it just silently produces wrong-looking results.
+- Never replace a caught error with a generic message without logging the real one somewhere.
+- **When a file's been edited more than once in a session, hand back the complete file, not a diff.**
+- Never trust a doc's claim about an RPC signature, bucket name, or auth gate over the actual source — verify directly.
 
-### 👨‍💻 **Backend Developer (Building Features)**
-
-**Read:**
-1. 01-MASTER-ROADMAP (quick overview)
-2. 02-TECHNICAL-REFERENCE (critical details)
-3. 05-DEVELOPER-QUICK-START (local setup, common tasks)
-
-**Bookmark:** 02-TECHNICAL-REFERENCE for security rules, function signatures, debugging
-
----
-
-### 🤖 **AI Assistant (Claude / GPT)**
-
-**Read:**
-1. 01-MASTER-ROADMAP (understand project scope)
-2. 02-TECHNICAL-REFERENCE (security rules, patterns, gotchas)
-3. 05-DEVELOPER-QUICK-START (local workflow if building code)
-4. 03-ADMIN-OPERATIONS-MANUAL (understand workflows you might implement)
-
-**Critical to follow:**
-- All money is **kobo** in database, never naira
-- `profiles.user_id` is the PK
-- Cookies only inside async functions
-- RLS policies are NOT optional
-
----
-
-### 🚀 **DevOps / Deployment Engineer**
-
-**Read:**
-1. 01-MASTER-ROADMAP (what's deployed)
-2. 02-TECHNICAL-REFERENCE (sections: env vars, deployment pipeline, monitoring)
-3. 04-DEPLOYMENT-AND-DOMAIN (full deployment guide)
-
-**Bookmark:** 04-DEPLOYMENT-AND-DOMAIN (domain migration, rollback procedures)
+### 🚀 DevOps / Deployment Engineer
+Read: 01 → 02 (env vars, deployment, monitoring) → 04.
 
 ---
 
@@ -192,67 +80,47 @@
 
 ### The Project
 - **Two products:** Summer (3 weeks, no Auth) + 12-week (Saturdays, real Auth)
-- **Launch:** 10 August 2026
-- **Status:** Deployed at kitacademy.net. Summer fully built ✅; 12-week schema ready, UI pending
-- **Email:** Resend WIRED — sends Summer ID on enrol, KIT ID + password link on approve
+- **Status:** Deployed and **live with real students actively using it.** Summer portal access confirmed fixed and working (doc 07 Bug 2). Resource-download fix written and handed off but not explicitly confirmed deployed (doc 07 Bug 3) — verify. 12-week: schema ready, UI pending.
 - **Owner:** Alfred (solo founder)
 
+### What's Actually Open Right Now
+Nothing is *broken* for students or parents. Open items are deferred by choice:
+- **International/USD payments** — designed and written (migration 0033), but Paystack can't enable USD on this account. Parked pending Stripe. **Do not run 0033 as-is.**
+- **File uploads capped at ~4MB** by Vercel's platform limit. Direct-to-Supabase upload removes it.
+- **5 admin nav items still 404:** `/courses`, `/batches`, `/payments`, `/classes`, `/audit`.
+- **The "N payments overdue" dashboard alert** reads from the never-written `payments` table and silently never fires — same shape of fix as the revenue one (0032).
+
 ### Money Handling
-- **Stored in kobo (integer), never naira**
-- Kobo = naira × 100
-- Display does `/100`, storage never does
-- Paystack confirms in kobo
+Stored in kobo (integer), never naira. Kobo = naira × 100.
 
-### Database
-- **24 migrations live; 0025–0026 written and pending**
-- `profiles.user_id` is the PK (not `id`)
-- RLS on every sensitive table
-- SECURITY DEFINER functions pin `search_path`
+### Database & Storage — the pattern to know
+- 29 migrations live as of this session (0029 added the summer-bucket read policy).
+- **RLS rule that caused two full outages:** an admin-only `ALL` policy on a table or bucket does not grant any other role read access. Summer students authenticate via signed cookie, not Supabase Auth, so `is_admin()` is always false for them — any raw table/storage read gated only by `is_admin()` silently returns nothing for every student. The fix pattern is always the same: a `SECURITY DEFINER` function (for tables) or a scoped `SELECT` policy (for storage) that trusts the already-cookie-verified caller.
+- One storage bucket for summer files (`summer`), prefix-scoped, not several buckets.
 
-### Deployment
-- **Next.js 16 on Vercel**
-- **Supabase (Postgres) on Supabase**
-- Env baked at build time (redeploy after env changes)
-- Paystack webhook required for payments to work
-
-### Summer vs 12-Week
-| Aspect | Summer | 12-Week |
-|--------|--------|---------|
-| Auth | Signed cookie (no account) | Supabase Auth |
-| RLS | Via SECURITY DEFINER functions | Via RLS policies |
-| Batches | One roster per cohort | Max 15 per batch (many batches per course) |
-| KIT ID | SM26734 (summer-year-seq) | WD2601-0042 (course-year-cohort-seq) |
+### International Students
+Phone numbers now accept any country's dial code via a picker (248 countries, generated from a verified dataset — see doc 07 Bug 6 for a real mistake caught in that process before it shipped).
 
 ---
 
 ## Critical Gotchas (Don't Forget)
 
 1. **Cookies outside request scope:** Module-level cookie reads fail. Move inside async.
-2. **profiles.user_id is the PK:** Not `id`. Queries using `id` silently return nothing.
-3. **All money is kobo:** Display logic does `/100`. Storage never does.
-4. **Bump current_week Mondays:** Students see nothing new until you increment it.
-5. **Redeploy after env changes:** Env vars are baked at build time.
-6. **SECURITY DEFINER + search_path:** Functions must pin it or privilege escalation risk.
-7. **Webhook URL in Paystack:** If not set, payments never mark as paid. Must point at kitacademy.net now.
-8. **`createClient()` returns a Promise** — always `await` it. Server import is `@/lib/supabase/server`.
-9. **Verify RPC signatures in the migration files**, never from memory or from these docs. Two were recorded wrong.
-10. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster`.
-11. **Adding a scoping column to `summer_resources`?** Patch `get_summer_resources` in the SAME migration, or you silently leak across batches.
-
----
-
-## File Sizes & Scope
-
-| File | Size | Read Time | Purpose |
-|------|------|-----------|---------|
-| 01-MASTER-ROADMAP | 8 KB | 15 min | Project overview + roadmap |
-| 02-TECHNICAL-REFERENCE | 14 KB | 20 min | Deep technical guide |
-| 03-ADMIN-OPERATIONS | 10 KB | 20 min | Operational workflows |
-| 04-DEPLOYMENT-AND-DOMAIN | 11 KB | 15 min | Launch + domain migration |
-| 05-DEVELOPER-QUICK-START | 10 KB | 15 min | Onboarding + common tasks |
-| 06-BATCH-SHELL-SPEC | 14 KB | 15 min | Build spec for the next feature |
-
-**Total:** ~53 KB (fully searchable, plain markdown)
+2. **profiles.user_id is the PK:** Not `id`.
+3. **All money is kobo.**
+4. **Bump current_week Mondays:** Still cohort-wide, not per-batch.
+5. **Redeploy after env changes.**
+6. **A new table/bucket needs ALL FOUR access questions answered — read, write, update, delete, per role.** An admin `ALL` policy covers none of them for a cookie-authenticated summer student. (Caused **three** full outages — doc 07, Bugs 2, 3 & 10. ADR 011.)
+7. **CSS additions to an already-touched stylesheet must be preceded by a search for existing occurrences of those classes.** (Doc 07, Bug 5 — three rounds of "it still looks the same" traced to duplicate, conflicting rules.)
+8. **Never discard a caught error without logging the real message somewhere.**
+9. **A dynamic route folder (`[id]/`) does not serve its parent path.**
+10. **When editing a file touched more than once this session, hand back the complete file, not a diff.**
+11. **Verify RPC signatures, bucket names, and column names against the actual source — never a doc's claim or memory.**
+12. **A trustworthy data source doesn't guarantee correct field usage — spot-check the derivation against the most likely-to-be-used entries**, not a random sample. (Doc 07, Bug 6.)
+13. **Regenerate Supabase types after every migration — never cast around stale ones.** A cast silences the real errors in the same area, not just the phantom one. (Doc 07, Bug 14. ADR 012.)
+14. **Supabase returns only the columns you name in `.select()`.** A column that exists but isn't listed comes back `undefined`, and a `?? false` fallback turns that into a silent wrong answer.
+15. **Before debugging "X is broken," check whether X has ever worked for anyone.** "Failed for one person" and "broken for everyone" need completely different investigations. (Doc 07 — the Paystack non-bug.)
+16. **A stat reading zero may mean its source is never written to.** Check the write path before the read path. (Doc 07, Bug 13.)
 
 ---
 
@@ -260,107 +128,24 @@
 
 | Version | Date | What Changed |
 |---------|------|--------------|
-| 1.0 | 29 July 2026 | Initial consolidated documentation (consolidated from 14 older files) |
-| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC — the full build spec for the batch shell and homework grading system. |
-| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Resend confirmed wired. Corrected `return_homework` and `get_my_submission` signatures (both were wrong). Added migrations 0020–0024 to the timeline, plus pending 0025–0026. Added Phase 3.6 (batch shell + grading queue) and ADRs 005–006. Flagged cohort-wide `current_week` and the duplicate `.btn-primary`. |
+| 1.0–2.1 | 29 July 2026 | Initial docs through the batch-shell build spec. |
+| 3.0 | 29 July 2026 (session 7) | Phase 3.6 shipped end to end. Corrected two documentation errors that had caused real bugs (storage bucket name, auth-gate comment). |
+| **5.0** | **13 August 2026 (session 9)** | **All previously-open bugs closed or resolved.** Homework uploads fixed (1MB Server Action limit, then a missing storage write policy — the third instance of the same RLS gap). Resources page fixed (missing RPC arg + RLS-blocked raw query). Resource sort fixed. Dashboard revenue fixed (was reading from a table nothing writes to). Test-account flag added and excluded from all figures. `/admin/students` built; `/admin/teachers` stubbed. Rate limit on application submission. SEO fully implemented, indexed on Google and Bing. Paystack confirmed working — the earlier report was payment abandonment. USD payments designed but blocked on Paystack, parked for Stripe. ADRs 011–013 added. |
+| 4.0 | 12 August 2026 (session 8) | **Added doc 07 — full bug history.** Two full-portal outages found and fixed on launch day (student portal access, resource downloads) — both traced to the same root pattern: admin-only RLS with no separate student read policy. Five further bugs fixed and documented in detail (homework Redo silent failure, file-download MIME handling, a three-round CSS duplication issue, a phone-dial-code data error, two PDF-generation coordinate bugs). International phone number support added. Welcome email personalized. SEO fully audited (not implemented). Paystack investigation started, then paused — still broken. |
 
 ---
 
 ## How to Use This Documentation
 
-### When Starting a Feature
-1. Read 01-MASTER-ROADMAP (find the phase)
-2. Read relevant sections of 02-TECHNICAL-REFERENCE
-3. Check 05-DEVELOPER-QUICK-START for common patterns
-4. Ask: "Does this match existing patterns?"
+**Starting a feature that reads/writes summer-student data:** read doc 07's pattern list first. This isn't optional — it's the fastest way to not repeat the two outages already documented.
 
-### When Debugging
-1. Check 02-TECHNICAL-REFERENCE (Common errors & fixes section)
-2. Run smoke test if database is involved
-3. Check Vercel/Supabase logs
-4. Refer to gotchas list above
+**Debugging:** doc 02's gotchas → verify signatures/buckets/columns against source → doc 07 to check if this exact shape of bug has already happened → smoke test → Vercel/Supabase logs.
 
-### When Launching
-1. Print 01-MASTER-ROADMAP
-2. Follow 04-DEPLOYMENT-AND-DOMAIN checklist
-3. Have emergency contacts ready
-4. Monitor for 24 hours
-
-### When Handing Off to Someone Else
-1. Have them read this README
-2. Have them read 01-MASTER-ROADMAP
-3. Have them read the doc relevant to their role (see navigation above)
-4. Have them run local setup from 05-DEVELOPER-QUICK-START
-5. Pair program on first task
+**Launching something new:** doc 01 for status → doc 04's checklist → doc 07 for what's already gone wrong once.
 
 ---
 
-## Feedback & Updates
-
-**This documentation is the source of truth.** If you find:
-- **A gap:** Add it
-- **An error:** Fix it immediately (this is production code documentation)
-- **An outdated section:** Update the date and version number
-
-**After each major release (summer launch, phase 4 start, etc.):**
-- Update 01-MASTER-ROADMAP
-- Update version history
-- Date each file
-
----
-
-## Related Resources
-
-**Not in this doc but useful:**
-- Supabase docs: https://supabase.com/docs
-- Next.js docs: https://nextjs.org/docs
-- Paystack docs: https://paystack.com/developers
-- Vercel docs: https://vercel.com/docs
-
-**Real files (not in this doc):**
-- Database migrations: `migrations/` folder
-- Smoke test: `db-tests/smoke_test.sql`
-- Components: `components/` folder
-- Server actions: `app/*/actions.ts` files
-
----
-
-## Contact & Support
-
-**Technical questions:** Refer to documentation first, then ask Alfred (alfredenyinna03@gmail.com)  
-**Deployment issues:** Check 04-DEPLOYMENT-AND-DOMAIN, then contact DevOps  
-**Operational questions:** See 03-ADMIN-OPERATIONS-MANUAL, then contact Alfred
-
----
-
-**Last verified:** 29 July 2026 (day before launch)  
-**Next review:** 15 August 2026 (post-launch retrospective)
-
----
-
-## Summary: What You've Just Inherited
-
-**You now have:**
-- 📍 The complete project roadmap (past + future)
-- 🔒 Security rules you MUST follow
-- 🛠️ Technical patterns (money handling, auth, RLS)
-- 📋 Operational procedures (admin workflows)
-- 🚀 Deployment guides (local → production → domain)
-- 👶 Developer onboarding (get up in 15 min)
-
-**You're ready to:**
-- Build features (know the patterns)
-- Debug issues (know where to look)
-- Deploy to production (follow the checklist)
-- Hand off to someone else (this doc covers it)
-
-**You MUST remember:**
-1. All money is kobo
-2. Bump current_week Mondays
-3. profiles.user_id is the PK
-4. Redeploy after env changes
-5. Run smoke test after migrations
-
-**Good luck!** 🚀
+**Last verified:** 12 August 2026 (session 8)
+**Next review:** After Paystack is actually fixed, or after the next real incident — whichever comes first.
 
 —Alfred & Claude

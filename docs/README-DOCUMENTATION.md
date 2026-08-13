@@ -1,20 +1,20 @@
 # KIT Project Documentation — Complete Reference
 
-**Last updated:** 29 July 2026 (session 7 — Phase 3.6 shipped)
-**Project:** KIT Port Harcourt — kids' tech education platform
+**Last updated:** 13 August 2026 (session 9)
+**Project:** KIT Port Harcourt — Kids' tech education platform
 **Live at:** https://kitacademy.net
-**Status:** Deployed. Summer 2026 launches 10 August. Batch shell + homework grading system (Phase 3.6) is built, tested, and live. 12-week program is schema-ready; UI not started.
+**Status:** Deployed and running with **5 real summer students**. All student-facing features confirmed working end to end — portal access, resource downloads, homework upload and submission, grading. SEO fully implemented and indexed on Google and Bing. 12-week program still schema-ready, UI not started.
 
-> ### This documentation set was rewritten end-to-end on 29 July 2026
-> Everything below reflects what is actually running in production, not what was planned. Where the previous revision of these docs described bugs, gaps, or half-built features, those sections have been corrected or removed. If you're reading an older printout of these files, throw it away — several things it says are now wrong.
+> ### What changed since the last revision
+> **Everything that was flagged as broken or unverified last time is now resolved.** Resource downloads confirmed working. Paystack turned out never to have been broken — the reported symptom was payment abandonment, which is expected behaviour the code handles deliberately (see doc 07).
 >
-> One standing rule survives from the old docs and should outlive this rewrite too: **verify RPC signatures against the migration files, not against any document, including this one.** Documentation drifts. `pg_proc` doesn't lie.
-
----
-
-## Why These Docs Were Rewritten
-
-Phase 3.6 — the batch shell and homework grading system — went from "designed, not built" to fully shipped across nine build steps in a single long session. Along the way, three genuinely serious bugs were found and fixed (wrong RPC arities, a storage bucket that didn't exist, a homework list page that 404'd on every single visit), and two of the old docs turned out to describe things that weren't true anymore — one said an auth gate didn't exist when it did, another said a `git` history detail was still pending when it had shipped weeks earlier. The pattern across all of it: **docs that describe code, rather than the docs being generated from the code, will always drift.** This rewrite is a snapshot, not a promise — treat every claim below the same skeptical way the project itself was built: verify before you rely on it.
+> Fixed this session: homework uploads (blocked twice — first by a 1MB Next.js limit, then by a missing storage write policy), the resources page showing nothing, the resources sort toggle doing nothing, dashboard revenue permanently reading ₦0, and a test account inflating revenue and roster counts.
+>
+> Built this session: `/admin/students` (combined roster with test-account badging), a stubbed `/admin/teachers`, a rate limit on public application submission, and complete SEO implementation.
+>
+> **The single most valuable thing in these docs is doc 07 Part 4** — eight patterns that each caused more than one bug. Three separate total outages traced to one unanswered question: *who can read and write this table?*
+>
+> **Still open by choice:** international/USD payments (blocked on Paystack, parked pending Stripe), direct-to-Supabase uploads (4MB ceiling), and 5 admin nav stubs.
 
 ---
 
@@ -23,64 +23,56 @@ Phase 3.6 — the batch shell and homework grading system — went from "designe
 ### 📍 **START HERE**
 
 #### 1. **01-MASTER-ROADMAP.md** (READ FIRST)
-**Purpose:** Project overview, timeline, and strategic roadmap
-**Covers:** What KIT is, what's complete (Phases 0–3.6, all done), what's next (Phase 4), the full ADR decision log, and the architecture diagram.
-**Who should read:** Everyone. This is the authoritative project status.
+Project overview, timeline, roadmap, decision log (ADRs), and the current honest status of every open item — including Paystack and SEO, both unresolved.
 **Time:** 15–20 minutes
 
 #### 2. **02-TECHNICAL-REFERENCE.md** (FOR DEVELOPERS)
-**Purpose:** Deep technical manual — architecture, security model, verified RPC signatures, storage buckets.
-**Covers:** The two access models (summer cookie vs. 12-week Auth), database schema essentials, every RPC used by the batch shell with its confirmed signature, the real storage bucket layout (corrected — `submissions` is not a real bucket name), environment variables, common gotchas.
-**Who should read:** Developers, DevOps, anyone about to write a Server Action or RPC call.
-**Time:** 20–25 minutes (skim first, refer back as needed)
+Deep technical manual — architecture, security rules, verified function signatures, storage policies (now including the two RLS fixes from doc 07), environment variables, debugging patterns.
+**Time:** 20 minutes, refer back as needed
 
 #### 3. **03-ADMIN-OPERATIONS-MANUAL.md** (FOR ALFRED/OPERATORS)
-**Purpose:** Day-to-day workflows — now describing the actual batch shell, not the old single-page admin.
-**Covers:** Cohort settings, weekly content, the batch shell's four tabs (Overview, Class, Resources, Homework), the grading queue workflow, resource scoping (Shared vs. batch-only), student enrolment.
-**Who should read:** Alfred, any ops person managing the platform.
+Day-to-day workflows — cohort management, the batch shell, homework grading, the welcome-email flow, admin account management.
 **Time:** 20–25 minutes
 
 #### 4. **04-DEPLOYMENT-AND-DOMAIN.md** (FOR DEPLOYMENT)
-**Purpose:** Production deployment, domain migration template, rollback procedures.
-**Covers:** Launch checklist, launch-day timeline, generic domain migration steps (kept as a reusable template for the *next* migration), rollback procedure.
-**Who should read:** DevOps, Alfred on deployment day.
+Production deployment, domain migration, rollback procedures.
 **Time:** 15 minutes
 
 #### 5. **05-DEVELOPER-QUICK-START.md** (FOR NEW DEVS)
-**Purpose:** Get a new developer (human or AI) productive in 15 minutes.
-**Covers:** Local setup, the **real, current** folder structure (including the batch shell tree), common tasks, styling guide, git workflow, common errors — including the specific ones this project actually hit.
-**Who should read:** New developers, onboarding checklist.
+Local setup, real folder structure, common tasks, debugging tips — including the CSS-duplication trap from doc 07, now called out explicitly as a first-week gotcha.
 **Time:** 15–20 minutes
 
-#### 6. **06-BATCH-SHELL-SPEC.md** (AS-BUILT RECORD)
-**Purpose:** What was originally designed, and what actually got built — now marked complete, with every deviation from the original spec called out explicitly.
-**Covers:** Route structure, the four tabs, the FIFO grading queue, the by-assignment roster, resource scoping, the state model, and — new in this revision — a "What Actually Shipped vs. What Was Specified" section documenting every place the real implementation diverged from the plan and why.
-**Who should read:** Anyone extending Phase 3.6, or building the next similar feature.
+#### 6. **06-BATCH-SHELL-SPEC.md** (WHAT WAS BUILT — batch shell)
+Full spec and as-built notes for the per-batch admin area and homework grading system, plus its own shorter build-problems log specific to that feature.
 **Time:** 20 minutes
+
+#### 7. **07-BUGS-AND-LESSONS-LEARNED.md** (READ THIS ONE)
+**The complete bug history of the whole project.** 14 documented bugs plus one investigation that turned out not to be a bug at all. For each: the symptom a real user saw, every false lead chased before the real cause was found, the confirmed root cause, the fix, and the specific lesson. Includes **three total-outage incidents, all three sharing a single root cause.** Ends with eight recurring patterns worth knowing before you touch this codebase.
+**Who should read:** Everyone, but especially anyone about to build something new on top of student-facing reads/writes or touch an already-styled component.
+**Time:** 25–30 minutes. Worth it.
 
 ---
 
 ## Quick Navigation by Role
 
-### 👨‍💼 Founder / Operator (Alfred)
-**Read:** 01 (status) → 03 (workflows) → 04 (launch checklist)
-**Bookmark:** 03, for bumping `current_week`, grading homework, publishing content.
+### 👨‍💼 Founder / Manager (Alfred)
+Read: 01 → 03 → 07 (know what already broke once). Bookmark 03 for recurring workflows.
 
-### 👨‍💻 Developer (Building Features)
-**Read:** 01 (overview) → 02 (critical details) → 05 (local setup, patterns)
-**Bookmark:** 02, for RPC signatures and the storage bucket table.
+### 👨‍💻 Backend / Frontend Developer
+Read: 01 → 02 → 05 → **07 before writing any new student-facing read or touching styled CSS** → 06 if working in the batch shell specifically.
 
-### 🤖 AI Assistant (Claude / GPT / any coding agent)
-**Read:** 01 → 02 → 05 → 03
-**Critical to internalize before writing any code:**
-- All money is **kobo**, never naira, in the database.
-- `profiles.user_id` is the PK, not `id`.
-- Cookies only work inside async request scope.
-- **Never guess an RPC signature or a storage bucket name.** Ask for the migration file or the calling code. This project shipped broken code from wrong signatures more than once, and a wrong bucket name caused a full outage of file previews that took a working feature down for hours.
-- **When editing a file that's been touched across multiple sessions or several edit rounds, ask for or regenerate the complete current file rather than describing a diff to apply by hand.** This project hit the same class of bug three times in one session — a piece dropped while a person manually merged a diff into a file neither party could see in the same state. Full-file replacement is slower per message but categorically avoids this failure mode.
+### 🤖 AI Assistant (Claude / GPT)
+Read: 01 → 02 → 05 → **07 in full before doing anything with RLS, storage buckets, or CSS on an already-styled component.**
+
+**Non-negotiable, from doc 07's own pattern list:**
+- Any new table or storage bucket a summer student needs to *read* needs its own explicit read policy — an admin-only `ALL` policy does not cover it, and this exact gap caused two separate full-outage bugs.
+- Before adding CSS to a stylesheet for any class family that's been touched more than once, search the whole file for existing occurrences first. CSS doesn't error on duplicates — it just silently produces wrong-looking results.
+- Never replace a caught error with a generic message without logging the real one somewhere.
+- **When a file's been edited more than once in a session, hand back the complete file, not a diff.**
+- Never trust a doc's claim about an RPC signature, bucket name, or auth gate over the actual source — verify directly.
 
 ### 🚀 DevOps / Deployment Engineer
-**Read:** 01 (what's deployed) → 02 (env vars, deployment pipeline) → 04 (full deployment guide)
+Read: 01 → 02 (env vars, deployment, monitoring) → 04.
 
 ---
 
@@ -88,42 +80,47 @@ Phase 3.6 — the batch shell and homework grading system — went from "designe
 
 ### The Project
 - **Two products:** Summer (3 weeks, no Auth) + 12-week (Saturdays, real Auth)
-- **Launch:** 10 August 2026
-- **Status:** Summer fully built and live, including the batch shell (Phase 3.6). 12-week schema ready, UI not started.
+- **Status:** Deployed and **live with real students actively using it.** Summer portal access confirmed fixed and working (doc 07 Bug 2). Resource-download fix written and handed off but not explicitly confirmed deployed (doc 07 Bug 3) — verify. 12-week: schema ready, UI pending.
 - **Owner:** Alfred (solo founder)
 
+### What's Actually Open Right Now
+Nothing is *broken* for students or parents. Open items are deferred by choice:
+- **International/USD payments** — designed and written (migration 0033), but Paystack can't enable USD on this account. Parked pending Stripe. **Do not run 0033 as-is.**
+- **File uploads capped at ~4MB** by Vercel's platform limit. Direct-to-Supabase upload removes it.
+- **5 admin nav items still 404:** `/courses`, `/batches`, `/payments`, `/classes`, `/audit`.
+- **The "N payments overdue" dashboard alert** reads from the never-written `payments` table and silently never fires — same shape of fix as the revenue one (0032).
+
 ### Money Handling
-- Stored in kobo (integer), never naira. Kobo = naira × 100. Display does `/100`; storage never does.
+Stored in kobo (integer), never naira. Kobo = naira × 100.
 
-### Database
-- **26 migrations, all confirmed live** as of this revision (0025 and 0026 — the batch-scoped resources column and the grading queue function — were confirmed run and verified directly against `information_schema.columns` and `pg_proc`, not just assumed from a doc).
-- `profiles.user_id` is the PK, not `id`.
-- RLS on every sensitive table; SECURITY DEFINER functions pin `search_path`.
+### Database & Storage — the pattern to know
+- 29 migrations live as of this session (0029 added the summer-bucket read policy).
+- **RLS rule that caused two full outages:** an admin-only `ALL` policy on a table or bucket does not grant any other role read access. Summer students authenticate via signed cookie, not Supabase Auth, so `is_admin()` is always false for them — any raw table/storage read gated only by `is_admin()` silently returns nothing for every student. The fix pattern is always the same: a `SECURITY DEFINER` function (for tables) or a scoped `SELECT` policy (for storage) that trusts the already-cookie-verified caller.
+- One storage bucket for summer files (`summer`), prefix-scoped, not several buckets.
 
-### Deployment
-- Next.js 16 on Vercel. Supabase (Postgres) for everything else.
-- Env vars baked at build time — redeploy after any change.
-- **Paystack live key was rotated** after a leaked key was pasted into a chat session earlier in the build. Confirmed done.
-
-### Storage — corrected in this revision
-- There is **no bucket literally named `submissions`.** Homework file submissions live in the `summer` bucket, under a `submissions/{student_id}/{resource_id}/...` path prefix. An earlier build session assumed a separate bucket existed (it doesn't), which silently broke every admin file preview until caught and fixed. See doc 02, section VI, for the corrected bucket table.
+### International Students
+Phone numbers now accept any country's dial code via a picker (248 countries, generated from a verified dataset — see doc 07 Bug 6 for a real mistake caught in that process before it shipped).
 
 ---
 
 ## Critical Gotchas (Don't Forget)
 
-1. **Cookies outside request scope fail.** Move cookie reads inside async functions.
-2. **`profiles.user_id` is the PK**, not `id`. Queries using `id` silently return nothing.
-3. **All money is kobo.** Display logic does `/100`. Storage never does.
-4. **Bump `current_week` Mondays** — students see nothing new until it's incremented. It is cohort-wide, not per-batch (see doc 01, Known Gaps).
-5. **Redeploy after env var changes** — they're baked at build time.
-6. **SECURITY DEFINER functions must pin `search_path`.**
-7. **Verify RPC signatures against migration files**, never from memory or from a doc. This project shipped broken code from wrong signatures twice before the rule was taken seriously.
-8. **There is no `submissions` storage bucket.** It's `summer`, with a path prefix. See above.
-9. **`assigned` homework = NO ROW**, not a row with a status. Non-submitters only appear via the LEFT JOIN in `get_homework_roster` and `get_grading_queue`.
-10. **A dynamic route folder (`[id]/`) does not serve its parent path.** `/smportal/homework/page.tsx` and `/smportal/homework/[id]/page.tsx` are two separate files with two separate responsibilities. This project once had detail-page logic sitting at the list-page path, which meant the list page 404'd on every single visit — the `id` param was always `undefined`.
-11. **When adding a scoping column** (like `summer_resources.batch_id`), update every function that reads that table in the *same* migration, or you silently leak data across scopes. This is why 0025 shipped the column and the leak fix together.
-12. **On a file that's been edited more than once in a session, ask for the complete current file before making further changes.** See the AI Assistant section above — this isn't optional advice, it's a lesson paid for in real build time.
+1. **Cookies outside request scope:** Module-level cookie reads fail. Move inside async.
+2. **profiles.user_id is the PK:** Not `id`.
+3. **All money is kobo.**
+4. **Bump current_week Mondays:** Still cohort-wide, not per-batch.
+5. **Redeploy after env changes.**
+6. **A new table/bucket needs ALL FOUR access questions answered — read, write, update, delete, per role.** An admin `ALL` policy covers none of them for a cookie-authenticated summer student. (Caused **three** full outages — doc 07, Bugs 2, 3 & 10. ADR 011.)
+7. **CSS additions to an already-touched stylesheet must be preceded by a search for existing occurrences of those classes.** (Doc 07, Bug 5 — three rounds of "it still looks the same" traced to duplicate, conflicting rules.)
+8. **Never discard a caught error without logging the real message somewhere.**
+9. **A dynamic route folder (`[id]/`) does not serve its parent path.**
+10. **When editing a file touched more than once this session, hand back the complete file, not a diff.**
+11. **Verify RPC signatures, bucket names, and column names against the actual source — never a doc's claim or memory.**
+12. **A trustworthy data source doesn't guarantee correct field usage — spot-check the derivation against the most likely-to-be-used entries**, not a random sample. (Doc 07, Bug 6.)
+13. **Regenerate Supabase types after every migration — never cast around stale ones.** A cast silences the real errors in the same area, not just the phantom one. (Doc 07, Bug 14. ADR 012.)
+14. **Supabase returns only the columns you name in `.select()`.** A column that exists but isn't listed comes back `undefined`, and a `?? false` fallback turns that into a silent wrong answer.
+15. **Before debugging "X is broken," check whether X has ever worked for anyone.** "Failed for one person" and "broken for everyone" need completely different investigations. (Doc 07 — the Paystack non-bug.)
+16. **A stat reading zero may mean its source is never written to.** Check the write path before the read path. (Doc 07, Bug 13.)
 
 ---
 
@@ -131,61 +128,24 @@ Phase 3.6 — the batch shell and homework grading system — went from "designe
 
 | Version | Date | What Changed |
 |---------|------|--------------|
-| 1.0 | 29 July 2026 | Initial consolidated documentation (from 14 older files). |
-| 2.0 | 29 July 2026 | Session 6. Deployed to kitacademy.net. Corrected `return_homework` and `get_my_submission` signatures. Added Phase 3.6 design (batch shell + grading queue) as a spec, not yet built. |
-| 2.1 | 29 July 2026 | Added 06-BATCH-SHELL-SPEC as a full build spec. |
-| **3.0** | **29 July 2026 (session 7)** | **Phase 3.6 fully built across all 9 spec steps and shipped.** Full documentation rewrite. Corrected: the storage bucket table (no `submissions` bucket), doc 05's stale claim that the admin auth gate didn't exist (it does, and works), doc 01's stale "0025/0026 pending" status (both confirmed run), the misplaced homework list-page logic. Paystack key rotation confirmed complete. `/admin/summer` reorganized (batches first, cohort settings second, shared-resources editor collapsed by default) now that the batch shell owns per-batch work. |
+| 1.0–2.1 | 29 July 2026 | Initial docs through the batch-shell build spec. |
+| 3.0 | 29 July 2026 (session 7) | Phase 3.6 shipped end to end. Corrected two documentation errors that had caused real bugs (storage bucket name, auth-gate comment). |
+| **5.0** | **13 August 2026 (session 9)** | **All previously-open bugs closed or resolved.** Homework uploads fixed (1MB Server Action limit, then a missing storage write policy — the third instance of the same RLS gap). Resources page fixed (missing RPC arg + RLS-blocked raw query). Resource sort fixed. Dashboard revenue fixed (was reading from a table nothing writes to). Test-account flag added and excluded from all figures. `/admin/students` built; `/admin/teachers` stubbed. Rate limit on application submission. SEO fully implemented, indexed on Google and Bing. Paystack confirmed working — the earlier report was payment abandonment. USD payments designed but blocked on Paystack, parked for Stripe. ADRs 011–013 added. |
+| 4.0 | 12 August 2026 (session 8) | **Added doc 07 — full bug history.** Two full-portal outages found and fixed on launch day (student portal access, resource downloads) — both traced to the same root pattern: admin-only RLS with no separate student read policy. Five further bugs fixed and documented in detail (homework Redo silent failure, file-download MIME handling, a three-round CSS duplication issue, a phone-dial-code data error, two PDF-generation coordinate bugs). International phone number support added. Welcome email personalized. SEO fully audited (not implemented). Paystack investigation started, then paused — still broken. |
 
 ---
 
 ## How to Use This Documentation
 
-**Starting a feature:** Read 01 to find where it fits, check 02 for the relevant technical section, check 05 for local patterns, then ask: does this match how the batch shell was built?
+**Starting a feature that reads/writes summer-student data:** read doc 07's pattern list first. This isn't optional — it's the fastest way to not repeat the two outages already documented.
 
-**Debugging:** Check 02's gotchas and RPC signature table first. If it's a "column does not exist" or "function does not exist" error, verify against the actual database (`information_schema.columns`, `pg_proc`) before assuming the docs are current.
+**Debugging:** doc 02's gotchas → verify signatures/buckets/columns against source → doc 07 to check if this exact shape of bug has already happened → smoke test → Vercel/Supabase logs.
 
-**Handing off to someone else:** Have them read this README, then 01, then whichever doc matches their role above. Have them run local setup from 05. Pair on the first real task.
-
----
-
-## Related Resources
-
-- Supabase docs: https://supabase.com/docs
-- Next.js docs: https://nextjs.org/docs
-- Paystack docs: https://paystack.com/developers
-- Vercel docs: https://vercel.com/docs
-
-**Real files, not covered by this doc set:**
-- Database migrations: `supabase/migrations/`
-- Server actions: `src/app/**/actions.ts`, `batch-actions.ts`, `resource-actions.ts`
+**Launching something new:** doc 01 for status → doc 04's checklist → doc 07 for what's already gone wrong once.
 
 ---
 
-## Contact & Support
+**Last verified:** 12 August 2026 (session 8)
+**Next review:** After Paystack is actually fixed, or after the next real incident — whichever comes first.
 
-**Technical questions:** This documentation first, then Alfred (alfredenyinna03@gmail.com)
-**Deployment issues:** Doc 04, then Alfred
-**Operational questions:** Doc 03, then Alfred
-
----
-
-**Last verified:** 29 July 2026 (session 7 — Phase 3.6 shipped)
-**Next review:** 15 August 2026 (post-launch retrospective)
-
----
-
-## Summary: What You've Just Inherited
-
-A fully built, deployed platform for the Summer 2026 cohort, including a purpose-built admin system (the batch shell) for running multiple batches with independent class schedules, homework grading queues, and resource scoping — built, tested, and documented in one continuous session. The 12-week program's database schema exists but has no UI yet; that's the next major phase.
-
-**You must remember:**
-1. All money is kobo.
-2. Bump `current_week` Mondays.
-3. `profiles.user_id` is the PK.
-4. Redeploy after env changes.
-5. Verify RPC signatures and bucket names against the actual database — not this document, not any document.
-6. When editing a file with edit history, get the whole file, not a diff.
-
-**Good luck.**
-
-— Alfred & Claude
+—Alfred & Claude

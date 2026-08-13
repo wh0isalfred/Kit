@@ -8,7 +8,7 @@
 
 This document was originally a build spec written before any code existed. It is now a record of what was actually built, including every place the real implementation differs from the original plan, and every bug that was found along the way. **Where this document and the original spec disagree, this document — the as-built record — is correct.** Where this document and the actual code disagree, the code wins; verify before relying on any claim here.
 
-> **Note added session 8 (12 August 2026):** the launch-day bugs found and fixed since this doc was written were all in student-facing code outside the batch shell (`/smportal`, the application form, storage policies) — none inside this system specifically. This doc's own bug log below remains accurate and specific to the batch-shell build. See doc 07 for the full project bug history, including two full-outage incidents.
+> **Note added session 9 (13 August 2026):** every bug found since this doc was written has been in student-facing code outside the batch shell (`/smportal`, the application form, storage policies, the admin dashboard) — **none inside this system.** The batch shell has run in production through a full cohort without a reported defect. This doc's own bug log below remains accurate and specific to the batch-shell build. See doc 07 for the full project bug history, including three full-outage incidents that all shared one root cause.
 
 ---
 

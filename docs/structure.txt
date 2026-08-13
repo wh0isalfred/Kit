@@ -1,11 +1,14 @@
 KIT — File Structure (Annotated)
-Base tree generated 29 July 2026, supplemented and updated 12 August 2026 (session 8).
+Base tree generated 29 July 2026, supplemented and updated 13 August 2026 (session 9).
 See notes at the bottom before trusting the batch/[batchId] or homework/[id] sections.
 
 .\src\proxy.ts
 .\src\app\global.css
 .\src\app\globals.css
 .\src\app\layout.tsx
+.\src\app\robots.ts                       <-- NEW, session 9. Next.js convention,
+                                                  auto-serves /robots.txt.
+.\src\app\sitemap.ts                      <-- NEW, session 9. Auto-serves /sitemap.xml.
 .\src\app\(marketing)\layout.tsx
 .\src\app\(marketing)\page.tsx
 .\src\app\(marketing)\about\page.tsx
@@ -32,6 +35,15 @@ See notes at the bottom before trusting the batch/[batchId] or homework/[id] sec
 .\src\app\admin\(protected)\summer\resource-actions.ts
 .\src\app\admin\(protected)\summer\SummerAdmin.tsx
 .\src\app\admin\(protected)\summer\SummerResources.tsx
+.\src\app\admin\(protected)\students\page.tsx            <-- NEW, session 9. Combined
+                                                                    summer + 12-week roster.
+.\src\app\admin\(protected)\students\StudentsView.tsx     <-- NEW, session 9. Search,
+                                                                    filter, test-account badges.
+.\src\app\admin\(protected)\teachers\page.tsx            <-- NEW, session 9. Deliberate
+                                                                    stub — teachers table is
+                                                                    empty; summer instructor
+                                                                    names are free text on
+                                                                    summer_batch_sessions.
 
   --- NOT PRESENT IN THE RAW EXPORT, BUT CONFIRMED BUILT AND DEPLOYED ---
   --- (see note at the bottom of this file for why) ---
@@ -138,12 +150,30 @@ See notes at the bottom before trusting the batch/[batchId] or homework/[id] sec
                                                                   DELIBERATELY NEVER RUN. See
                                                                   doc 01 §II and doc 07 Bug 1 —
                                                                   do not assume this is applied.
-.\supabase\migrations\0029_summer_resources_public_read.sql <-- NEW, session 8, written and
-                                                                  handed off, DEPLOYMENT NOT
-                                                                  CONFIRMED. Verify before
-                                                                  assuming resource downloads
-                                                                  work for students. See doc 07
-                                                                  Bug 3.
+.\supabase\migrations\0029_summer_resources_public_read.sql <-- session 8. CONFIRMED RUN
+                                                                  and working. Student resource
+                                                                  downloads. Doc 07 Bug 3.
+.\supabase\migrations\0030_summer_submissions_student_write.sql <-- NEW, session 9. CONFIRMED
+                                                                  RUN. Students can upload
+                                                                  homework. Doc 07 Bug 10.
+.\supabase\migrations\0031_application_rate_limit.sql      <-- NEW, session 9. CONFIRMED RUN.
+                                                                  5 applications per IP per
+                                                                  hour. Adds application_attempts
+                                                                  table.
+.\supabase\migrations\0032_admin_stats_real_revenue.sql    <-- NEW, session 9. CONFIRMED RUN.
+                                                                  Revenue from applications, not
+                                                                  the never-written payments
+                                                                  table. Doc 07 Bug 13.
+.\supabase\migrations\0033_usd_pricing.sql                 <-- NEW, session 9. WRITTEN BUT
+                                                                  DELIBERATELY NOT RUN. Paystack
+                                                                  cannot enable USD on this
+                                                                  account. Parked pending Stripe.
+                                                                  DO NOT RUN AS-IS.
+.\supabase\migrations\0034_test_account_flag.sql           <-- NEW, session 9. CONFIRMED RUN.
+                                                                  is_test flag on applications +
+                                                                  summer_students, excluded from
+                                                                  all dashboard figures.
+                                                                  Doc 07 Bug 14.
 .\supabase\migrations\20260721000001_extensions_and_helpers.sql
 .\supabase\migrations\20260721000002_courses.sql
 .\supabase\migrations\20260721000003_people_and_batches.sql
@@ -160,13 +190,17 @@ See notes at the bottom before trusting the batch/[batchId] or homework/[id] sec
 ===============================================================================
 FILES DELIBERATELY NOT LISTED ABOVE — NOT PART OF THE REPOSITORY
 
-KIT-Assignment-1.pdf and the KIT Day-1 lesson slide template (.pptx) were built
-this session as course-material deliverables, not application code. They live
+KIT-Assignment-1.pdf and the KIT Day-1/Day-2 lesson slide templates (.pptx) were
+built as course-material deliverables, not application code. They live
 wherever Alfred saved them after download (and, distributed to students, in
 Supabase Storage as resource attachments) — they were never intended to be
 committed to the repo, so they don't belong in this tree. If either ever DOES
 get committed (e.g. a canonical copy kept in the repo for version control),
 add it above; until then, treat their absence here as correct, not a gap.
+
+NOTE: public/og.png IS part of the repo (it's served by the site as the social
+share card) and is listed above under src/ — don't confuse it with the course
+materials described here.
 
 ===============================================================================
 NOTE ON THE SUPPLEMENTED SECTIONS ABOVE

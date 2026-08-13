@@ -2,7 +2,7 @@
 
 **For:** Alfred (founder/admin) and future admins
 **Live at:** https://kitacademy.net/admin
-**Last updated:** 12 August 2026 (session 8)
+**Last updated:** 13 August 2026 (session 9)
 
 ---
 
@@ -63,6 +63,40 @@ A genuinely fillable PDF worksheet exists for Day 2's homework — students can 
 ### KIT Day-1 lesson slide template
 
 A reusable `.pptx` template exists for daily lessons — cover, agenda, driving question, concept slide, task-steps slide, example slot, wrap-up. Duplicate whichever layout fits the day's content rather than building slides from scratch. Uses the real KIT logo throughout (with a specific light variant for the dark-background slides, since the logo's navy element doesn't read against a navy background otherwise).
+
+---
+
+## VII-B. THE STUDENTS PAGE (`/admin/students`)
+
+A combined roster of everyone enrolled at KIT, across both programmes.
+
+**What it shows:** name, ID (Summer ID or KIT ID), programme, batch, parent contact, and status. Summer students come from `summer_students`, 12-week students from `students` — two separate tables by design (ADR 002), merged into one view because a page built on only one would be empty or misleading.
+
+**Search and filter:** free-text search across name, ID, and email; segmented filter for All / Summer / 12-week with live counts.
+
+**Test accounts:** rows flagged `is_test` (currently the internal "KIT" account used to verify the payment flow) are **shown with a purple "Test" badge and a tinted row, but excluded from every count** — both here and on the dashboard. So the roster's own counts always agree with the dashboard's figures. To flag a future test account:
+```sql
+update applications set is_test = true where id = '<application id>';
+update summer_students set is_test = true where summer_id = '<SM…>';
+```
+Flag by id or Summer ID, not by name — a name filter breaks the day a real student is called Kit.
+
+**One genuinely useful alert built in:** 12-week students who have an account but were never sent login details are listed by name at the top of the page. The dashboard already alerts on this condition; here you can see *who* it is.
+
+---
+
+## VII-C. REVENUE FIGURES — how they're actually calculated
+
+**Revenue received** = the sum of `amount_due_kobo` across all applications where `payment_status = 'paid'`, excluding test rows.
+
+Two things worth knowing:
+
+1. **Manual and automatic payments count identically.** Both the Paystack webhook and the admin "mark as paid" action set the same `payment_status = 'paid'`, so a bank transfer you record by hand shows up in revenue exactly like a card payment.
+2. **The amount is what was charged at the time**, captured on the application row — not looked up from the course's current price. So changing a course price never retroactively alters historical revenue (ADR 013).
+
+**Known limitation:** for the 12-week monthly plan, `amount_due_kobo` is only the *first* instalment. Months 2 and 3 are invoiced separately and nothing records them yet. So "revenue" means money actually confirmed received — honest, but it understates the full contract value of a monthly-plan student until instalment tracking exists.
+
+**Unpaid applications:** these sit at `pending_payment` indefinitely and nothing chases them automatically. Current process is manual — text the KIT account details to anyone who applied but didn't pay. At current volume a personal WhatsApp message converts better than an automated email.
 
 ---
 

@@ -1,7 +1,7 @@
 # KIT — Technical Reference Manual
 
 **For:** Developers picking up this codebase (human or AI)
-**Last updated:** 12 August 2026 (session 8)
+**Last updated:** 13 August 2026 (session 9)
 
 ---
 
@@ -25,9 +25,14 @@ This exact gap caused two independent, total-outage bugs on launch day:
 1. `summer_students` had only an admin `ALL` policy — the student portal's own name/batch lookup returned nothing for every student, unconditionally, from day one.
 2. The `summer` storage bucket had only an admin `ALL` policy — every resource download failed for every student with a generic "Couldn't open that file," which looks identical to a wrong file path from the outside.
 
+**A third instance appeared on the WRITE side (session 9):** students could not *upload* homework, because the `summer` bucket's only write policy was also `is_admin()`-gated. Reads had been fixed; writes had never been reachable until a separate Next.js body-size limit was raised, so the gap stayed hidden. **Three outages, one unanswered question, three different places.**
+
+**The rule, generalized (ADR 011): for every new table or bucket, explicitly answer READ, WRITE, UPDATE, and DELETE for every role that will touch it — before the migration is considered done.**
+
 **The fix pattern, now the standard for anything student-facing:**
 - **For a table:** write a `SECURITY DEFINER` function that trusts the already-cookie-verified id passed to it (same pattern as `get_summer_portal`, `get_summer_resources`, `turn_in_homework`, and now `get_my_summer_student`) — never a raw `.from(table).select()` from student-facing code.
-- **For storage:** add a second, narrowly-scoped `SELECT` policy (`TO public`, filtered to exactly the paths that should be readable) alongside the existing admin policy — never widen the admin policy itself, and never make a bucket broadly public if it also holds anything private (see `summer`'s `submissions/` exclusion below).
+- **For storage reads:** add a narrowly-scoped `SELECT` policy (`TO public`, filtered to exactly the paths that should be readable) alongside the existing admin policy — never widen the admin policy itself, and never make a bucket broadly public if it also holds anything private (see `summer`'s `submissions/` exclusion below).
+- **For storage writes:** same shape — a scoped `INSERT` policy, restricted to the specific prefix that role should be able to write to. Use `INSERT` rather than `ALL` unless overwrite/delete is genuinely needed.
 
 **Before writing any new summer-student-facing read, ask: does this table/bucket have a policy that a cookie-only, non-admin caller can actually satisfy? If the only policy is `is_admin()`-gated, it will silently return nothing — not error, just nothing — for every student.**
 
@@ -95,7 +100,29 @@ USING (
 
 **Why the second policy excludes `submissions/` specifically:** the same bucket holds both admin-uploaded resources (`{year}/week{n}/...`) and students' own submitted homework (`submissions/{sid}/{resourceId}/...`). A blanket "make the bucket public" fix would have solved the resource-download bug but also made every student's private submitted homework readable by anyone holding the public anon key. The exclusion is the entire reason this needed a real policy, not a one-line dashboard toggle.
 
-**⚠️ Deployment status: this policy was written and handed off but never explicitly confirmed as applied. Verify it's actually live — run `select policyname from pg_policies where tablename = 'objects' and qual::text like '%summer%';` and confirm both policies show up — before assuming resource downloads work for students.**
+**Deployment status: confirmed applied and working.** Students can download resources.
+
+### And a THIRD policy for student uploads (0030)
+
+```sql
+CREATE POLICY "summer submissions writable by anyone"
+ON storage.objects FOR INSERT
+TO public
+WITH CHECK (
+  bucket_id = 'summer'
+  AND (storage.foldername(name))[1] = 'submissions'
+);
+```
+
+`INSERT` only, not `ALL` — students create submission files but cannot overwrite or delete existing ones directly through storage. Scoped to `submissions/` so a student can never write into `{year}/week{n}/` where lesson materials live.
+
+**A limitation to know rather than discover:** this permits anyone holding the public anon key to write into `submissions/`. That's consistent with the whole summer trust model — students have no Supabase Auth identity, so the database genuinely cannot tell one from another; the real gate is the Server Action verifying the session cookie (ADR 002). The database is not enforcing "student A can't write into student B's folder" — only application code is.
+
+**Current state: the `summer` bucket has three policies** — admin `ALL`, public `SELECT` on non-submission paths, public `INSERT` on `submissions/`. Verify with:
+```sql
+select policyname, cmd from pg_policies
+where tablename = 'objects' and qual::text like '%summer%';
+```
 
 ### Forcing downloads instead of inline rendering
 
@@ -145,6 +172,34 @@ If it comes back with more than the expected number of hits, delete all of them 
 
 ### A dynamic route folder does not serve its parent path
 Unchanged from prior revision.
+
+### Supabase returns ONLY the columns you name in `.select()`
+A column that exists in the database but isn't listed comes back `undefined`, not `null` — and if the calling code has a `?? false` or `?? 0` fallback, the feature silently does nothing rather than erroring. This caused a badge to never render and counts to stay wrong across two rounds of debugging. **Properly generated types catch this; a type cast hides it (ADR 012).**
+
+### Never cast around stale generated types — regenerate them
+```powershell
+npx supabase gen types typescript --linked > src/lib/database.types.ts
+```
+Run after every migration that adds or changes a column. A cast like `(row as { col?: T }).col` silences the stale-type error *and* the real errors in the same area.
+
+### A stat reading zero may mean its source is never written to
+`admin_stats` computed revenue from the `payments` table, which nothing in the codebase ever writes to — a full search found only admin nav labels. The dashboard showed ₦0 with six paid applications. **Check the write path before debugging the read path.**
+
+---
+
+## VIII-B. PLATFORM LIMITS THAT AREN'T IN YOUR CODE
+
+These are constraints imposed by Next.js and Vercel, not by anything in this repo. They cause failures that look like application bugs.
+
+| Limit | Value | Where it's set | Notes |
+|---|---|---|---|
+| Server Action request body | **1MB by default** | `next.config.ts` → `experimental.serverActions.bodySizeLimit` | Currently set to `4mb`. Blocked a real student's homework upload before any code ran. |
+| Vercel serverless function payload | **~4.5MB, hard** | Platform — not configurable | Raising `bodySizeLimit` above this does NOT help; it fails higher up with a more confusing error. This is why the limit is 4mb, not 25mb. |
+| Supabase Storage object size | Bucket-configurable | Supabase dashboard | Not currently the binding constraint. |
+
+**The real fix for larger uploads** is direct-to-Supabase: mint a signed upload URL server-side, have the browser upload straight to storage, bypassing Vercel entirely. Removes the ceiling and takes load off serverless functions. Not yet built.
+
+**Rule: advertised limits in UI copy must be derived from the real constraint.** The upload UI promised "up to 25MB" while no layer of the stack supported more than ~4.5MB.
 
 ---
 
