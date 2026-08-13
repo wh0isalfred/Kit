@@ -49,7 +49,7 @@ export default async function StudentsPage() {
     loginEmailSent: null,
     joinedAt: s.created_at,
     cohortYear: s.cohort_year,
-    isTest: (s as { is_test?: boolean }).is_test ?? false,
+    isTest: s.is_test ?? false,
   }));
 
   const termRows: RosterRow[] = (term ?? []).map((s) => ({
