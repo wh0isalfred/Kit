@@ -6290,3 +6290,11 @@ html {
 }
 .admin-roster-flag { color: #B8860B; font-weight: 700; }
 .admin-muted { font-style: normal; color: var(--muted); }
+
+.admin-pill-test {
+  background: #F3F0FF;
+  color: #5B3FA8;
+  margin-left: 8px;
+  font-size: 11px;
+}
+.admin-row-test { background: #FCFBFF; }

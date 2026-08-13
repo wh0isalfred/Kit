@@ -15,6 +15,7 @@ export type RosterRow = {
   loginEmailSent: string | null;
   joinedAt: string;
   cohortYear: number | null;
+  isTest: boolean;
 };
 
 export default function StudentsView({ rows }: { rows: RosterRow[] }) {
@@ -36,11 +37,13 @@ export default function StudentsView({ rows }: { rows: RosterRow[] }) {
     });
   }, [rows, query, programme]);
 
-  const counts = useMemo(
+const counts = useMemo(
     () => ({
-      all: rows.length,
-      summer: rows.filter((r) => r.programme === "summer").length,
-      term: rows.filter((r) => r.programme === "term").length,
+      // Test rows are shown in the table but never counted, so these
+      // numbers match the dashboard's figures (0034).
+      all: rows.filter((r) => !r.isTest).length,
+      summer: rows.filter((r) => r.programme === "summer" && !r.isTest).length,
+      term: rows.filter((r) => r.programme === "term" && !r.isTest).length,
     }),
     [rows]
   );
@@ -112,9 +115,10 @@ export default function StudentsView({ rows }: { rows: RosterRow[] }) {
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={`${r.programme}-${r.id}`}>
+                <tr key={`${r.programme}-${r.id}`} className={r.isTest ? "admin-row-test" : ""}>
                 <td>
                   <strong>{r.name}</strong>
+                  {r.isTest && <span className="admin-pill admin-pill-test">Test</span>}
                   <em>{r.displayId}</em>
                 </td>
                 <td>

@@ -24,7 +24,6 @@ export default async function StudentsPage() {
   supabase
         .from("summer_students")
         .select("id, summer_id, name, cohort_year, batch_id, active, created_at, parent_email, parent_phone")
-        .eq("is_test", false)
         .order("created_at", { ascending: false }),
     supabase
       .from("students")
@@ -50,6 +49,7 @@ export default async function StudentsPage() {
     loginEmailSent: null,
     joinedAt: s.created_at,
     cohortYear: s.cohort_year,
+    isTest: (s as { is_test?: boolean }).is_test ?? false,
   }));
 
   const termRows: RosterRow[] = (term ?? []).map((s) => ({
@@ -65,6 +65,7 @@ export default async function StudentsPage() {
     loginEmailSent: s.login_email_sent_at,
     joinedAt: s.enrolled_at ?? s.created_at,
     cohortYear: null,
+    isTest: false,
   }));
 
   const rows = [...summerRows, ...termRows].sort(
