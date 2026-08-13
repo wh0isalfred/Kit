@@ -21,10 +21,11 @@ export default async function StudentsPage() {
   const supabase = await createClient();
 
   const [{ data: summer }, { data: term }, { data: batches }] = await Promise.all([
-    supabase
-      .from("summer_students")
-      .select("id, summer_id, name, cohort_year, batch_id, active, created_at, parent_email, parent_phone")
-      .order("created_at", { ascending: false }),
+  supabase
+        .from("summer_students")
+        .select("id, summer_id, name, cohort_year, batch_id, active, created_at, parent_email, parent_phone")
+        .eq("is_test", false)
+        .order("created_at", { ascending: false }),
     supabase
       .from("students")
       .select("id, kit_id, name, email, batch_id, status, kit_points, enrolled_at, login_email_sent_at, parent_email, parent_phone, created_at")
