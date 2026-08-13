@@ -56,8 +56,9 @@ export default async function PortalPage() {
 
   const week = portal?.[0] ?? null;
 
-  /* Group resources by week for display. get_summer_resources
-     already returns them newest-week-first, day-ordered. */
+ 
+  /* Group resources by week for display, newest first — latest week at
+     the top, and latest day within each week. */
   const byWeek = new Map<number, PortalResource[]>();
   for (const r of (resources ?? []) as PortalResource[]) {
     const list = byWeek.get(r.week) ?? [];
@@ -66,7 +67,15 @@ export default async function PortalPage() {
   }
   const weekGroups: PortalWeek[] = Array.from(byWeek.entries())
     .sort((a, b) => b[0] - a[0])
-    .map(([weekNo, items]) => ({ week: weekNo, resources: items }));
+    .map(([weekNo, items]) => ({
+      week: weekNo,
+      resources: [...items].sort((a, b) => {
+        const ad = a.day_number ?? 99;
+        const bd = b.day_number ?? 99;
+        return bd - ad;
+      }),
+    }));
+
 
   return (
     <div>

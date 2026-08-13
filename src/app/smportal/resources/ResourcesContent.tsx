@@ -106,15 +106,37 @@ export default function ResourcesContent({
     });
   }, [resources, weekFilter, typeFilter, query]);
 
-  const byWeek = useMemo(() => {
+const byWeek = useMemo(() => {
     const map = new Map<number, ResourceWithSize[]>();
     for (const r of filtered) {
       const arr = map.get(r.week) ?? [];
       arr.push(r);
       map.set(r.week, arr);
     }
+
+    // Sort WITHIN each week as well as between weeks. Previously only
+    // the week groups were sorted, so with a single week populated the
+    // toggle appeared to do nothing at all.
+    //
+    // day_number is the only ordering field on PortalResource
+    // (sort_order isn't exposed by the type). Items already arrive in
+    // the RPC's sort_order sequence, so a stable sort keeps that as the
+    // natural tiebreak within a day.
+    const dir = sort === "newest" ? -1 : 1;
+    for (const [week, items] of map) {
+      map.set(
+        week,
+        [...items].sort((a, b) => {
+          // null day_number = "anytime this week" — always last.
+          const ad = a.day_number ?? 99;
+          const bd = b.day_number ?? 99;
+          return (ad - bd) * dir;
+        })
+      );
+    }
+
     const entries = Array.from(map.entries());
-    entries.sort((a, b) => (sort === "newest" ? b[0] - a[0] : a[0] - b[0]));
+    entries.sort((a, b) => (a[0] - b[0]) * dir);
     return entries;
   }, [filtered, sort]);
 
