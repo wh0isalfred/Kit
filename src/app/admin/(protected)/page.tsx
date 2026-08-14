@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
+
 export const dynamic = "force-dynamic";
 
 type Attention = {
@@ -9,6 +10,8 @@ type Attention = {
   href: string;
   cta: string;
 };
+const gbp = (n: number | null) =>
+  `£${Number(n ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const naira = (n: number | null) =>
   `₦${Number(n ?? 0).toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
@@ -181,6 +184,18 @@ export default async function AdminDashboard() {
               : undefined
           }
         />
+        {(stats?.revenue_gbp ?? 0) > 0 || (stats?.outstanding_gbp ?? 0) > 0 ? (
+          <Stat
+            label="Revenue (GBP)"
+            value={gbp(stats?.revenue_gbp)}
+            accent="blue"
+            hint={
+              (stats?.outstanding_gbp ?? 0) > 0
+                ? `${gbp(stats.outstanding_gbp)} outstanding`
+                : undefined
+            }
+          />
+        ) : null}
       </section>
 
       <section className="admin-secondary-grid">
