@@ -1,17 +1,32 @@
 import Link from "next/link";
+import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTransaction } from "@/lib/paystack";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Payment callback — display only, for BOTH providers.
+ *
+ * Paystack redirects here with ?reference=...
+ * Stripe redirects here with ?provider=stripe&session_id=cs_...
+ *
+ * Neither path decides payment status. The webhooks do that, because a
+ * browser redirect can be forged, replayed, or simply never arrive.
+ * This page verifies with the provider purely so the parent sees an
+ * accurate message even if the webhook hasn't landed yet.
+ */
 export default async function PaymentCallback({
   searchParams,
 }: {
-  searchParams: Promise<{ reference?: string }>;
+  searchParams: Promise<{ reference?: string; provider?: string; session_id?: string }>;
 }) {
-  const { reference } = await searchParams;
+  const { reference, provider, session_id } = await searchParams;
 
-  if (!reference) {
+  const isStripe = provider === "stripe" || !!session_id;
+  const paymentRef = isStripe ? session_id : reference;
+
+  if (!paymentRef) {
     return (
       <Shell title="Something went wrong">
         <p>We didn&apos;t get a payment reference back. If you were charged,
@@ -20,12 +35,11 @@ export default async function PaymentCallback({
     );
   }
 
-  /* Ask Paystack directly what happened. This is display only — the
-     webhook is what actually records payment. If the webhook hasn't
-     landed yet the parent still sees an accurate "we've got it". */
-  const result = await verifyTransaction(reference);
+  const paid = isStripe
+    ? await verifyStripeSession(paymentRef)
+    : await verifyPaystack(paymentRef);
 
-  if (!result.ok || result.status !== "success") {
+  if (!paid) {
     return (
       <Shell title="Payment not completed">
         <p>That payment didn&apos;t go through. Nothing has been charged.
@@ -41,7 +55,7 @@ export default async function PaymentCallback({
   const { data: application } = await supabase
     .from("applications")
     .select("student_name, payment_status")
-    .eq("payment_ref", reference)
+    .eq("payment_ref", paymentRef)
     .maybeSingle();
 
   return (
@@ -55,9 +69,34 @@ export default async function PaymentCallback({
         Login details are sent to the email you gave us once a place is
         confirmed.
       </p>
-      <p className="af-hint">Reference: {reference}</p>
+      <p className="af-hint">Reference: {paymentRef}</p>
     </Shell>
   );
+}
+
+async function verifyPaystack(reference: string): Promise<boolean> {
+  const result = await verifyTransaction(reference);
+  return result.ok && result.status === "success";
+}
+
+async function verifyStripeSession(sessionId: string): Promise<boolean> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    console.error("callback: STRIPE_SECRET_KEY not set");
+    return false;
+  }
+
+  try {
+    const stripe = new Stripe(key);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    return session.payment_status === "paid";
+  } catch (err) {
+    console.error(
+      "callback: stripe session retrieve failed",
+      err instanceof Error ? err.message : err
+    );
+    return false;
+  }
 }
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
