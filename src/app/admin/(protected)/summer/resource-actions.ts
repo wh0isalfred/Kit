@@ -250,51 +250,46 @@ export async function getBatchResources(
   return { ok: true, resources: (data ?? []) as BatchResource[] };
 }
 
+
 /**
- * Uploads into the `summer` bucket. The path shape matters — the
- * storage policy in migration 0012 parses ownership out of it, and
- * a flat bucket would force every download through app-layer signed
- * URLs anyway.
+ * Mints a signed upload URL. The file itself never passes through
+ * Vercel — the browser uploads straight to Supabase Storage.
  *
- * Files are served to students as short-lived signed URLs after the
- * cookie check (ADR 002). Note the honest tradeoff already recorded
- * in 0012: a signed URL, once minted, is forwardable. Fine for
- * slides and homework; don't put anything sensitive here.
+ * WHY: Server Actions are capped at 1MB by Next.js (configurable) and
+ * ~4.5MB by Vercel's serverless payload limit (NOT configurable).
+ * Sending a slide deck through a Server Action failed at 4MB with a
+ * 413 no matter what bodySizeLimit said. This removes the ceiling
+ * entirely — the only remaining limit is the bucket's own.
+ *
+ * Auth still happens here, server-side: assertAdmin() runs before any
+ * URL is minted, and the returned token is valid for exactly one
+ * upload to exactly one path we chose. The client cannot pick its own
+ * destination.
  */
-export async function uploadResourceFile(
-  formData: FormData
-): Promise<{ ok: true; path: string; name: string } | { ok: false; error: string }> {
+export async function createResourceUploadUrl(args: {
+  fileName: string;
+  cohortYear: number;
+  week: number;
+}): Promise < { ok: true; uploadUrl: string; token: string; path: string } | { ok: false; error: string } > {
   const { supabase } = await assertAdmin();
 
-  const file = formData.get("file") as File | null;
-  const cohortYear = formData.get("cohortYear") as string;
-  const week = formData.get("week") as string;
-
-  if (!file || file.size === 0) return { ok: false, error: "No file selected." };
-
-  const MAX_BYTES = 25 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    return {
-      ok: false,
-      error:
-        "That file is over 25MB. Put videos on YouTube or Drive and add them as a link instead — storage here is limited.",
-    };
-  }
-
-  const safeName = file.name
+  const safeName = args.fileName
     .replace(/[^a-zA-Z0-9._-]/g, "-")
     .replace(/-+/g, "-")
     .slice(-80);
 
-  const path = `${cohortYear}/week${week}/${Date.now()}-${safeName}`;
+  const path = `${args.cohortYear}/week${args.week}/${Date.now()}-${safeName}`;
 
-  const { error } = await supabase.storage
+  const { data, error } = await supabase.storage
     .from("summer")
-    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+    .createSignedUploadUrl(path);
 
-  if (error) return { ok: false, error: error.message };
+  if (error || !data) {
+    console.error("createResourceUploadUrl:", error?.message);
+    return { ok: false, error: "Couldn't start the upload. Try again." };
+  }
 
-  return { ok: true, path, name: file.name };
+  return { ok: true, uploadUrl: data.signedUrl, token: data.token, path };
 }
 
 /** Reorder within a day. Small lists, so a plain sequence of updates. */

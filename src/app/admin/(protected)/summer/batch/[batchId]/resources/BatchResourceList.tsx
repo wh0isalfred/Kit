@@ -4,10 +4,11 @@ import { useState } from "react";
 import {
   saveResource,
   deleteBatchResource,
-  uploadResourceFile,
   type BatchResource,
   type ResourceKind,
+  createResourceUploadUrl,
 } from "../../../resource-actions";
+import { uploadDirect } from "@/lib/upload-client";
 
 const KINDS: { value: ResourceKind; label: string; icon: string }[] = [
   { value: "link", label: "Link", icon: "🔗" },
@@ -258,14 +259,12 @@ function BatchResourceForm({
   // shared and batch-only is a bigger decision than this form makes.
   const resolvedBatchId = existing ? existing.batch_id : batchId;
 
-  async function onUpload(file: File) {
+async function onUpload(file: File) {
     setUploading(true);
     setErr(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("cohortYear", String(cohortYear));
-    fd.append("week", String(week));
-    const res = await uploadResourceFile(fd);
+    const res = await uploadDirect(file, () =>
+      createResourceUploadUrl({ fileName: file.name, cohortYear, week })
+    );
     setUploading(false);
     if (!res.ok) {
       setErr(res.error);

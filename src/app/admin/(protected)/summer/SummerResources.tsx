@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import {
+  createResourceUploadUrl,
   deleteResource,
   moveResource,
   saveResource,
   toggleResourcePublished,
-  uploadResourceFile,
   type ResourceKind,
 } from "./resource-actions";
+import { uploadDirect } from "@/lib/upload-client";
 
 export type Resource = {
   id: string;
@@ -345,14 +346,12 @@ function ResourceForm({
   const usesFile = ["file", "slides", "homework"].includes(kind);
   const usesCode = kind === "code";
 
-  async function onUpload(file: File) {
+async function onUpload(file: File) {
     setUploading(true);
     setError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("cohortYear", String(cohortYear));
-    fd.append("week", String(week));
-    const res = await uploadResourceFile(fd);
+    const res = await uploadDirect(file, () =>
+      createResourceUploadUrl({ fileName: file.name, cohortYear, week })
+    );
     setUploading(false);
     if (!res.ok) {
       setError(res.error);

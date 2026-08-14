@@ -271,51 +271,39 @@ export async function unsubmitHomework(
 }
 
 /**
- * Uploads a student's homework FILE into the `summer` bucket under a
- * submissions/ prefix — kept separate from admin materials so the
- * two never intermingle. Mirrors the admin uploader's 25MB cap and
- * safe-name handling. Returns the storage path to hand to
- * turnInHomework; uploading is a separate step from turning in, so a
- * student can attach then still decide to submit.
+ * Mints a signed upload URL for a student's own homework file. Same
+ * reasoning as createResourceUploadUrl — the file bypasses Vercel
+ * entirely, removing the ~4.5MB serverless payload ceiling.
+ *
+ * The path is built HERE from the verified session's sid, never from
+ * anything the client sends, so a student cannot mint a URL pointing
+ * into another student's folder.
  */
-export async function uploadSubmissionFile(
-  formData: FormData
-): Promise<{ ok: true; path: string; name: string } | { ok: false; error: string }> {
+export async function createSubmissionUploadUrl(args: {
+  fileName: string;
+  resourceId: string;
+}): Promise <{ ok: true; uploadUrl: string; token: string; path: string } | { ok: false; error: string }> {
   const session = await getSummerSession();
   if (!session) return { ok: false, error: "Not signed in." };
 
-  const file = formData.get("file") as File | null;
-  const resourceId = formData.get("resourceId") as string;
-
-  if (!file || file.size === 0) return { ok: false, error: "No file selected." };
-
-  const MAX_BYTES = 25 * 1024 * 1024;
-  if (file.size > MAX_BYTES) {
-    return {
-      ok: false,
-      error: "That file is over 25MB. Upload a smaller file, or submit a link instead.",
-    };
-  }
-
-  const safeName = file.name
+  const safeName = args.fileName
     .replace(/[^a-zA-Z0-9._-]/g, "-")
     .replace(/-+/g, "-")
     .slice(-80);
 
-  // submissions/{student}/{resource}/{ts}-name — scoped per student
-  // per task, so a resubmission's new file doesn't clobber the old
-  // filename and admins can see whose work it is from the path.
-  const path = `submissions/${session.sid}/${resourceId}/${Date.now()}-${safeName}`;
+  // submissions/{student}/{resource}/{ts}-name — sid comes from the
+  // verified cookie, NOT from the client.
+  const path = `submissions/${session.sid}/${args.resourceId}/${Date.now()}-${safeName}`;
 
   const supabase = await createClient();
-  const { error } = await supabase.storage
+  const { data, error } = await supabase.storage
     .from("summer")
-    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+    .createSignedUploadUrl(path);
 
-  if (error) {
-    console.error("uploadSubmissionFile:", error.message);
-    return { ok: false, error: "Upload failed — try again." };
+  if (error || !data) {
+    console.error("createSubmissionUploadUrl:", error?.message);
+    return { ok: false, error: "Couldn't start the upload. Try again." };
   }
 
-  return { ok: true, path, name: file.name };
+  return { ok: true, uploadUrl: data.signedUrl, token: data.token, path };
 }

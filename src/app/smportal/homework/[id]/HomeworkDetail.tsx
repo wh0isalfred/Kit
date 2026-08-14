@@ -6,8 +6,9 @@ import {
   getSummerFileUrl,
   turnInHomework,
   unsubmitHomework,
-  uploadSubmissionFile,
+  createSubmissionUploadUrl,
 } from "../../../summer/summer-session";
+import { uploadDirect } from "@/lib/upload-client";
 
 export type HomeworkItem = {
   id: string;
@@ -55,13 +56,12 @@ export default function HomeworkDetail({
     else setError(res.error);
   }
 
-  async function onUpload(file: File) {
+async function onUpload(file: File) {
     setUploading(true);
     setError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("resourceId", item.id);
-    const res = await uploadSubmissionFile(fd);
+    const res = await uploadDirect(file, () =>
+      createSubmissionUploadUrl({ fileName: file.name, resourceId: item.id })
+    );
     setUploading(false);
     if (res.ok) {
       setPendingPath(res.path);
