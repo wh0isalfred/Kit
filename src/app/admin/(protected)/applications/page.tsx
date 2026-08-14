@@ -17,7 +17,7 @@ export default async function ApplicationsPage() {
   const { data: decided } = await supabase
     .from("applications")
     .select(
-      "id, student_name, age_at_application, parent_name, parent_email, parent_phone, course_slug, plan, amount_due_kobo, amount_total_kobo, payment_status, payment_ref, status, source, created_at"
+      "id, student_name, age_at_application, parent_name, parent_email, parent_phone, course_slug, plan, amount_due_kobo, amount_total_kobo, currency, payment_status, payment_ref, status, source, created_at"
     )
     .neq("status", "pending")
     .order("created_at", { ascending: false })
@@ -67,11 +67,16 @@ export default async function ApplicationsPage() {
   const decidedItems: QueueItem[] = (decided ?? []).map((d) => ({
     ...d,
     course_title: courseTitle.get(d.course_slug) ?? d.course_slug,
+    // QueueItem stores amounts in MINOR units alongside `currency` —
+    // amount_due_kobo IS already minor units (kobo/pence), it's just
+    // named for the NGN case. Pass it straight through.
+    amount_due_minor: d.amount_due_kobo,
+    amount_total_minor: d.amount_total_kobo,
     amount_due_naira: d.amount_due_kobo / 100,
     amount_total_naira: d.amount_total_kobo / 100,
     approvable: false,
     needs_payment_check: false,
-  })) as QueueItem[];
+  }));
 
   if (error) {
     return (
@@ -79,7 +84,7 @@ export default async function ApplicationsPage() {
         <header className="admin-head">
           <h1>Applications</h1>
         </header>
-        <p className="af-submit-error">Couldn't load the queue: {error.message}</p>
+        <p className="af-submit-error">Couldn&apos;t load the queue: {error.message}</p>
       </>
     );
   }

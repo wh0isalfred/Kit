@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
-
 export const dynamic = "force-dynamic";
 
 type Attention = {
@@ -21,11 +20,21 @@ export default async function AdminDashboard() {
 
   const { data: stats } = await supabase.from("admin_stats").select("*").single();
 
-  const { data: recent } = await supabase
+  const { data: courses } = await supabase.from("courses").select("slug, title");
+  const courseTitle = new Map((courses ?? []).map((c) => [c.slug, c.title]));
+
+  const { data: recentRaw } = await supabase
     .from("admin_application_queue")
-    .select("id, student_name, course_title, amount_due_naira, payment_status, created_at")
+    .select(
+      "id, student_name, course_slug, amount_due_minor, currency, payment_status, created_at"
+    )
     .order("created_at", { ascending: false })
     .limit(5);
+
+  const recent = (recentRaw ?? []).map((r) => ({
+    ...r,
+    course_title: courseTitle.get(r.course_slug) ?? r.course_slug,
+  }));
 
   /* ── Needs attention ──────────────────────────────────────
      Computed from real conditions rather than shown as a chart.
@@ -269,7 +278,11 @@ export default async function AdminDashboard() {
                       </em>
                     </td>
                     <td>{r.course_title}</td>
-                    <td>{naira(r.amount_due_naira)}</td>
+                    <td>
+                      {(r.currency ?? "NGN") === "GBP"
+                        ? gbp(r.amount_due_minor / 100)
+                        : naira(r.amount_due_minor / 100)}
+                    </td>
                     <td>
                       <span className={`admin-pill pay-${r.payment_status}`}>
                         {r.payment_status === "paid" ? "Paid" : "Unpaid"}

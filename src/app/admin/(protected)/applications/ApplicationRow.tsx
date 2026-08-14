@@ -17,16 +17,20 @@ export type QueueItem = {
   parent_phone: string;
   course_title: string;
   course_slug: string;
-  plan: string | null;
   amount_due_naira: number;
   amount_total_naira: number;
-  payment_status: string;
   payment_ref: string | null;
   status: string;
   source: string;
   created_at: string;
   approvable: boolean;
   needs_payment_check: boolean;
+    plan: string | null;
+  /** MINOR unit of `currency` — kobo for NGN, pence for GBP. */
+  amount_due_minor: number;
+  amount_total_minor: number;
+  currency: string | null;
+  payment_status: string;
 };
 
 export type BatchOption = {
@@ -38,7 +42,12 @@ export type BatchOption = {
   seats_used: number;
 };
 
-const naira = (n: number) => `₦${Number(n).toLocaleString("en-NG")}`;
+/** Formats a MINOR-unit amount in the row's own currency. £20.00 is
+ *  stored as 2000; ₦15,000 as 1500000. */
+const money = (minor: number, currency: string | null) =>
+  (currency ?? "NGN") === "GBP"
+    ? `£${(minor / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `₦${(minor / 100).toLocaleString("en-NG")}`;
 
 export default function ApplicationRow({
   application: a,
@@ -101,10 +110,12 @@ export default function ApplicationRow({
         </div>
 
         <div className="admin-app-money">
-          <span className="admin-app-amount">{naira(a.amount_due_naira)}</span>
-          {a.amount_total_naira !== a.amount_due_naira && (
+          <span className="admin-app-amount">
+            {money(a.amount_due_minor, a.currency)}
+          </span>
+          {a.amount_total_minor !== a.amount_due_minor && (
             <span className="admin-app-total">
-              of {naira(a.amount_total_naira)} total
+              of {money(a.amount_total_minor, a.currency)} total
             </span>
           )}
           <span className={`admin-pill pay-${a.payment_status}`}>
@@ -275,7 +286,7 @@ export default function ApplicationRow({
                   run(rejectApplication.bind(null, a.id, reason), (r) => {
                     const res = r as { ok: true; refundDue: boolean; refundNaira: number };
                     return res.refundDue
-                      ? `Rejected. A refund of ${naira(res.refundNaira)} is owed — issue it manually in Paystack. Nothing here does that automatically.`
+                      ? `Rejected. A refund of ${money(res.refundNaira * 100, a.currency)} is owed — issue it manually in ${(a.currency ?? "NGN") === "GBP" ? "Stripe" : "Paystack"}. Nothing here does that automatically.`
                       : "Rejected. No payment was taken, so no refund is owed.";
                   })
                 }
