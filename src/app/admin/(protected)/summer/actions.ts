@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+
 /**
  * Every action here re-checks admin server-side. The (protected)
  * layout guard is a UX convenience — it stops a non-admin seeing the
@@ -259,3 +260,17 @@ export async function setSummerLive(
   revalidatePath("/smportal");
   return { ok: true };
 }
+
+/**
+ * Email 2 of 2 — the Student ID and portal walkthrough.
+ *
+ * Scheduled 15 minutes out via Resend's native scheduling, purely so
+ * the parent isn't hit with two emails in the same second. No cron, no
+ * queue table — Resend holds it.
+ *
+ * Deliberately best-effort, like the welcome email: a failure here
+ * must never block enrolment. But unlike the welcome email, this one
+ * carries the student's ONLY credential, so a failure is recorded (or
+ * rather, not recorded) in summer_students.id_email_sent_at — a NULL
+ * there means that family cannot log in and needs chasing.
+ */

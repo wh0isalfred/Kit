@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resend, EMAIL_FROM } from "@/lib/email/resend";
+// Hosted rather than attached: a screen recording will exceed the
+// ~25MB most mail servers accept, and a bounced email means the parent
+// gets nothing. A link also plays instantly on a phone.
+const WALKTHROUGH_VIDEO_URL = "https://youtu.be/jRHRV94NXQs";
+const PORTAL_URL = "https://www.kitacademy.net/smportal";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -146,11 +151,24 @@ export async function enrolSummerStudent(
     return { ok: false, error: friendlyError(error?.message ?? "Enrolment failed.") };
   }
 
-  const { summer_id, name } = data[0];
+  const { summer_id, name, summer_student_id } = data[0];
 
+  // Email 1 of 2 — immediate welcome + device checklist.
   const emailSent = await sendWelcomeEmail(supabase, {
     applicationId,
     name,
+  });
+
+  // Email 2 of 2 — Student ID + portal walkthrough, scheduled 15
+  // minutes out via Resend so the two don't land together.
+  // Deliberately not awaited into `emailSent` — that flag reports the
+  // welcome email specifically, and a failure here is recorded by a
+  // NULL id_email_sent_at rather than by blocking enrolment.
+  await sendStudentIdEmail(supabase, {
+    applicationId,
+    summerStudentId: summer_student_id,
+    studentName: name,
+    summerId: summer_id,
   });
 
   revalidate();
@@ -235,6 +253,114 @@ async function sendWelcomeEmail(
   if (sendError) {
     console.error("welcome email: Resend send failed:", sendError.message);
     return false;
+  }
+
+  return true;
+
+  
+}
+/**
+ * Email 2 of 2 — the Student ID and portal walkthrough.
+ *
+ * Scheduled 15 minutes out via Resend's native scheduling, purely so
+ * the parent isn't hit with two emails in the same second. No cron, no
+ * queue table — Resend holds it.
+ *
+ * Deliberately best-effort, like the welcome email: a failure here
+ * must never block enrolment. But unlike the welcome email, this one
+ * carries the student's ONLY credential, so a failure is recorded (or
+ * rather, not recorded) in summer_students.id_email_sent_at — a NULL
+ * there means that family cannot log in and needs chasing.
+ */
+async function sendStudentIdEmail(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: { applicationId: string; summerStudentId: string; studentName: string; summerId: string }
+): Promise<boolean> {
+  const { data: app, error: readError } = await supabase
+    .from("applications")
+    .select("parent_email, parent_name, parent_relationship")
+    .eq("id", args.applicationId)
+    .single();
+
+  if (readError || !app?.parent_email) {
+    console.error(
+      "student ID email: no parent_email for application",
+      args.applicationId,
+      readError?.message
+    );
+    return false;
+  }
+
+  const parentGreeting = app.parent_name?.trim()
+    ? `${parentPrefix(app.parent_relationship)} ${app.parent_name.trim()}`
+    : "Parent";
+
+  // 15 minutes from now, ISO 8601 — Resend holds and sends it.
+  const scheduledAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  const { error: sendError } = await resend.emails.send({
+    from: EMAIL_FROM,
+    to: app.parent_email,
+    subject: `${args.studentName}'s KIT Student Portal is ready`,
+    scheduledAt,
+    html: `
+  <p>Dear <strong>${parentGreeting}</strong>,</p>
+
+  <p>Your child's KIT Student Portal is now ready.</p>
+
+  <p>The Student Portal is where students access learning resources, join live classes on Google Meet, view assignments, and submit homework throughout the programme.</p>
+
+  <h3 style="margin:24px 0 8px;color:#1F2C4F;">Student ID</h3>
+  <p style="margin:0 0 8px;">${args.studentName}'s Student ID is:</p>
+  <p style="font-size:26px;font-weight:800;letter-spacing:2px;color:#1F2C4F;margin:0 0 16px;">${args.summerId}</p>
+  <p>To access the Student Portal, simply enter this Student ID on the login page.</p>
+
+  <p style="margin:24px 0;">
+    <a href="${PORTAL_URL}" style="background:#1999E4;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;font-weight:600;">Open Student Portal</a>
+  </p>
+  <p style="font-size:13px;color:#6B7A99;margin:0 0 24px;">Or go to ${PORTAL_URL}</p>
+
+  <h3 style="margin:24px 0 8px;color:#1F2C4F;">Getting started</h3>
+  <p>We've recorded a short walkthrough showing you how to:</p>
+  <ul>
+    <li>Log in to the Student Portal</li>
+    <li>Download the course curriculum</li>
+    <li>Access weekly learning resources</li>
+    <li>Join live classes on Google Meet</li>
+    <li>View assignments and homework</li>
+    <li>Submit completed homework</li>
+    <li>Find announcements and updates</li>
+  </ul>
+
+  <p style="margin:20px 0;">
+    <a href="${WALKTHROUGH_VIDEO_URL}" style="background:#25B290;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;font-weight:600;">Watch the walkthrough</a>
+  </p>
+
+  <p>We recommend watching it before the first class so you and your child are familiar with how everything works.</p>
+
+  <p>If you have any questions or trouble accessing the portal, simply reply to this email or contact the KIT team on WhatsApp.</p>
+
+  <p>We're excited to begin this journey with your family, and we look forward to seeing what ${args.studentName} creates.</p>
+
+  <p>See you in class!</p>
+  <p>&mdash; The KIT Team</p>
+`,
+  });
+
+  if (sendError) {
+    console.error("student ID email: Resend send failed:", sendError.message);
+    return false;
+  }
+
+  // Recorded only on success — a NULL here is a real signal that this
+  // family never got their credential.
+  const { error: stampError } = await supabase
+    .from("summer_students")
+    .update({ id_email_sent_at: new Date().toISOString() })
+    .eq("id", args.summerStudentId);
+
+  if (stampError) {
+    console.error("student ID email: timestamp update failed:", stampError.message);
   }
 
   return true;
