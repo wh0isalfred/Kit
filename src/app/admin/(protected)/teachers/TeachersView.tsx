@@ -103,7 +103,7 @@ function TeacherRow({
   async function handleResend() {
     setBusy(true);
     setError(null);
-    const res = await resendTeacherInvite(t.email);
+    const res = await resendTeacherInvite(t.email, t.name);
     if (!res.ok) setError(res.error);
     else setResent(true);
     setBusy(false);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resend, EMAIL_FROM } from "@/lib/email/resend";
 
 /**
  * Same shape as every other actions.ts in this project (see
@@ -164,11 +165,94 @@ export type NewTeacherInput = {
 };
 
 /**
- * Creates the teacher row AND sends the Supabase Auth invite. Uses
- * the admin (service-role) client for the invite itself — inviteUserByEmail
- * requires elevated privileges a session-scoped client doesn't have,
- * same reason the Stripe webhook (api/stripe/webhook/route.ts) uses
- * createAdminClient() rather than createClient().
+ * Splits identity creation from the email that announces it — the
+ * same separation this project already makes for the Summer ID email
+ * (doc: summer/actions.ts's "Email 2 of 2" comment): Supabase's
+ * inviteUserByEmail sends its OWN email, from Supabase's shared
+ * sending infrastructure, using Supabase's default template — no KIT
+ * branding, not from kitacademy.net, worse deliverability than a
+ * domain-verified sender. generateLink creates the same auth.users
+ * row and hands back the real invite URL WITHOUT sending anything,
+ * so the actual email can go out through Resend/kitacademy.net like
+ * every other parent-facing email in this project.
+ *
+ * Deliberately best-effort on the email, same posture as the welcome
+ * email in summer/actions.ts: a failed SEND should not roll back a
+ * successful teacher row, because losing the row means re-entering
+ * everything, and a resend is one click away. The teacher row and the
+ * auth invite link are the durable parts; the email is a delivery
+ * attempt on top of them.
+ */
+async function sendTeacherInviteEmail(
+  email: string,
+  name: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const adminClient = createAdminClient();
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kitacademy.net";
+
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { redirectTo: `${siteUrl}/teacher/login` },
+  });
+
+  if (linkError || !linkData) {
+    return { ok: false, error: linkError?.message ?? "Could not generate an invite link." };
+  }
+
+  const inviteUrl = linkData.properties?.action_link;
+  if (!inviteUrl) {
+    return { ok: false, error: "Invite link was generated but came back empty." };
+  }
+
+  const firstName = name.trim().split(" ")[0] || "there";
+
+  try {
+    const { error: sendError } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: "You're invited to teach at KIT",
+      html: `
+        <div style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <p style="font-size: 20px; font-weight: 800; color: #1F2C4F; margin: 0 0 24px;">KIT</p>
+          <p style="font-size: 15px; color: #1F2C4F; line-height: 1.6;">Hi ${firstName},</p>
+          <p style="font-size: 15px; color: #1F2C4F; line-height: 1.6;">
+            You've been added as a teacher at KIT. Set your password to get
+            into your teacher account, where you'll see the batches you've
+            been assigned to.
+          </p>
+          <a href="${inviteUrl}"
+             style="display: inline-block; margin: 20px 0; padding: 12px 24px;
+                    background: #1F2C4F; color: #fff; font-weight: 700;
+                    font-size: 14px; text-decoration: none; border-radius: 9px;">
+            Set your password
+          </a>
+          <p style="font-size: 13px; color: #5d6781; line-height: 1.6;">
+            This link is just for you — if you weren't expecting this, you
+            can ignore this email.
+          </p>
+        </div>
+      `,
+    });
+
+    if (sendError) {
+      return { ok: false, error: `Invite link created, but the email failed to send: ${sendError.message}` };
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Invite link created, but the email failed to send: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Creates the teacher row, then generates the auth invite and sends
+ * it via Resend — see sendTeacherInviteEmail above for why this isn't
+ * a single inviteUserByEmail call.
  *
  * teachers.user_id starts NULL and is filled in once the invited
  * person actually accepts and logs in for the first time — see the
@@ -213,10 +297,9 @@ export async function createTeacher(input: NewTeacherInput): Promise<Result<{ id
     return { ok: false, error: insertError.message };
   }
 
-  const adminClient = createAdminClient();
-  const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email);
+  const inviteResult = await sendTeacherInviteEmail(email, name);
 
-  if (inviteError) {
+  if (!inviteResult.ok) {
     // The teacher row exists but the invite failed to send — don't
     // roll back the row. A resend is one click from the teacher list;
     // losing the row means re-entering everything. Surfaced clearly
@@ -224,7 +307,7 @@ export async function createTeacher(input: NewTeacherInput): Promise<Result<{ id
     // re-create the teacher.
     return {
       ok: false,
-      error: `Teacher created, but the invite email failed to send: ${inviteError.message}. Use "Resend invite" on their row.`,
+      error: `Teacher created, but ${inviteResult.error.charAt(0).toLowerCase()}${inviteResult.error.slice(1)} Use "Resend invite" on their row.`,
     };
   }
 
@@ -232,13 +315,11 @@ export async function createTeacher(input: NewTeacherInput): Promise<Result<{ id
   return { ok: true, id: teacher.id };
 }
 
-export async function resendTeacherInvite(email: string): Promise<Result> {
+export async function resendTeacherInvite(email: string, name: string): Promise<Result> {
   await assertAdmin();
 
-  const adminClient = createAdminClient();
-  const { error } = await adminClient.auth.admin.inviteUserByEmail(email);
-
-  if (error) return { ok: false, error: error.message };
+  const result = await sendTeacherInviteEmail(email, name);
+  if (!result.ok) return { ok: false, error: result.error };
 
   return { ok: true };
 }
