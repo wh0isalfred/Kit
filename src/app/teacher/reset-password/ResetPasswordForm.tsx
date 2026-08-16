@@ -43,16 +43,50 @@ export default function ResetPasswordForm() {
   const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
-    // getSession() forces the client to finish processing whatever was
-    // in the URL fragment before the form is usable — without waiting
-    // on this, a click could race ahead of the fragment being parsed.
+    // TEMPORARY diagnostic — remove once this is confirmed working.
+    // Logs exactly what's present at mount time, since everything
+    // upstream (link, redirect, fragment, env vars) has already been
+    // individually confirmed correct and the failure is narrowed down
+    // to this client-side step specifically.
+    console.log("reset-password mount: location.hash present?", !!window.location.hash);
+    console.log("reset-password mount: hash length", window.location.hash.length);
+
+    // Belt-and-suspenders: onAuthStateChange fires when the client's
+    // internal fragment processing completes, INCLUDING a possible
+    // PASSWORD_RECOVERY event specifically for recovery links — this
+    // does not race the same way a bare getSession() call immediately
+    // after construction theoretically could, since it's a subscription
+    // that fires whenever the session state actually changes, not a
+    // one-shot read of whatever's in memory right now.
+    let sessionFoundViaListener = false;
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("reset-password onAuthStateChange:", event, "session present?", !!session);
+      if (session) {
+        sessionFoundViaListener = true;
+        setReady(true);
+        setSessionError(false);
+      }
+    });
+
     supabase.auth.getSession().then(({ data, error }) => {
+      console.log("reset-password getSession result:", { hasSession: !!data.session, error: error?.message });
+      // Don't let a failed getSession() overwrite a session the
+      // listener above already found — getSession() is a one-shot
+      // read that could run before internal fragment processing
+      // finishes, while onAuthStateChange fires exactly when it does.
+      if (sessionFoundViaListener) return;
+
       if (error || !data.session) {
         console.error("reset-password: no session from recovery link", error);
         setSessionError(true);
       }
       setReady(true);
     });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [supabase]);
 
   const [password, setPassword] = useState("");
