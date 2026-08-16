@@ -254,6 +254,80 @@ export async function sendTeacherInviteEmail(
 }
 
 /**
+ * Mirror of sendTeacherInviteEmail above — same split (generate the
+ * Supabase action link ourselves via generateLink, send our own
+ * branded email through Resend instead of Supabase's default), same
+ * best-effort posture, different link type ('recovery' instead of
+ * 'invite') and different redirect target (/teacher/reset-password,
+ * not /teacher/set-password — see that page's own comment for why
+ * these are kept separate rather than sharing one page).
+ */
+export async function sendTeacherPasswordResetEmail(
+  email: string,
+  name: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const adminClient = createAdminClient();
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kitacademy.net";
+
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${siteUrl}/teacher/reset-password` },
+  });
+
+  if (linkError || !linkData) {
+    return { ok: false, error: linkError?.message ?? "Could not generate a reset link." };
+  }
+
+  const resetUrl = linkData.properties?.action_link;
+  if (!resetUrl) {
+    return { ok: false, error: "Reset link was generated but came back empty." };
+  }
+
+  const firstName = name.trim().split(" ")[0] || "there";
+
+  try {
+    const { error: sendError } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: "Reset your KIT password",
+      html: `
+        <div style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <p style="font-size: 20px; font-weight: 800; color: #1F2C4F; margin: 0 0 24px;">KIT</p>
+          <p style="font-size: 15px; color: #1F2C4F; line-height: 1.6;">Hi ${firstName},</p>
+          <p style="font-size: 15px; color: #1F2C4F; line-height: 1.6;">
+            Someone requested a password reset for your KIT teacher account.
+            If that was you, set a new password below.
+          </p>
+          <a href="${resetUrl}"
+             style="display: inline-block; margin: 20px 0; padding: 12px 24px;
+                    background: #1F2C4F; color: #fff; font-weight: 700;
+                    font-size: 14px; text-decoration: none; border-radius: 9px;">
+            Reset your password
+          </a>
+          <p style="font-size: 13px; color: #5d6781; line-height: 1.6;">
+            If you didn't request this, you can safely ignore this email —
+            your password won't change unless you click the link above.
+          </p>
+        </div>
+      `,
+    });
+
+    if (sendError) {
+      return { ok: false, error: `Reset link created, but the email failed to send: ${sendError.message}` };
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Reset link created, but the email failed to send: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Creates the teacher row, then generates the auth invite and sends
  * it via Resend — see sendTeacherInviteEmail above for why this isn't
  * a single inviteUserByEmail call.
