@@ -47,7 +47,7 @@ export default function TeacherLandingView({
       ) : (
         <div className="teacher-batch-grid">
           {batches.map((b) => (
-            <a key={b.id} className="teacher-batch-card" href={`/teacher/batch/${b.id}`}>
+            <a key={b.id} className="teacher-batch-card" href={`/teacher/batch/${b.id}/overview`}>
               <div className="teacher-batch-card-top">
                 <div>
                   <div className="teacher-batch-card-name">{b.cohort_label}</div>
