@@ -1,22 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Deliberately a SEPARATE page from /teacher/set-password, not a
- * shared "set a password" form used by both flows — Alfred's call.
- * The two are different moments (first-time onboarding vs. recovering
- * an existing account) and the copy doesn't fit both ("Welcome to
- * KIT" is wrong for a reset; "Reset your password" is wrong for a
- * first invite). Mechanically near-identical to SetPasswordForm.tsx
- * (same updateUser({ password }) call against the short-lived session
- * Supabase's recovery link creates) — the duplication is the two
- * headlines and subtitles, not meaningful logic.
+ * Deliberately a SEPARATE page from /teacher/set-password (Alfred's
+ * call) — different moment, different copy, mechanically near-
+ * identical otherwise.
+ *
+ * IMPORTANT — real bug found and fixed here: the client MUST be
+ * created ONCE on mount, not lazily inside submit() at click-time.
+ * Supabase's recovery/invite links deliver the session as a URL
+ * FRAGMENT (#access_token=...&type=recovery), which only exists in
+ * the browser and is only parsed into a real session when a Supabase
+ * client with detectSessionInUrl initializes WHILE that fragment is
+ * present. Creating the client inside the button handler meant this
+ * page never actually established a session — updateUser() was
+ * silently running against an anonymous client the whole time. That's
+ * why the earlier version showed a generic error with NOTHING in the
+ * console: there was no exception, just an auth call with no session
+ * behind it. Confirmed directly — localStorage had no sb- key present
+ * on this page, meaning the fragment was never consumed at all.
  */
 export default function ResetPasswordForm() {
   const router = useRouter();
+
+  const [supabase] = useState(() =>
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        auth: {
+          detectSessionInUrl: true,
+          persistSession: true,
+        },
+      }
+    )
+  );
+
+  const [ready, setReady] = useState(false);
+  const [sessionError, setSessionError] = useState(false);
+
+  useEffect(() => {
+    // getSession() forces the client to finish processing whatever was
+    // in the URL fragment before the form is usable — without waiting
+    // on this, a click could race ahead of the fragment being parsed.
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) {
+        console.error("reset-password: no session from recovery link", error);
+        setSessionError(true);
+      }
+      setReady(true);
+    });
+  }, [supabase]);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -36,21 +73,46 @@ export default function ResetPasswordForm() {
     setBusy(true);
     setError(null);
 
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    );
-
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
 
     if (error) {
-      setError("Couldn't reset your password. The link may have expired — request a new one from the login page.");
+      // Don't discard this — logging the real cause is what let us
+      // actually find this bug instead of guessing at "expired" a
+      // third time. Keep this console.error even after the fragment
+      // fix, for the next thing that goes wrong here.
+      console.error("resetPassword updateUser:", error.message, error);
+      setError("Couldn't reset your password. Try requesting a new link from the login page.");
       return;
     }
 
     router.push("/teacher");
     router.refresh();
+  }
+
+  if (!ready) {
+    return (
+      <main className="admin-login">
+        <div className="af">
+          <h2>Reset your password</h2>
+          <p className="af-sub">Loading…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <main className="admin-login">
+        <div className="af">
+          <h2>This link isn&apos;t valid</h2>
+          <p className="af-sub">
+            This reset link has already been used or has expired. Request a
+            new one from the login page.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
