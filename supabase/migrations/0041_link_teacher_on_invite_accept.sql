@@ -19,15 +19,22 @@
 -- which is what this migration actually fixes.
 --
 -- "Accepted" means auth.users.email_confirmed_at going from NULL to
--- NOT NULL, which is Supabase Auth's own signal that the invite flow
--- completed (password set via the invite link, or any other
--- confirmation path) — not "the auth.users row exists" (true from the
--- moment of invite, tells you nothing) and not something we can
--- reliably learn from the browser calling back to our own code, since
--- Supabase Auth's UI/flow runs outside anything a Server Action here
--- controls. A trigger on auth.users is the only point that's
--- guaranteed to fire exactly once, regardless of which path the
--- teacher took to confirm.
+-- NOT NULL — Supabase sets this the moment the invite LINK is
+-- verified (the browser lands on the redirectTo URL with a valid
+-- token), which happens slightly BEFORE the person has actually set
+-- a password on /teacher/set-password, not at the same instant. This
+-- still means what we want it to mean — "this identity is real and
+-- was reachable at that email" — but "accepted" here tracks link
+-- verification, not password creation specifically. teachers.active
+-- (0038) is the actual authorization gate regardless; user_id being
+-- set just means the person is who the invite was sent to, not that
+-- they've finished onboarding. Not "the auth.users row exists" (true
+-- from the moment of invite, tells you nothing) and not something we
+-- can reliably learn from the browser calling back to our own code,
+-- since Supabase Auth's own link-verification step runs before any
+-- of our application code executes. A trigger on auth.users is the
+-- only point guaranteed to fire exactly once, regardless of which
+-- path the teacher took to get there.
 
 create or replace function link_teacher_on_invite_accept()
 returns trigger

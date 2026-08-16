@@ -194,7 +194,7 @@ async function sendTeacherInviteEmail(
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email,
-    options: { redirectTo: `${siteUrl}/teacher/login` },
+    options: { redirectTo: `${siteUrl}/teacher/set-password` },
   });
 
   if (linkError || !linkData) {
