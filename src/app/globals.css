@@ -6298,3 +6298,240 @@ html {
   font-size: 11px;
 }
 .admin-row-test { background: #FCFBFF; }
+/* ============================================================
+   TEACHER PORTAL — shared shell + batch card
+   Namespaced separately from .admin-batch-* on purpose: that family
+   already carries admin-only assumptions (edit/delete, capacity
+   management) baked into sibling selectors. This shares tokens and
+   proportions with the admin system instead of classes, so a teacher
+   card reads as the same product without inheriting admin-only affordances.
+   ============================================================ */
+
+/* ── Shell: same rail-plus-main structure as admin, navy rail kept
+   identical so switching between an admin and teacher session (same
+   person, different tab) never feels like a different app. ── */
+
+.teacher-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--paper);
+}
+
+.teacher-rail {
+  flex: 0 0 250px;
+  width: 250px;
+  max-width: 250px;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 0 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.teacher-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 32px 36px 64px;
+  overflow-x: hidden;
+}
+
+/* ── Identity header — "Hello, {name}" + role, read-only in v1.
+   Deliberately plain, not a card: this is a greeting, not a data
+   surface, so it shouldn't compete visually with the batch grid
+   below it. Matches the restraint of .admin-head exactly. ── */
+
+.teacher-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.teacher-head-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--grad-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.teacher-head-text h1 {
+  font-size: 22px;
+  letter-spacing: -0.028em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.teacher-head-text p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Batch grid — same auto-fit/minmax reflow as .admin-stat-grid,
+   no hard breakpoints, wraps naturally at any viewport. ── */
+
+.teacher-batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── The card itself. Whole surface is one link — a card's entire
+   value over a table row is at-a-glance status before commitment,
+   so nothing inside should require a second click to just get in. ── */
+
+.teacher-batch-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.teacher-batch-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(31, 44, 79, 0.08);
+}
+
+.teacher-batch-card:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.teacher-batch-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.teacher-batch-card-name {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.teacher-batch-card-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* Programme tag reuses the exact prog-summer/prog-term colors already
+   established on the students page — same fact, same color, everywhere
+   it appears in the product. */
+.teacher-batch-card-top .admin-pill {
+  flex-shrink: 0;
+}
+
+.teacher-batch-card-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.teacher-batch-card-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Reuses .admin-live-dot exactly (imported by class name, not copied)
+   — one true definition of "what does live look like" in this product. */
+.teacher-batch-card-status .admin-live-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.teacher-batch-card-grading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  background: rgba(25, 153, 228, 0.1);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* No badge when count is 0 — same convention as the admin batch shell
+   header badge (doc 06 §IV): absence communicates "nothing waiting"
+   more clearly than a "0" ever could. */
+
+.teacher-batch-card-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.teacher-batch-card-foot svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.16s ease;
+}
+
+.teacher-batch-card:hover .teacher-batch-card-foot svg {
+  transform: translateX(3px);
+}
+
+/* ── Empty state: a freshly invited teacher with zero batches
+   assigned yet. This is a real, expected first state, not an error —
+   framed calmly, matches .admin-empty's tone exactly. ── */
+
+.teacher-empty {
+  padding: 48px 24px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.teacher-empty h2 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.teacher-empty p {
+  font-size: 13.5px;
+  color: var(--muted);
+  max-width: 380px;
+  margin: 0 auto;
+}

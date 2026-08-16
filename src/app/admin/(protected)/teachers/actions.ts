@@ -182,8 +182,12 @@ export type NewTeacherInput = {
  * everything, and a resend is one click away. The teacher row and the
  * auth invite link are the durable parts; the email is a delivery
  * attempt on top of them.
+ * Exported (not module-private) so teacher/login/actions.ts can reuse
+ * it for the public "send me a new invite link" flow — same email,
+ * same generateLink call, different caller and trust model (that one
+ * has no assertAdmin(), see its own file for why).
  */
-async function sendTeacherInviteEmail(
+export async function sendTeacherInviteEmail(
   email: string,
   name: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
