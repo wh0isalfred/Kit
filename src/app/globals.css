@@ -6535,3 +6535,95 @@ html {
   max-width: 380px;
   margin: 0 auto;
 }
+
+/* ============================================================
+   TEACHER — BATCH SHELL
+   Mirrors doc 06 §IV's admin batch shell in structure (back link,
+   name + seats header, tab row) — the concept doesn't change by
+   role, only the surrounding shell (.teacher-main, not .admin-main).
+   ============================================================ */
+
+.teacher-batch-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  margin-bottom: 18px;
+}
+
+.teacher-batch-back svg {
+  width: 15px;
+  height: 15px;
+}
+
+.teacher-batch-back:hover {
+  color: var(--ink);
+}
+
+.teacher-batch-shell-head {
+  margin-bottom: 20px;
+}
+
+.teacher-batch-shell-head h1 {
+  font-size: 22px;
+  letter-spacing: -0.028em;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.teacher-batch-shell-head p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.teacher-batch-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+
+.teacher-batch-tab {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+.teacher-batch-tab:hover {
+  color: var(--ink);
+}
+
+.teacher-batch-tab.on {
+  color: var(--navy);
+  border-bottom-color: var(--blue);
+}
+
+.teacher-batch-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+/* Inline success confirmation next to a save button — same
+   proportions as .af-submit-error, success tint instead. Was missing
+   before this build; .af-success exists but is a full-page-centered
+   state, wrong shape for "saved" next to a form. */
+.af-submit-success {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(37, 178, 144, 0.1);
+  color: #1c9f7f;
+  font-size: 14px;
+}
