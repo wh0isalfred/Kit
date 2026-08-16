@@ -8,17 +8,18 @@ import { createBrowserClient } from "@supabase/ssr";
  * Where the invite link's redirectTo actually points, instead of
  * Supabase's own default UI.
  *
- * CORRECTION: an earlier version of this comment claimed "no token
- * handling needed... Supabase's own client picks up the session from
- * the URL fragment automatically." That was wrong. detectSessionInUrl
- * has to be explicitly enabled, AND the client has to be created on
- * MOUNT — not lazily inside submit() at click-time, which is what
- * this file originally did. Found via the reset-password page hitting
- * the identical bug: no session ever got established, updateUser()
- * silently ran against an anonymous client, and the failure showed no
- * console error at all because there was no exception — just an auth
- * call with nothing behind it. Confirmed by checking localStorage for
- * a missing sb- key on page load. Applying the same fix here.
+ * ROOT CAUSE (found via ResetPasswordForm.tsx hitting the identical
+ * bug first — see that file's own comment for the full trace):
+ * @supabase/ssr's createBrowserClient hardcodes `flowType: "pkce"`,
+ * not overridable through options. But generateLink() (used
+ * server-side for both invite and recovery emails) produces classic
+ * IMPLICIT-flow links — a `#access_token=...` fragment, no `code`
+ * param. PKCE-configured detectSessionInUrl was never going to
+ * recognize that shape of response; it wasn't a race, an expired
+ * token, or a dropped fragment — it was looking for something that
+ * link format doesn't produce. Fixed by parsing the fragment
+ * ourselves and calling setSession() directly, which accepts a token
+ * pair regardless of the client's configured flowType.
  */
 export default function SetPasswordForm() {
   const router = useRouter();
@@ -26,13 +27,7 @@ export default function SetPasswordForm() {
   const [supabase] = useState(() =>
     createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        auth: {
-          detectSessionInUrl: true,
-          persistSession: true,
-        },
-      }
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
     )
   );
 
@@ -40,13 +35,37 @@ export default function SetPasswordForm() {
   const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error || !data.session) {
-        console.error("set-password: no session from invite link", error);
-        setSessionError(true);
-      }
+    const hash = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const params = new URLSearchParams(hash);
+
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
+
+    if (!accessToken || !refreshToken || type !== "invite") {
+      console.error("set-password: fragment missing expected invite tokens", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        type,
+      });
+      setSessionError(true);
       setReady(true);
-    });
+      return;
+    }
+
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          console.error("set-password: setSession failed", error);
+          setSessionError(true);
+        } else {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        setReady(true);
+      });
   }, [supabase]);
 
   const [password, setPassword] = useState("");

@@ -9,19 +9,28 @@ import { createBrowserClient } from "@supabase/ssr";
  * call) — different moment, different copy, mechanically near-
  * identical otherwise.
  *
- * IMPORTANT — real bug found and fixed here: the client MUST be
- * created ONCE on mount, not lazily inside submit() at click-time.
- * Supabase's recovery/invite links deliver the session as a URL
- * FRAGMENT (#access_token=...&type=recovery), which only exists in
- * the browser and is only parsed into a real session when a Supabase
- * client with detectSessionInUrl initializes WHILE that fragment is
- * present. Creating the client inside the button handler meant this
- * page never actually established a session — updateUser() was
- * silently running against an anonymous client the whole time. That's
- * why the earlier version showed a generic error with NOTHING in the
- * console: there was no exception, just an auth call with no session
- * behind it. Confirmed directly — localStorage had no sb- key present
- * on this page, meaning the fragment was never consumed at all.
+ * ROOT CAUSE, found by decoding a real token and reading
+ * @supabase/ssr's actual source (not assumed): createBrowserClient
+ * hardcodes `flowType: "pkce"` — unconditionally, not overridable via
+ * the options object, since it's applied AFTER any auth options this
+ * component passes in. PKCE expects a `?code=...` query param and a
+ * locally-stored code_verifier from when the flow was initiated. But
+ * supabase.auth.admin.generateLink() (used server-side to build the
+ * invite/reset email) produces a CLASSIC IMPLICIT-FLOW link instead —
+ * a `#access_token=...&refresh_token=...` fragment, no `code` param
+ * at all. The two flows are simply incompatible: the client was
+ * always going to see "no code param, nothing to do" and report
+ * INITIAL_SESSION with session: null — not an error, not a race, not
+ * an expired token. Confirmed directly: a decoded, unexpired,
+ * correctly-issued JWT was sitting right there in the URL the whole
+ * time; the client just wasn't looking for that shape of response.
+ *
+ * Fix: don't rely on detectSessionInUrl's automatic (PKCE-only)
+ * handling at all. Parse the fragment ourselves and hand the tokens
+ * straight to setSession() — this works with implicit-flow tokens
+ * regardless of what flowType the client is configured for, since
+ * setSession() just accepts a token pair directly rather than trying
+ * to exchange a PKCE code for one.
  */
 export default function ResetPasswordForm() {
   const router = useRouter();
@@ -29,13 +38,7 @@ export default function ResetPasswordForm() {
   const [supabase] = useState(() =>
     createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        auth: {
-          detectSessionInUrl: true,
-          persistSession: true,
-        },
-      }
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
     )
   );
 
@@ -43,50 +46,41 @@ export default function ResetPasswordForm() {
   const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
-    // TEMPORARY diagnostic — remove once this is confirmed working.
-    // Logs exactly what's present at mount time, since everything
-    // upstream (link, redirect, fragment, env vars) has already been
-    // individually confirmed correct and the failure is narrowed down
-    // to this client-side step specifically.
-    console.log("reset-password mount: location.hash present?", !!window.location.hash);
-    console.log("reset-password mount: hash length", window.location.hash.length);
+    const hash = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const params = new URLSearchParams(hash);
 
-    // Belt-and-suspenders: onAuthStateChange fires when the client's
-    // internal fragment processing completes, INCLUDING a possible
-    // PASSWORD_RECOVERY event specifically for recovery links — this
-    // does not race the same way a bare getSession() call immediately
-    // after construction theoretically could, since it's a subscription
-    // that fires whenever the session state actually changes, not a
-    // one-shot read of whatever's in memory right now.
-    let sessionFoundViaListener = false;
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("reset-password onAuthStateChange:", event, "session present?", !!session);
-      if (session) {
-        sessionFoundViaListener = true;
-        setReady(true);
-        setSessionError(false);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log("reset-password getSession result:", { hasSession: !!data.session, error: error?.message });
-      // Don't let a failed getSession() overwrite a session the
-      // listener above already found — getSession() is a one-shot
-      // read that could run before internal fragment processing
-      // finishes, while onAuthStateChange fires exactly when it does.
-      if (sessionFoundViaListener) return;
-
-      if (error || !data.session) {
-        console.error("reset-password: no session from recovery link", error);
-        setSessionError(true);
-      }
+    if (!accessToken || !refreshToken || type !== "recovery") {
+      console.error("reset-password: fragment missing expected recovery tokens", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        type,
+      });
+      setSessionError(true);
       setReady(true);
-    });
+      return;
+    }
 
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          console.error("reset-password: setSession failed", error);
+          setSessionError(true);
+        } else {
+          // Clean the token out of the URL now that it's been
+          // consumed into a real session — leaving it in the address
+          // bar is a needless exposure (browser history, screen
+          // shares, etc.) once it's no longer needed there.
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        setReady(true);
+      });
   }, [supabase]);
 
   const [password, setPassword] = useState("");
@@ -111,10 +105,8 @@ export default function ResetPasswordForm() {
     setBusy(false);
 
     if (error) {
-      // Don't discard this — logging the real cause is what let us
-      // actually find this bug instead of guessing at "expired" a
-      // third time. Keep this console.error even after the fragment
-      // fix, for the next thing that goes wrong here.
+      // Don't discard this — logging the real cause is what actually
+      // found the root bug here instead of guessing at "expired".
       console.error("resetPassword updateUser:", error.message, error);
       setError("Couldn't reset your password. Try requesting a new link from the login page.");
       return;
